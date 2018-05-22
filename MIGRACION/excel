@@ -1,0 +1,94 @@
+Sub AbrirTXT()
+    rutaarchivo = Application.GetOpenFilename( _
+            FileFilter:="Archivos de texto (*.txt), *.txt", _
+            Title:="Seleccione un resumen", _
+            MultiSelect:=False)
+    anombrearchivo = Split(rutaarchivo, "\")
+    nombrearchivo = anombrearchivo(UBound(anombrearchivo))
+    nombrearchivo = Replace(nombrearchivo, ".txt", "")
+    arreglo = Split(nombrearchivo, "-")
+    
+    Sheets("RESUMEN").Cells(5, "V") = arreglo(0)
+    Sheets("RESUMEN").Cells(3, "V") = CDate(Format(arreglo(2), "00/00/0000"))
+    Sheets("RESUMEN").Cells(2, "V") = arreglo(3)
+    
+    Open rutaarchivo For Input As #1
+    contenido = Input(LOF(1), #1)
+    linea = Split(contenido, Chr(13))
+    For i = 0 To UBound(linea) - 1
+        Valor = Split(linea(i), "|")
+        
+        Select Case Valor(0)
+            Case "1"
+                Sheets("RESUMEN").Cells(3 + i, "A") = "CONEXIÓN INTERNET"
+            Case "2"
+                Sheets("RESUMEN").Cells(3 + i, "A") = "FALLAS FLUIDO ELECTRICO"
+            Case "3"
+                Sheets("RESUMEN").Cells(3 + i, "A") = "DESASTRES NATURALES"
+            Case "4"
+                Sheets("RESUMEN").Cells(3 + i, "A") = "ROBO"
+            Case "5"
+                Sheets("RESUMEN").Cells(3 + i, "A") = "FALLAS EN EL SISTEMA DE EMISION ELECTRONICA"
+            Case "6"
+                Sheets("RESUMEN").Cells(3 + i, "A") = "VENTAS POR EMISORES ITINERANTES"
+            Case Else
+                Sheets("RESUMEN").Cells(3 + i, "A") = "OTROS"
+        End Select
+        Sheets("RESUMEN").Cells(3 + i, "B") = CDate(Valor(1))
+        Select Case Valor(2)
+            Case "01"
+                Sheets("RESUMEN").Cells(3 + i, "C") = "FACTURA"
+            Case "03"
+                Sheets("RESUMEN").Cells(3 + i, "C") = "BOLETA"
+            Case "07"
+                Sheets("RESUMEN").Cells(3 + i, "C") = "NOTA DE CREDITO"
+            Case "08"
+                Sheets("RESUMEN").Cells(3 + i, "C") = "NOTA DE DEBITO"
+            Case "12"
+                Sheets("RESUMEN").Cells(3 + i, "C") = "TICKET DE MAQUINA REGISTRADORA"
+        End Select
+        Sheets("RESUMEN").Cells(3 + i, "D") = Valor(3)
+        Sheets("RESUMEN").Cells(3 + i, "E") = Valor(4)
+        Sheets("RESUMEN").Cells(3 + i, "F") = Valor(5)
+        Select Case Valor(6)
+            Case "0"
+                Sheets("RESUMEN").Cells(3 + i, "G") = "SIN DOCUMENTO"
+            Case "1"
+                Sheets("RESUMEN").Cells(3 + i, "G") = "DNI"
+            Case "4"
+                Sheets("RESUMEN").Cells(3 + i, "G") = "CARNET DE EXTRANJERIA"
+            Case "6"
+                Sheets("RESUMEN").Cells(3 + i, "G") = "RUC"
+            Case "7"
+                Sheets("RESUMEN").Cells(3 + i, "G") = "PASAPORTE"
+            Case "A"
+                Sheets("RESUMEN").Cells(3 + i, "G") = "CEDULA DIPLOMATICA DE IDENTIDAD"
+        End Select
+        Sheets("RESUMEN").Cells(3 + i, "H") = Valor(7)
+        Sheets("RESUMEN").Cells(3 + i, "I") = Valor(8)
+        Sheets("RESUMEN").Cells(3 + i, "J") = Valor(9)
+        Sheets("RESUMEN").Cells(3 + i, "K") = Valor(10)
+        Sheets("RESUMEN").Cells(3 + i, "L") = Valor(11)
+        Sheets("RESUMEN").Cells(3 + i, "M") = Valor(12)
+        Sheets("RESUMEN").Cells(3 + i, "N") = Valor(13)
+        Sheets("RESUMEN").Cells(3 + i, "O") = Valor(14)
+        Sheets("RESUMEN").Cells(3 + i, "P") = Valor(15)
+        Select Case Valor(16)
+            Case "01"
+                Sheets("RESUMEN").Cells(3 + i, "Q") = "FACTURA"
+            Case "03"
+                Sheets("RESUMEN").Cells(3 + i, "Q") = "BOLETA"
+            Case "07"
+                Sheets("RESUMEN").Cells(3 + i, "Q") = "NOTA DE CREDITO"
+            Case "08"
+                Sheets("RESUMEN").Cells(3 + i, "Q") = "NOTA DE DEBITO"
+            Case "12"
+                Sheets("RESUMEN").Cells(3 + i, "Q") = "TICKET DE MAQUINA REGISTRADORA"
+        End Select
+        Sheets("RESUMEN").Cells(3 + i, "R") = Valor(17)
+        Sheets("RESUMEN").Cells(3 + i, "S") = Valor(18)
+    Next i
+    Close #1
+End Sub
+
+paleC0nsult0res
