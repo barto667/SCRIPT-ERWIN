@@ -29061,7 +29061,117 @@ BEGIN
 END
 GO
 
+-- --Metodo de exportacion
+-- IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento' AND type = 'P')
+-- DROP PROCEDURE USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento
+-- GO
+-- CREATE PROCEDURE USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento
+-- @NombreBD varchar(max),
+-- @LinkedServer varchar(max)
+-- AS
+-- BEGIN
+-- 	--Variables generales 
+-- 	DECLARE @cmd sysname
+-- 	--DECLARE @NombreBD VARCHAR(MAX)=(SELECT DISTINCT vce.BD_Remota FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
+-- 	--DECLARE @LinkedServer varchar(max)=(SELECT DISTINCT vce.Linked_Server FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
+-- 	--Recuperamos las variables principales
+-- 	DECLARE @Id varchar(max)
+-- 	DECLARE @Nombre_Tabla varchar(max) 
+-- 	DECLARE @Id_Fila varchar(max) 
+-- 	DECLARE @Accion varchar(max) 
+-- 	DECLARE @Script varchar(max) 
+-- 	DECLARE @Fecha_Reg datetime 
+-- 	--Recuperamos el primer objeto de la cola y almacenamos en las variables
+-- 	SELECT TOP 1
+-- 	    @Id=trl.Id, 
+-- 	    @Nombre_Tabla=trl.Nombre_Tabla, 
+-- 	    @Id_Fila=trl.Id_Fila, 
+-- 	    @Accion=trl.Accion, 
+-- 	    @Script=trl.Script, 
+-- 	    @Fecha_Reg=trl.Fecha_Reg 
+-- 	FROM dbo.TMP_REGISTRO_LOG trl
+-- 	ORDER BY trl.Id
+
+-- 	IF @Id IS NOT NULL
+-- 	BEGIN
+-- 		  ----Ejecutamos la sentencia
+-- 		  ----Si es exitosa entonces procedemos a eliminar el registro y almacenarlo en la tabla de historial
+-- 		  --BEGIN TRY
+-- 			 --BEGIN TRAN Transaccion
+-- 			 --EXECUTE(@Script)
+-- 			 --INSERT dbo.TMP_REGISTRO_LOG_H
+-- 			 --(
+-- 				--Id,
+-- 				--Nombre_Tabla,
+-- 				--Id_Fila,
+-- 				--Accion,
+-- 				--Script,
+-- 				--Fecha_Reg,
+-- 				--Fecha_Reg_Insercion
+-- 			 --)
+-- 			 --VALUES
+-- 			 --(
+-- 				--@Id, -- Id - uniqueidentifier
+-- 				--@Nombre_Tabla, -- Nombre_Tabla - varchar
+-- 				--@Id_Fila, -- Id_Fila - varchar
+-- 				--@Accion, -- Accion - varchar
+-- 				--@Script, -- Script - varchar
+-- 				--@Fecha_Reg, -- Fecha_Reg - datetime
+-- 				--GETDATE() -- Fecha_Reg_Insercion - datetime
+-- 			 --)
+-- 			 --DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
+-- 			 --COMMIT TRAN 
+-- 		  --END TRY
+-- 		  --BEGIN CATCH
+-- 			 --ROLLBACK TRAN
+-- 			 --THROW 
+-- 		  --END CATCH
+-- 		      SET XACT_ABORT ON;  
+-- 			 BEGIN TRY  
+-- 				SET @Script=@LinkedServer+'.'+@NombreBD+'.dbo.'+@Script
+-- 				EXECUTE(@Script) ;
+-- 				BEGIN TRANSACTION;  
+-- 				--EXECUTE(@Script) ;--ES NECESARIO ACTIVAR servicio distrinuido pero habilita rollbak desde el servidor
+-- 				INSERT dbo.TMP_REGISTRO_LOG_H
+-- 				(
+-- 				    Nombre_Tabla,
+-- 				    Id_Fila,
+-- 				    Accion,
+-- 				    Script,
+-- 				    Fecha_Reg,
+-- 				    Fecha_Reg_Insercion
+-- 				)
+-- 				VALUES
+-- 				(
+-- 				    @Nombre_Tabla, -- Nombre_Tabla - varchar
+-- 				    @Id_Fila, -- Id_Fila - varchar
+-- 				    @Accion, -- Accion - varchar
+-- 				    @Script, -- Script - varchar
+-- 				    @Fecha_Reg, -- Fecha_Reg - datetime
+-- 				    GETDATE() -- Fecha_Reg_Insercion - datetime
+-- 				)
+-- 				DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
+
+-- 				COMMIT TRANSACTION;
+-- 			 END TRY  
+      
+-- 			 BEGIN CATCH  
+-- 				IF (XACT_STATE()) = -1  
+-- 				BEGIN  
+-- 				    ROLLBACK TRANSACTION; 
+-- 				END;  
+-- 				IF (XACT_STATE()) = 1  
+-- 				BEGIN  
+-- 				    COMMIT TRANSACTION;    
+-- 				END;  
+-- 				THROW;
+-- 			 END CATCH;  
+-- 	END
+-- END
+-- GO
+
 --Metodo de exportacion
+--exec USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento 'PALERPpuquin','PALERPlink'
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento' AND type = 'P')
 DROP PROCEDURE USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento
 GO
@@ -29094,78 +29204,38 @@ BEGIN
 
 	IF @Id IS NOT NULL
 	BEGIN
-		  ----Ejecutamos la sentencia
-		  ----Si es exitosa entonces procedemos a eliminar el registro y almacenarlo en la tabla de historial
-		  --BEGIN TRY
-			 --BEGIN TRAN Transaccion
-			 --EXECUTE(@Script)
-			 --INSERT dbo.TMP_REGISTRO_LOG_H
-			 --(
-				--Id,
-				--Nombre_Tabla,
-				--Id_Fila,
-				--Accion,
-				--Script,
-				--Fecha_Reg,
-				--Fecha_Reg_Insercion
-			 --)
-			 --VALUES
-			 --(
-				--@Id, -- Id - uniqueidentifier
-				--@Nombre_Tabla, -- Nombre_Tabla - varchar
-				--@Id_Fila, -- Id_Fila - varchar
-				--@Accion, -- Accion - varchar
-				--@Script, -- Script - varchar
-				--@Fecha_Reg, -- Fecha_Reg - datetime
-				--GETDATE() -- Fecha_Reg_Insercion - datetime
-			 --)
-			 --DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
-			 --COMMIT TRAN 
-		  --END TRY
-		  --BEGIN CATCH
-			 --ROLLBACK TRAN
-			 --THROW 
-		  --END CATCH
-		      SET XACT_ABORT ON;  
-			 BEGIN TRY  
-				SET @Script=@LinkedServer+'.'+@NombreBD+'.dbo.'+@Script
-				EXECUTE(@Script) ;
-				BEGIN TRANSACTION;  
-				--EXECUTE(@Script) ;--ES NECESARIO ACTIVAR servicio distrinuido pero habilita rollbak desde el servidor
-				INSERT dbo.TMP_REGISTRO_LOG_H
-				(
-				    Nombre_Tabla,
-				    Id_Fila,
-				    Accion,
-				    Script,
-				    Fecha_Reg,
-				    Fecha_Reg_Insercion
-				)
-				VALUES
-				(
-				    @Nombre_Tabla, -- Nombre_Tabla - varchar
-				    @Id_Fila, -- Id_Fila - varchar
-				    @Accion, -- Accion - varchar
-				    @Script, -- Script - varchar
-				    @Fecha_Reg, -- Fecha_Reg - datetime
-				    GETDATE() -- Fecha_Reg_Insercion - datetime
-				)
-				DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
+	   BEGIN TRY  
+			 SET @Script=@LinkedServer+'.'+@NombreBD+'.dbo.'+@Script
+			 EXECUTE(@Script) ;
+			 BEGIN TRANSACTION;  
+			 INSERT dbo.TMP_REGISTRO_LOG_H
+			 (
+				Nombre_Tabla,
+				Id_Fila,
+				Accion,
+				Script,
+				Fecha_Reg,
+				Fecha_Reg_Insercion
+			 )
+			 VALUES
+			 (
+				@Nombre_Tabla, -- Nombre_Tabla - varchar
+				@Id_Fila, -- Id_Fila - varchar
+				@Accion, -- Accion - varchar
+				@Script, -- Script - varchar
+				@Fecha_Reg, -- Fecha_Reg - datetime
+				GETDATE() -- Fecha_Reg_Insercion - datetime
+			 )
+			 DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
 
-				COMMIT TRANSACTION;
-			 END TRY  
+			 COMMIT TRANSACTION;
+		  END TRY  
       
-			 BEGIN CATCH  
-				IF (XACT_STATE()) = -1  
-				BEGIN  
-				    ROLLBACK TRANSACTION; 
-				END;  
-				IF (XACT_STATE()) = 1  
-				BEGIN  
-				    COMMIT TRANSACTION;    
-				END;  
-				THROW;
-			 END CATCH;  
+		  BEGIN CATCH  
+			 DECLARE @ErrorMessage NVARCHAR(4000);  
+			 SELECT  @ErrorMessage = CONCAT('Ocurrio un error en : ', @Nombre_Tabla,CHAR(13),CHAR(10) )  + ERROR_MESSAGE() 
+			 RAISERROR(@ErrorMessage,16,1)
+		  END CATCH;  
 	END
 END
 GO
