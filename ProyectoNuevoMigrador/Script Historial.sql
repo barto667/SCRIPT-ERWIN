@@ -680,6 +680,7 @@ GO
 CREATE PROCEDURE USP_VIS_MESA_EliminarItemComanda
 	@Id_ComprobantePago int,
 	@Id_Detalle int,
+	@Justificacion varchar(max),
 	@Cod_Usuario varchar(max)
   WITH ENCRYPTION
 AS
@@ -711,6 +712,8 @@ BEGIN
 		  END
 
 	   END
+	   --Introducimos la justificacion
+
 	   COMMIT TRANSACTION;
     END TRY  
       

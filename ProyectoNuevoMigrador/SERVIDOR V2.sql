@@ -3644,6 +3644,115 @@ BEGIN
 END
 go
 
+
+
+----------------------------------------------------------------------------------------
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_TMP_REGISTRO_LOG_TraerTodo' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_TMP_REGISTRO_LOG_TraerTodo
+GO
+
+CREATE PROCEDURE USP_TMP_REGISTRO_LOG_TraerTodo
+WITH ENCRYPTION
+AS
+BEGIN
+	SELECT trl.* FROM dbo.TMP_REGISTRO_LOG trl ORDER BY trl.Id
+END
+GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_TMP_REGISTRO_LOG_MoverUno' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_TMP_REGISTRO_LOG_MoverUno
+GO
+
+CREATE PROCEDURE USP_TMP_REGISTRO_LOG_MoverUno
+@Id varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+    --Exporta una fila a un archivo de texto
+    --Variables generales 
+	DECLARE @cmd varchar(max)
+	DECLARE @Nombre_Tabla varchar(max) 
+	DECLARE @Id_Fila varchar(max) 
+	DECLARE @Accion varchar(max) 
+	DECLARE @Script varchar(max) 
+	DECLARE @Fecha_Reg datetime 
+	--Recuperamos el y almacenamos en las variables
+	SELECT 
+	    @Id=trl.Id, 
+	    @Nombre_Tabla=trl.Nombre_Tabla, 
+	    @Id_Fila=trl.Id_Fila, 
+	    @Accion=trl.Accion, 
+	    @Script=trl.Script, 
+	    @Fecha_Reg=trl.Fecha_Reg 
+	FROM dbo.TMP_REGISTRO_LOG trl
+	WHERE trl.Id=@Id
+
+	IF @Id IS NOT NULL
+	BEGIN
+		  
+		      SET XACT_ABORT ON;  
+			 BEGIN TRY  
+			 BEGIN TRANSACTION;  
+			 INSERT dbo.TMP_REGISTRO_LOG_H
+			 (
+				Nombre_Tabla,
+				Id_Fila,
+				Accion,
+				Script,
+				Fecha_Reg,
+				Fecha_Reg_Insercion
+			 )
+			 VALUES
+			 (
+				@Nombre_Tabla, -- Nombre_Tabla - varchar
+				@Id_Fila, -- Id_Fila - varchar
+				@Accion, -- Accion - varchar
+				@Script, -- Script - varchar
+				@Fecha_Reg, -- Fecha_Reg - datetime
+				GETDATE() -- Fecha_Reg_Insercion - datetime
+			 )
+			 DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
+
+			 COMMIT TRANSACTION;
+		  END TRY  
+      
+		  BEGIN CATCH  
+			 IF (XACT_STATE()) = -1  
+			 BEGIN  
+				ROLLBACK TRANSACTION; 
+			 END;  
+			 IF (XACT_STATE()) = 1  
+			 BEGIN  
+				COMMIT TRANSACTION;    
+			 END;  
+			 THROW;
+		  END CATCH;  
+	END
+END
+
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_ObtenerDatos_Servidor' AND type = 'P')
+DROP PROCEDURE USP_ObtenerDatos_Servidor
+go
+CREATE PROCEDURE USP_ObtenerDatos_Servidor
+
+WITH ENCRYPTION
+AS
+BEGIN
+    SELECT @@SERVERNAME AS 'SERVIDOR',@@SPID AS 'ID',SYSTEM_USER AS 'LOGIN',USER AS 'USER', @@LANGUAGE AS 'LENGUAJE',@@REMSERVER  AS 'SERVIDOR_BASE',@@VERSION AS 'VERSION_SQL',DB_NAME() AS 'NOMBRE_BD'
+END
+GO
 -- --------------------------------------------------------------------------------------------------------------
 -- -- AUTOR: REYBER PALMA
 -- -- FECHA: 06/02/2017
