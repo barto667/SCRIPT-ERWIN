@@ -1150,3 +1150,246 @@ AS
          WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago = @Id_Comprobante_Pago;
      END;
 GO
+
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_PRI_PRODUCTOS_TraerAlmacenesXId' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_PRI_PRODUCTOS_TraerAlmacenesXId
+GO
+
+CREATE PROCEDURE USP_PRI_PRODUCTOS_TraerAlmacenesXId
+	@Id_Producto int
+WITH ENCRYPTION
+AS
+	SELECT pps.Cod_Almacen,pp.Cod_TipoOperatividad,pps.Cod_UnidadMedida FROM dbo.PRI_PRODUCTOS pp INNER JOIN dbo.PRI_PRODUCTO_STOCK pps ON pp.Id_Producto = pps.Id_Producto
+	WHERE pps.Id_Producto=@Id_Producto
+GO
+
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_TraerXCodLibro_CodTipo_Serie_Numero' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_TraerXCodLibro_CodTipo_Serie_Numero
+GO
+
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_TraerXCodLibro_CodTipo_Serie_Numero
+@Cod_Libro varchar(10),
+@Cod_TipoComprobante varchar(10),
+@Serie varchar(10),
+@Numero varchar(10)
+WITH ENCRYPTION
+AS
+BEGIN
+	SELECT ccp.* FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_Libro=@Cod_Libro AND ccp.Cod_TipoComprobante=@Cod_TipoComprobante AND ccp.Serie=@Serie AND ccp.Numero=@Numero
+END
+GO
+
+
+USE [PALERPmisky]
+GO
+/****** Object:  StoredProcedure [dbo].[USP_CAJ_COMPROBANTE_PAGO_G_Comanda]    Script Date: 7/06/2018 16:53:13 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[USP_CAJ_COMPROBANTE_PAGO_G_Comanda] 
+@Numero	varchar(30), 
+@Nom_Cliente	varchar(512), 	
+@Cod_Moneda	varchar(3), 	
+@Total	numeric(38,2),
+@Cod_Usuario Varchar(32) = 'COMANDERO'	
+ 
+AS
+BEGIN
+
+DECLARE @id_ComprobantePago int = 0,
+@Cod_Libro	varchar(2) = '14',  
+@FechaEmision	datetime = getdate(), 
+@Cod_Periodo	varchar =  '', 
+@Cod_Caja	varchar(32) = NULL, 
+@Cod_Turno	varchar(32) = NULL, 
+@Cod_TipoOperacion	varchar(5) = '01', 
+@Cod_TipoComprobante	varchar(5) = 'CO', 
+@Serie	varchar(5) = '0000', 	 
+@Id_Cliente	int = 0, 
+@Cod_TipoDoc	varchar(2) = '0', 
+@Doc_Cliente	varchar(20) = '', 
+@Direccion_Cliente	varchar(512) = '', 	
+@FechaVencimiento	datetime = getdate(), 
+@FechaCancelacion	datetime = getdate(), 
+@Glosa	varchar(512) = 'COMANDA', 
+@TipoCambio	numeric(10,4) = 1, 
+@Flag_Anulado	bit = 0, 
+@Flag_Despachado	bit = 0, 
+@Cod_FormaPago	varchar(5) = '004', 
+@Descuento_Total	numeric(38,2) = 0.00, 
+@Impuesto	numeric(38,6) = 0.00, 
+@Obs_Comprobante	xml = NULL, 
+@Id_GuiaRemision	int = 0, 
+@GuiaRemision	varchar(50) = '', 
+@id_ComprobanteRef	int = 0, 
+@Cod_Plantilla	varchar(32) = '', 
+@Nro_Ticketera	varchar(64) = '', 
+@Cod_UsuarioVendedor	varchar(32) = '', 
+@Cod_RegimenPercepcion	varchar = NULL, 
+@Tasa_Percepcion	numeric(38,2) = 0.00, 
+@Placa_Vehiculo	varchar(64) = '', 
+@Cod_TipoDocReferencia	varchar = NULL, 
+@Nro_DocReferencia	varchar(64) = '', 
+@Valor_Resumen	varchar(1024) = NULL, 
+@Valor_Firma	varchar(2048) = NULL, 
+@Cod_EstadoComprobante	varchar = 'INI', 
+@MotivoAnulacion	varchar(512) = '', 
+@Otros_Cargos	numeric(38,2) = 0.00, 
+@Otros_Tributos	numeric(38,2) = 0.00
+
+-- recuperar el cliente
+IF @Nom_Cliente = ''
+BEGIN
+-- SELECIONAR CLIENTES VARIOS
+SET @Id_Cliente = (SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR WHERE Cliente = 'CLIENTES VARIOS')
+SET @Doc_Cliente = (SELECT TOP 1 Nro_Documento FROM PRI_CLIENTE_PROVEEDOR WHERE Cliente = 'CLIENTES VARIOS')
+SET @Direccion_Cliente = (SELECT TOP 1 Direccion FROM PRI_CLIENTE_PROVEEDOR WHERE Cliente = 'CLIENTES VARIOS')
+SET @Nom_Cliente = 'CLIENTES VARIOS'
+SET @GuiaRemision = 'MANUAL'
+END
+ELSE
+BEGIN	
+IF (EXISTS(SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR WHERE Cliente = @Nom_Cliente))
+BEGIN
+SET @Id_Cliente = (SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR WHERE Cliente = @Nom_Cliente)
+SET @Doc_Cliente = (SELECT TOP 1 Nro_Documento FROM PRI_CLIENTE_PROVEEDOR WHERE Cliente = @Nom_Cliente)
+SET @Direccion_Cliente = (SELECT TOP 1 Direccion FROM PRI_CLIENTE_PROVEEDOR WHERE Cliente = @Nom_Cliente)	
+SET @GuiaRemision = 'AUTOMATICO'
+END	
+END
+
+IF CONVERT(NVARCHAR(MAX),ISNULL(@Obs_Comprobante,'')) = ''
+BEGIN
+SET @Obs_Comprobante = dbo.UFN_VIS_DIAGRAMAS_XML_XTabla('CAJ_COMPROBANTE_PAGO');
+END
+
+IF (@Numero = '' and @Cod_Libro = '14')
+begin
+set @Numero = (SELECT RIGHT('00000000'+CONVERT( varchar(38), ISNULL(CONVERT(BIGint,MAX(Numero)),0)+1), 8) 
+FROM CAJ_COMPROBANTE_PAGO 
+WHERE Cod_TipoComprobante = @Cod_TipoComprobante and Serie=@Serie and Cod_Libro = @Cod_Libro );
+end
+
+SET @id_ComprobantePago = 0;
+
+SET @id_ComprobantePago =isnull(( SELECT top 1 ISNULL(id_ComprobantePago,0) FROM CAJ_COMPROBANTE_PAGO WHERE  (Cod_Libro = @Cod_Libro 
+AND Cod_TipoComprobante = @Cod_TipoComprobante AND Serie = @Serie AND Numero = @Numero)),0)
+
+IF @id_ComprobantePago = 0
+BEGIN	
+INSERT INTO CAJ_COMPROBANTE_PAGO  VALUES (
+@Cod_Libro,
+@Cod_Periodo,
+@Cod_Caja,
+@Cod_Turno,
+@Cod_TipoOperacion,
+@Cod_TipoComprobante,
+@Serie,
+@Numero,
+@Id_Cliente,
+@Cod_TipoDoc,
+@Doc_Cliente,
+@Nom_Cliente,
+@Direccion_Cliente,
+@FechaEmision,
+@FechaVencimiento,
+@FechaCancelacion,
+@Glosa,
+@TipoCambio,
+@Flag_Anulado,
+@Flag_Despachado,
+@Cod_FormaPago,
+@Descuento_Total,
+@Cod_Moneda,
+@Impuesto,
+@Total,
+@Obs_Comprobante,
+@Id_GuiaRemision,
+@GuiaRemision,
+@id_ComprobanteRef,
+@Cod_Plantilla,
+@Nro_Ticketera,
+@Cod_UsuarioVendedor,
+@Cod_RegimenPercepcion,
+@Tasa_Percepcion,
+@Placa_Vehiculo,
+@Cod_TipoDocReferencia,
+@Nro_DocReferencia,
+@Valor_Resumen,
+@Valor_Firma,
+@Cod_EstadoComprobante,
+@MotivoAnulacion,
+@Otros_Cargos,
+@Otros_Tributos,
+@Cod_Usuario,GETDATE(),@Cod_Usuario,NULL)
+SET @id_ComprobantePago = @@IDENTITY 
+END
+ELSE
+BEGIN
+
+DELETE FROM CAJ_COMPROBANTE_D WHERE @id_ComprobantePago = @id_ComprobantePago AND Cod_TipoISC = 'PENDI'
+
+UPDATE CAJ_COMPROBANTE_PAGO
+SET	
+Cod_Libro = @Cod_Libro, 
+Cod_Periodo = @Cod_Periodo, 
+Cod_Caja = @Cod_Caja, 
+Cod_Turno = @Cod_Turno, 
+Cod_TipoOperacion = @Cod_TipoOperacion, 
+Cod_TipoComprobante = @Cod_TipoComprobante, 
+Serie = @Serie, 
+Numero = @Numero, 
+Id_Cliente = @Id_Cliente, 
+Cod_TipoDoc = @Cod_TipoDoc, 
+Doc_Cliente = @Doc_Cliente, 
+Nom_Cliente = @Nom_Cliente, 
+Direccion_Cliente = @Direccion_Cliente, 
+FechaEmision = @FechaEmision, 
+FechaVencimiento = @FechaVencimiento, 
+FechaCancelacion = @FechaCancelacion, 
+Glosa = @Glosa, 
+TipoCambio = @TipoCambio, 
+Flag_Anulado = @Flag_Anulado, 
+Flag_Despachado = @Flag_Despachado, 
+Cod_FormaPago = @Cod_FormaPago, 
+Descuento_Total = @Descuento_Total, 
+Cod_Moneda = @Cod_Moneda, 
+Impuesto = @Impuesto, 
+Total = @Total, 
+Obs_Comprobante = @Obs_Comprobante, 
+Id_GuiaRemision = @Id_GuiaRemision, 
+GuiaRemision = @GuiaRemision, 
+id_ComprobanteRef = @id_ComprobanteRef, 
+Cod_Plantilla = @Cod_Plantilla, 
+Nro_Ticketera = @Nro_Ticketera, 	
+Cod_RegimenPercepcion = @Cod_RegimenPercepcion, 
+Tasa_Percepcion = @Tasa_Percepcion, 
+Placa_Vehiculo = @Placa_Vehiculo, 
+Cod_TipoDocReferencia = @Cod_TipoDocReferencia, 
+Nro_DocReferencia = @Nro_DocReferencia, 
+Valor_Resumen = @Valor_Resumen, 
+Valor_Firma = @Valor_Firma, 
+Cod_EstadoComprobante = @Cod_EstadoComprobante, 
+MotivoAnulacion = @MotivoAnulacion, 
+Otros_Cargos = @Otros_Cargos, 
+Otros_Tributos = @Otros_Tributos,
+Cod_UsuarioAct = @Cod_Usuario, 
+Fecha_Act = GETDATE()
+WHERE (id_ComprobantePago = @id_ComprobantePago)	
+END
+SELECT @Numero as Numero
+END
+
