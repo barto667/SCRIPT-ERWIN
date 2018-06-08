@@ -1192,20 +1192,23 @@ END
 GO
 
 
-USE [PALERPmisky]
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_G_Comanda' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_G_Comanda
 GO
-/****** Object:  StoredProcedure [dbo].[USP_CAJ_COMPROBANTE_PAGO_G_Comanda]    Script Date: 7/06/2018 16:53:13 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-ALTER PROCEDURE [dbo].[USP_CAJ_COMPROBANTE_PAGO_G_Comanda] 
+
+CREATE PROCEDURE [dbo].[USP_CAJ_COMPROBANTE_PAGO_G_Comanda] 
 @Numero	varchar(30), 
 @Nom_Cliente	varchar(512), 	
 @Cod_Moneda	varchar(3), 	
 @Total	numeric(38,2),
 @Cod_Usuario Varchar(32) = 'COMANDERO'	
- 
+
+WITH ENCRYPTION
 AS
 BEGIN
 
