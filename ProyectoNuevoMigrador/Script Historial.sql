@@ -1396,3 +1396,98 @@ END
 SELECT @Numero as Numero
 END
 
+GO
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'URP_CAJ_COMPROBANTEPAGO_TraerOrdenComandaImpresion' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE URP_CAJ_COMPROBANTEPAGO_TraerOrdenComandaImpresion
+GO
+
+CREATE PROCEDURE URP_CAJ_COMPROBANTEPAGO_TraerOrdenComandaImpresion
+	@Id_ComprobantePago int,
+	@CodAlmacen  varchar(5)
+AS
+BEGIN
+    WITH	 PRIMERORDEN(id_Detalle,Padre,Cod_Manguera,Numero,Cod_UsuarioReg,FechaEmision,Cantidad,Descripcion,Nivel)
+    AS 
+    (
+	   SELECT ccd.id_Detalle,CONVERT(int,ccd.IGV) Grupo,ccd.Cod_Manguera,ccp.Numero,ccp.Cod_UsuarioReg,ccp.FechaEmision,ccd.Cantidad,ccd.Descripcion, 0 Nivel
+	   FROM dbo.CAJ_COMPROBANTE_PAGO ccp INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+	   WHERE (ccp.id_ComprobantePago=@Id_ComprobantePago
+	   AND ccd.Cod_Almacen=@CodAlmacen AND ccd.IGV=0)
+	   UNION ALL
+	   SELECT ccd.id_Detalle, CONVERT(int,ccd.IGV) Grupo,ccd.Cod_Manguera,res.Numero,res.Cod_UsuarioReg,res.FechaEmision,ccd.Cantidad,ccd.Descripcion, Nivel + 1  Nivel
+	   FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN PRIMERORDEN res ON res.id_Detalle = ccd.IGV
+	   WHERE ccd.id_ComprobantePago=@Id_ComprobantePago
+    )
+    SELECT CASE WHEN p.Padre=0 THEN CONCAT(p.id_Detalle,'0') ELSE CONCAT(p.Padre,p.id_Detalle) END Orden, p.id_Detalle, p.Padre, p.Cod_Manguera Cod_Mesa,vm.Nom_Mesa, p.Numero, p.Cod_UsuarioReg, p.FechaEmision, 
+    CASE WHEN p.Nivel=0 THEN p.Cantidad ELSE NULL END Cantidad_Principal, 
+    CASE WHEN p.Nivel=0 THEN NULL ELSE p.Cantidad END Cantidad_Auxiliar,
+    p.Descripcion, p.Nivel 
+    FROM PRIMERORDEN p INNER JOIN dbo.VIS_MESAS vm ON p.Cod_Manguera=vm.Cod_Mesa
+    ORDER BY Orden
+END
+GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_VIS_MESAS_TraerImpresorasDeAlmacenes' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_VIS_MESAS_TraerImpresorasDeAlmacenes
+GO
+
+CREATE PROCEDURE USP_VIS_MESAS_TraerImpresorasDeAlmacenes
+WITH ENCRYPTION
+AS
+	SELECT DISTINCT vai.* FROM dbo.VIS_ALMACEN_IMPRESORA vai WHERE vai.Estado=1
+GO
+
+--Exec URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda 4170
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda
+GO
+
+CREATE PROCEDURE URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda
+	@Id_ComprobanteComanda int
+WITH ENCRYPTION
+AS
+BEGIN
+    WITH	 PRIMERORDEN(id_Detalle,Padre,Cod_Manguera,Numero,Cod_UsuarioReg,FechaEmision,Cantidad,Descripcion,Nivel)
+    AS 
+    (
+	   SELECT ccd.id_Detalle,CONVERT(int,ccd.IGV) Grupo,ccd.Cod_Manguera,ccp.Numero,ccp.Cod_UsuarioReg,ccp.FechaEmision,ccd.Cantidad,ccd.Descripcion, 0 Nivel
+	   FROM dbo.CAJ_COMPROBANTE_PAGO ccp INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+	   WHERE (ccp.id_ComprobantePago=@Id_ComprobanteComanda
+	   AND ccd.IGV=0)
+	   UNION ALL
+	   SELECT ccd.id_Detalle, CONVERT(int,ccd.IGV) Grupo,ccd.Cod_Manguera,res.Numero,res.Cod_UsuarioReg,res.FechaEmision,ccd.Cantidad,ccd.Descripcion, Nivel + 1  Nivel
+	   FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN PRIMERORDEN res ON res.id_Detalle = ccd.IGV
+	   WHERE ccd.id_ComprobantePago=@Id_ComprobanteComanda
+    )
+    SELECT pe.RUC,pe.Nom_Comercial,pe.RazonSocial,pe.Direccion, pe.Web,
+    vtc.Nom_TipoComprobante,
+    CASE WHEN p.Padre=0 THEN CONCAT(p.id_Detalle,'0') ELSE CONCAT(p.Padre,p.id_Detalle) END Orden, 
+    p.id_Detalle, p.Padre, p.Cod_Manguera Cod_Mesa,vm.Nom_Mesa, p.Numero, p.Cod_UsuarioReg, p.FechaEmision, 
+    CASE WHEN p.Nivel=0 THEN p.Cantidad ELSE NULL END Cantidad_Principal, 
+    CASE WHEN p.Nivel=0 THEN NULL ELSE p.Cantidad END Cantidad_Auxiliar,
+    p.Descripcion,ccd.PrecioUnitario,ccd.Sub_Total,ccp.Total,ccp.Cod_UsuarioVendedor, p.Nivel 
+    FROM PRIMERORDEN p INNER JOIN dbo.VIS_MESAS vm ON p.Cod_Manguera=vm.Cod_Mesa
+    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON @Id_ComprobanteComanda=ccp.id_ComprobantePago
+    INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON ccp.Cod_TipoComprobante = vtc.Cod_TipoComprobante
+    INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago AND p.id_Detalle=ccd.id_Detalle
+    CROSS JOIN dbo.PRI_EMPRESA pe
+    ORDER BY Orden
+END
+GO
+
+

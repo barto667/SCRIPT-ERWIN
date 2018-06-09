@@ -1270,4 +1270,75 @@ BEGIN
 END
 go
 
+-- DECLARE @Id_ComprobantePago int = 4161
+-- DECLARE @CodAlmacen varchar(5)='A103'
+-- --Traemos los maestros
+-- SELECT ccd.Cod_Manguera,ccp.Numero,ccp.Cod_UsuarioReg,ccp.FechaEmision,ccd.Cantidad,ccd.Descripcion,
+-- CONVERT(bit, 1) Maestro FROM dbo.CAJ_COMPROBANTE_PAGO ccp 
+-- INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+-- WHERE (ccp.id_ComprobantePago=@Id_ComprobantePago
+-- AND ccd.Cod_Almacen=@CodAlmacen)
+-- UNION
+-- --Trameos los detalles 
+-- SELECT ccd.Cod_Manguera,ccp.Numero,ccp.Cod_UsuarioReg,ccp.FechaEmision,ccd.Cantidad,ccd.Descripcion,
+-- CONVERT(bit, 1) Maestro FROM dbo.CAJ_COMPROBANTE_PAGO ccp 
+-- INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+-- WHERE (ccp.id_ComprobantePago=@Id_ComprobantePago
+-- AND ccd.Cod_Almacen=@CodAlmacen)
+
+
+
+
+
+-- DECLARE @FechaEmision datetime=GETDATE()
+-- DECLARE @CodLibro varchar(3) = '14'
+-- DECLARE @Motivo varchar(max) = 'OTROS'
+
+-- --Motivos
+-- --CONEXIÓN INTERNET 1
+-- --FALLAS FLUIDO ELECTRICO 2
+-- --DESASTRES NATURALES 3
+-- --ROBO 4
+-- --FALLAS EN EL SISTEMA DE EMISION ELECTRONICA 5
+-- --VENTAS POR EMISORES ITINERANTES 6
+-- --OTROS 7
+
+-- SET @Motivo = UPPER(@Motivo)
+-- SELECT 
+-- CASE WHEN @Motivo='CONEXIÓN INTERNET' OR @Motivo='CONEXION INTERNET' THEN 1
+-- WHEN @Motivo='FALLAS FLUIDO ELECTRICO' THEN 2
+-- WHEN @Motivo='DESASTRES NATURALES' THEN 3
+-- WHEN @Motivo='ROBO' THEN 4
+-- WHEN @Motivo='FALLAS EN EL SISTEMA DE EMISION ELECTRONICA' THEN 5
+-- WHEN @Motivo='VENTAS POR EMISORES ITINERANTES' THEN 6
+-- ELSE '7' END Motivo,
+-- CASE WHEN ccp.Cod_TipoOperacion = '01' THEN '01'
+-- WHEN ccp.Cod_TipoOperacion = '04' THEN '02' END TipoOperacion, --Venta/interna exportacion
+-- CONVERT(VARCHAR(10), ccp.FechaEmision, 103) FechaEmision,
+-- CASE WHEN ccp.Cod_TipoComprobante = 'FA' THEN '01'
+-- WHEN ccp.Cod_TipoComprobante = 'BO' THEN '03'
+-- WHEN ccp.Cod_TipoComprobante = 'NC' THEN '07'
+-- WHEN ccp.Cod_TipoComprobante = 'ND' THEN '08'
+-- WHEN ccp.Cod_TipoComprobante = 'TKB' OR ccp.Cod_TipoComprobante = 'TKF' THEN '12' END TipoComprobante,
+-- ccp.Serie,
+-- ccp.Numero,
+-- '' FinalRango,--Final rango ticket
+-- CASE WHEN ccp.Cod_TipoDoc='99' THEN '0'
+-- ELSE ccp.Cod_TipoDoc END CodTipoDocumento,--Tipo de documento del cliente
+-- RIGHT('00000000' + LTRIM(RTRIM(ccp.Doc_Cliente)),8) DocCliente,
+-- SUBSTRING(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(UPPER(ccp.Nom_Cliente),CHAR(39),''),CHAR(10),''),CHAR(13),''), 'Á' , 'A') , 'É','E') ,'Í','I') ,'Ó','O' ) ,'Ú','U'),'Ñ','NI'),'Ü','U'),0,60) NomCliente,
+-- ccp.Cod_Moneda,
+-- ROUND(ABS(SUM(CASE WHEN ccd.Cod_TipoIGV IN ('10','17') THEN (ccd.Cantidad*ccd.PrecioUnitario)-((ccd.Cantidad*ccd.PrecioUnitario*ccd.Porcentaje_IGV)/(ccd.Porcentaje_IGV+100))-((ccd.Cantidad*ccd.PrecioUnitario*ccd.Porcentaje_ISC)/(ccd.Porcentaje_ISC+100)) ELSE 0 END)),2) AS SumaGravadas,
+-- ROUND(ABS(SUM(CASE WHEN ccd.Cod_TipoIGV IN ('20') THEN (ccd.Cantidad*ccd.PrecioUnitario) ELSE 0 END)),2) AS SumaExoneradas
+
+-- FROM dbo.CAJ_COMPROBANTE_PAGO ccp 
+-- INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+-- GROUP BY ccp.Cod_TipoOperacion,ccp.Cod_TipoComprobante,ccp.Serie,ccp.Numero,ccp.Cod_TipoDoc,ccp.Doc_Cliente,ccp.Nom_Cliente,ccp.Cod_Moneda,ccp.FechaEmision
+-- --WHERE 
+-- --CONVERT(VARCHAR(10), ccp.FechaEmision, 103)=CONVERT(VARCHAR(10), @FechaEmision, 103)
+-- --AND ccp.Cod_Libro=@CodLibro
+-- --AND ccp.Flag_Anulado=0
+-- --AND ccp.Cod_TipoComprobante IN ('BO','FA','TKB','TKF','NC','NDE')
+
+
 
