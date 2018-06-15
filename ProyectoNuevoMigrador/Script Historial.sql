@@ -1490,4 +1490,273 @@ BEGIN
 END
 GO
 
+--
+CREATE FUNCTION UFN_QuitarCaracteresRaros
+(
+@Cadena as varchar(max),@Caracteres as varchar(max)
+)
+RETURNS varchar(max)
+AS
+BEGIN
+--Quitar Caracteres
+WHILE @Cadena LIKE '%[' + @Caracteres + ']%'
+BEGIN
+SELECT @Cadena = REPLACE(@Cadena
+, SUBSTRING(@Cadena
+, PATINDEX('%[' + @Caracteres + ']%'
+, @Cadena)
+, 1)
+,'')
+END
+return @Cadena
+END
+GO
 
+
+
+
+-- DECLARE @FechaInicio datetime = '2018-08-06 11:08:15.423'
+-- DECLARE @FechaFin datetime =  '2018-08-06 11:08:15.423'
+-- DECLARE @Motivo varchar(max) = 'OTROS'
+
+
+-- SET DATEFORMAT ymd;
+-- SET @Motivo = UPPER(@Motivo)
+-- SELECT DISTINCT
+-- ccp.id_ComprobantePago,
+-- CASE WHEN @Motivo='CONEXION INTERNET' THEN '1' WHEN @Motivo='FALLAS FLUIDO ELECTRICO' THEN '2' WHEN @Motivo='DESASTRES NATURALES' THEN '3' WHEN @Motivo='ROBO' THEN '4' WHEN @Motivo='FALLAS EN EL SISTEMA DE EMISION ELECTRONICA' THEN '5' WHEN @Motivo='VENTAS POR EMISORES ITINERANTES' THEN '6' ELSE '7' END Motivo, 
+-- ccp.Cod_TipoOperacion Tipo_Operacion,
+-- ccp.FechaEmision Fecha_Emision,
+-- CASE WHEN ccp.Cod_TipoComprobante = 'FA' THEN '01' WHEN ccp.Cod_TipoComprobante = 'BO' THEN '03' WHEN ccp.Cod_TipoComprobante = 'NC' THEN '07' WHEN ccp.Cod_TipoComprobante = 'ND' THEN '08' WHEN ccp.Cod_TipoComprobante IN ('TKB','TKF') THEN '12' END Tipo_Comprobante,
+-- ccp.Serie,
+-- ccp.Numero,
+-- '' Rango_Final_Ticket,
+-- CASE WHEN ccp.Cod_TipoDoc IN ('1','4','6','7','A') THEN ccp.Cod_TipoDoc ELSE '0' END Tipo_Documento,
+-- ccp.Doc_Cliente,
+-- SUBSTRING(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(UPPER(ccp.Nom_Cliente),CHAR(10),''),CHAR(13),''),CHAR(239),''),'Á','A'),'É','E'),'Í','I'),'Ó','O'),'Ú','U'),'&','Y'),'Ñ','NI'),0,60) Nom_Cliente,
+-- ccp.Cod_Moneda,
+-- 0.00 Suma_Gravadas,
+-- 0.00 Suma_Exoneradas,
+-- 0.00 Suma_Inafectas,
+-- 0.00 Suma_Exportacion,
+-- 0.00 Suma_ISC,
+-- 0.00 Suma_IGV,
+-- ccp.Otros_Cargos+ccp.Otros_Tributos Suma_Otros_Cargos,
+-- 0.00 Importe
+-- FROM dbo.CAJ_COMPROBANTE_D ccd
+-- INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+-- WHERE 
+-- ccp.Cod_TipoComprobante IN ('BO','FA','TKF','TKB')
+-- AND ccp.Cod_Libro=14
+-- AND ccp.FechaEmision BETWEEN  
+-- CONVERT(datetime, CONVERT(varchar(max), @FechaInicio,103))  AND DATEADD(second,-1,DATEADD(day,1, CONVERT(datetime, CONVERT(varchar(max), @FechaFin,103))))
+-- ORDER BY Fecha_Emision
+
+
+--Resumen de contingencia
+
+
+--EXEC USP_CAJ_COMPROBANTE_PAGO_TraerComprobanteManualesXRango '2018-05-12 11:08:15.423','2018-06-12 11:08:15.423'
+--Trae un conjunto de comprobantes manuales sin los totales acumulados
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_TraerComprobanteManualesXRango' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_TraerComprobanteManualesXRango
+GO
+
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_TraerComprobanteManualesXRango
+ @FechaInicio datetime,
+ @FechaFin datetime ,
+ @Motivo varchar(max) = 'OTROS'
+AS
+BEGIN
+    SET DATEFORMAT dmy;
+    SET @Motivo = UPPER(@Motivo)
+    SELECT DISTINCT
+    ccp.id_ComprobantePago,
+    ccp.Descuento_Total,
+    @Motivo Motivo, 
+    CASE WHEN ccp.Cod_TipoOperacion ='01' THEN 'VENTA INTERNA' WHEN ccp.Cod_TipoOperacion ='02' THEN 'EXPORTACION' END Tipo_Operacion,
+    ccp.FechaEmision Fecha_Emision,
+    CASE WHEN ccp.Cod_TipoComprobante='BO' THEN 'BOLETA' WHEN ccp.Cod_TipoComprobante='FA' THEN 'FACTURA' WHEN ccp.Cod_TipoComprobante='NC' THEN 'NOTA DE CREDITO' WHEN ccp.Cod_TipoComprobante='ND' THEN 'NOTA DE DEBITO' WHEN ccp.Cod_TipoComprobante IN ('TKB','TKF') THEN 'TICKET DE MAQUINA REGISTRADORA' END Tipo_Comprobante,
+    ccp.Serie,
+    ccp.Numero,
+    '' Rango_Final_Ticket,
+    CASE WHEN ccp.Cod_TipoDoc IN ('0','99') THEN 'SIN DOCUMENTO' WHEN ccp.Cod_TipoDoc='1' THEN 'DNI' WHEN ccp.Cod_TipoDoc='4' THEN 'CARNET DE EXTRANJERIA' WHEN ccp.Cod_TipoDoc='6' THEN 'RUC' WHEN ccp.Cod_TipoDoc='7' THEN 'PASAPORTE' WHEN ccp.Cod_TipoDoc='A' THEN 'CEDULA DIPLOMATICA DE IDENTIDAD' ELSE 'SIN DOCUMENTO' END Tipo_Documento,
+    ccp.Doc_Cliente,
+    SUBSTRING(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(UPPER(ccp.Nom_Cliente),CHAR(10),''),CHAR(13),''),CHAR(239),''),'Á','A'),'É','E'),'Í','I'),'Ó','O'),'Ú','U'),'&','Y'),'Ñ','NI'),0,60) Nom_Cliente,
+    ccp.Cod_Moneda,
+    0.00 Suma_Gravadas,
+    0.00 Suma_Exoneradas,
+    0.00 Suma_Inafectas,
+    0.00 Suma_Exportacion,
+    0.00 Suma_ISC,
+    0.00 Suma_IGV,
+    ABS(ccp.Otros_Cargos)+ABS(ccp.Otros_Tributos) Suma_Otros_Cargos,
+    0.00 Importe,
+    CASE WHEN ccp.Cod_TipoComprobante IN ('NC','ND') THEN (SELECT CASE WHEN ccp2.Cod_TipoComprobante='BO' THEN 'BOLETA' WHEN ccp2.Cod_TipoComprobante='FA' THEN 'FACTURA' WHEN ccp2.Cod_TipoComprobante='NC' THEN 'NOTA DE CREDITO' WHEN ccp2.Cod_TipoComprobante='ND' THEN 'NOTA DE DEBITO' WHEN ccp2.Cod_TipoComprobante IN ('TKB','TKF') THEN 'TICKET DE MAQUINA REGISTRADORA' END FROM dbo.CAJ_COMPROBANTE_PAGO ccp2 WHERE ccp2.id_ComprobanteRef=ccp.id_ComprobantePago) ELSE '' END Tipo_Comprobante_Afectado,  --Traemos el tipo del comprobante afectado
+    CASE WHEN ccp.Cod_TipoComprobante IN ('NC','ND') THEN (SELECT ccp2.Serie FROM dbo.CAJ_COMPROBANTE_PAGO ccp2 WHERE ccp2.id_ComprobanteRef=ccp.id_ComprobantePago) ELSE '' END Serie_Afectado,  --Traemos el tipo del comprobante afectado
+    CASE WHEN ccp.Cod_TipoComprobante IN ('NC','ND') THEN (SELECT ccp2.Numero FROM dbo.CAJ_COMPROBANTE_PAGO ccp2 WHERE ccp2.id_ComprobanteRef=ccp.id_ComprobantePago) ELSE '' END Numero_Afectado,  --Traemos el tipo del comprobante afectado
+    '' Regimen_Percepcion,
+    0.00 Base_Imponible_Percepcion,
+    0.00 Monto_Percepcion,
+    0.00 Monto_Total_Percepcion
+    FROM dbo.CAJ_COMPROBANTE_D ccd
+    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+    WHERE 
+    ccp.Cod_TipoComprobante IN ('BO','FA','TKF','TKB')
+    AND ccp.Cod_Libro=14
+    AND ccp.FechaEmision BETWEEN  
+    CONVERT(datetime, CONVERT(varchar(max), @FechaInicio,103))  AND DATEADD(second,-1,DATEADD(day,1, CONVERT(datetime, CONVERT(varchar(max), @FechaFin,103))))
+    ORDER BY Fecha_Emision
+END
+GO
+
+--NOTAS DE CREDITO
+--exec URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota 26127,'NC','14','B101','PEN','2016-04-29 00:00:00:000','2018-06-08 00:00:00:000'
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota' AND type = 'P')
+DROP PROCEDURE URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota
+go
+CREATE PROCEDURE URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota 
+@IdCliente int,
+@CodTipoComprobanteNota varchar(10),
+@CodLibro varchar(10),
+@Serie varchar(10),
+@CodMoneda varchar(10) = NULL,
+@FechaInicio datetime,
+@FechaFin datetime 
+WITH ENCRYPTION
+AS
+BEGIN
+    SET DATEFORMAT ymd;
+    --NC : puede afectar a FE,BE,FA,BO,TKB,TKF no importa la serie
+    IF(@CodTipoComprobanteNota='NC') 
+    BEGIN
+	   SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,
+	   CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+	   SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible
+	   FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+	   CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+	   LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+	   WHERE   cp.Cod_TipoComprobante   IN ('FE','BE','TKB','TKF','FA','BO') 
+	   AND CP.Flag_Anulado	 = 0 
+	   AND CP.Cod_Libro = @CodLibro 
+	   AND (CR.Cod_TipoRelacion = 'CRE' OR CR.Cod_TipoRelacion IS NULL)
+	   AND CP.Id_Cliente = @IdCliente
+	   AND CP.FechaEmision>=@FechaInicio 
+	   AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+	   AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+	   GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente
+	   HAVING AVG(CP.Total)-SUM(ISNULL(abs(CN.Total), 0)) > 0
+    END
+    --NCE : solo puede afectar a FE,BE si la serie empieza con F solo afecta a comprobantes de serie F, igual con B
+    IF(@CodTipoComprobanteNota='NCE') 
+    BEGIN
+	   IF(LEFT(@Serie,1) ='F')
+	   BEGIN
+		  SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,
+		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible
+		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+		  WHERE   
+		  cp.Cod_TipoComprobante   IN ('FE') 
+		  AND CP.Serie LIKE 'F%'
+		  AND CP.Flag_Anulado	 = 0 
+		  AND CP.Cod_Libro = @CodLibro 
+		  AND (CR.Cod_TipoRelacion = 'CRE' OR CR.Cod_TipoRelacion IS NULL)
+		  AND CP.Id_Cliente = @IdCliente
+		  AND CP.FechaEmision>=@FechaInicio 
+		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente
+		  HAVING AVG(CP.Total)-SUM(ISNULL(abs(CN.Total), 0)) > 0
+	   END
+	   IF(LEFT(@Serie,1) ='B')
+	   BEGIN
+		  SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,
+		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible
+		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+		  WHERE   
+		  cp.Cod_TipoComprobante   IN ('BE') 
+		  AND CP.Serie LIKE 'B%'
+		  AND CP.Flag_Anulado	 = 0 
+		  AND CP.Cod_Libro = @CodLibro 
+		  AND (CR.Cod_TipoRelacion = 'CRE' OR CR.Cod_TipoRelacion IS NULL)
+		  AND CP.Id_Cliente = @IdCliente
+		  AND CP.FechaEmision>=@FechaInicio 
+		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente
+		  HAVING AVG(CP.Total)-SUM(ISNULL(abs(CN.Total), 0)) > 0
+	   END
+    END
+    --ND : puede afectar a FE,BE,FA,BO,TKB,TKF no importa la serie
+    IF(@CodTipoComprobanteNota='ND')
+    BEGIN
+	   SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,
+	   CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento ,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+	    SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible
+	   FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+	   CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+	   LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+	   WHERE   cp.Cod_TipoComprobante   IN ('FE','BE','TKB','TKF','FA','BO') 
+	   AND CP.Flag_Anulado	 = 0 
+	   AND CP.Cod_Libro = @CodLibro
+	   AND CP.Id_Cliente = @IdCliente
+	   AND CP.FechaEmision>=@FechaInicio 
+	   AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+	   AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+	   GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente
+    END	
+    --NDE : : solo puede afectar a FE,BE si la serie empieza con F solo afecta a comprobantes de serie F, igual con B
+    IF(@CodTipoComprobanteNota='NDE') 
+    BEGIN
+	   IF(LEFT(@Serie,1) ='F')
+	   BEGIN
+		 SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,
+		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento ,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+		   SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible
+		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+		  WHERE   
+		  cp.Cod_TipoComprobante   IN ('FE') 
+		  AND cp.Serie LIKE 'F%'
+		  AND CP.Flag_Anulado	 = 0 
+		  AND CP.Cod_Libro = @CodLibro
+		  AND CP.Id_Cliente = @IdCliente
+		  AND CP.FechaEmision>=@FechaInicio 
+		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente
+	   END
+	   IF(LEFT(@Serie,1) ='B')
+	   BEGIN
+		  SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,
+		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento ,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+		   SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible
+		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+		  WHERE   
+		  cp.Cod_TipoComprobante   IN ('BE') 
+		  AND cp.Serie LIKE 'B%'
+		  AND CP.Flag_Anulado	 = 0 
+		  AND CP.Cod_Libro = @CodLibro
+		  AND CP.Id_Cliente = @IdCliente
+		  AND CP.FechaEmision>=@FechaInicio 
+		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente
+	   END
+    END
+END
+go
