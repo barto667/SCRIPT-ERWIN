@@ -1965,3 +1965,498 @@ END
 GO
 
 
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_AfectarXNotaCreditoVenta' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_AfectarXNotaCreditoVenta
+GO
+
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_AfectarXNotaCreditoVenta
+	@IdComprobantePago int, 
+	@IdComprobanteNota int,
+	@CodTiponota varchar(max),
+	@Justificacion varchar(max),
+	@CodUsuario varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+    --ANULACION COMPLETA
+    IF(@CodTiponota IN ('01','02'))
+    BEGIN
+    --Editamos CAJ_FORMA_PAGO
+    UPDATE dbo.CAJ_FORMA_PAGO
+    SET
+        dbo.CAJ_FORMA_PAGO.Monto=0,
+	   dbo.CAJ_FORMA_PAGO.Cod_UsuarioAct = @CodUsuario,
+	   dbo.CAJ_FORMA_PAGO.Fecha_Act=GETDATE()
+    WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@IdComprobantePago
+    --Editamos ALMACEN_MOV
+    UPDATE dbo.ALM_ALMACEN_MOV
+    SET
+        dbo.ALM_ALMACEN_MOV.Motivo = 'ANULADO',
+	   dbo.ALM_ALMACEN_MOV.Cod_UsuarioAct=@CodUsuario,
+	   dbo.ALM_ALMACEN_MOV.Fecha_Act=GETDATE()
+    WHERE dbo.ALM_ALMACEN_MOV.Id_ComprobantePago = @IdComprobantePago
+    --Editamos ALMACEN_MOV_D
+    UPDATE dbo.ALM_ALMACEN_MOV_D
+    SET
+	   dbo.ALM_ALMACEN_MOV_D.Precio_Unitario=0,
+	   dbo.ALM_ALMACEN_MOV_D.Cantidad=0,
+	   dbo.ALM_ALMACEN_MOV_D.Cod_UsuarioAct=@CodUsuario,
+	   dbo.ALM_ALMACEN_MOV_D.Fecha_Act=GETDATE()
+    WHERE dbo.ALM_ALMACEN_MOV_D.Id_AlmacenMov = (SELECT aam.Id_AlmacenMov FROM dbo.ALM_ALMACEN_MOV aam WHERE aam.Id_ComprobantePago=@IdComprobantePago)
+    --Editamos PRI_LICITACIONES_M
+    DELETE dbo.PRI_LICITACIONES_M WHERE dbo.PRI_LICITACIONES_M.id_ComprobantePago=@IdComprobantePago
+    --Editamos CAJ_COMPROBANTE_D
+    UPDATE dbo.CAJ_COMPROBANTE_D
+    SET
+        dbo.CAJ_COMPROBANTE_D.Formalizado -= ccr.Valor,
+	   dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@CodUsuario,
+	   dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
+    FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.CAJ_COMPROBANTE_RELACION ccr ON ccd.id_ComprobantePago = ccr.id_ComprobantePago AND ccd.id_Detalle = ccr.id_Detalle
+    WHERE ccr.Id_ComprobanteRelacion=@IdComprobantePago
+    --Editamos CAJ_SERIES
+    DELETE FROM dbo.CAJ_SERIES
+    WHERE (dbo.CAJ_SERIES.Id_Tabla = @IdComprobantePago AND dbo.CAJ_SERIES.Cod_Tabla = 'CAJ_COMPROBANTE_PAGO')
+    --Editamos CAJ_COMPROBANTE_RELACION
+    DELETE dbo.CAJ_COMPROBANTE_RELACION WHERE dbo.CAJ_COMPROBANTE_RELACION.Id_ComprobanteRelacion=@IdComprobantePago
+    --Editamos CAJ_COMPROBANTE_PAGO
+    UPDATE dbo.CAJ_COMPROBANTE_PAGO
+    SET
+        dbo.CAJ_COMPROBANTE_PAGO.Glosa='ANULADO',
+	   dbo.CAJ_COMPROBANTE_PAGO.Cod_FormaPago='004',
+        dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario, -- varchar
+        dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act = GETDATE() -- datetime
+    WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComprobantePago
+    END
+
+    --CORECCION POR ERROR EN LA DESCRIPCION
+    --No se hace nada
+
+    ----DESCUENTO GLOBAL,DESCUENTO POR ITEM,BONIFICACION,DISMINUCION EN EL VALOR,OTROS CONCEPTOS
+    --IF(@CodTiponota IN ('04','05','08','09','10'))
+    --BEGIN
+    ----Editamos CAJ_FORMA_PAGO
+    ----Debemos obtener el total de la nota de credito, luego debemos de obtener la razon entre el total de la nota y el total del comprobante y multiplicar por ese valor 
+    ----Todos los items de la forma de pago
+    --DECLARE @TotalNota numeric(38,6) = (SELECT ccp.Total FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago = @IdComprobanteNota)
+    --DECLARE @TotalComprobante numeric(38,6) = (SELECT ISNULL(SUM(cfp.Monto),0) FROM dbo.CAJ_FORMA_PAGO cfp WHERE cfp.id_ComprobantePago = @IdComprobantePago)
+    --DECLARE @Factor numeric(38,6) = (1 - (@TotalNota/@TotalComprobante))
+    --UPDATE dbo.CAJ_FORMA_PAGO
+    --SET
+    --    dbo.CAJ_FORMA_PAGO.Monto=dbo.CAJ_FORMA_PAGO.Monto*@Factor
+    --WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@IdComprobantePago
+    --END
+
+    --DEVOLUCION TOTAL
+    IF(@CodTiponota IN ('06'))
+    BEGIN
+    --Editamos CAJ_FORMA_PAGO
+    UPDATE dbo.CAJ_FORMA_PAGO
+    SET
+        dbo.CAJ_FORMA_PAGO.Monto=0,
+	   dbo.CAJ_FORMA_PAGO.Cod_UsuarioAct = @CodUsuario,
+	   dbo.CAJ_FORMA_PAGO.Fecha_Act=GETDATE()
+    WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@IdComprobantePago
+    --Editamos ALMACEN_MOV
+    UPDATE dbo.ALM_ALMACEN_MOV
+    SET
+        dbo.ALM_ALMACEN_MOV.Motivo = 'ANULADO',
+	   dbo.ALM_ALMACEN_MOV.Cod_UsuarioAct=@CodUsuario,
+	   dbo.ALM_ALMACEN_MOV.Fecha_Act=GETDATE()
+    WHERE dbo.ALM_ALMACEN_MOV.Id_ComprobantePago = @IdComprobantePago
+    --Editamos ALMACEN_MOV_D
+    UPDATE dbo.ALM_ALMACEN_MOV_D
+    SET
+	   dbo.ALM_ALMACEN_MOV_D.Precio_Unitario=0,
+	   dbo.ALM_ALMACEN_MOV_D.Cantidad=0,
+	   dbo.ALM_ALMACEN_MOV_D.Cod_UsuarioAct=@CodUsuario,
+	   dbo.ALM_ALMACEN_MOV_D.Fecha_Act=GETDATE()
+    WHERE dbo.ALM_ALMACEN_MOV_D.Id_AlmacenMov = (SELECT aam.Id_AlmacenMov FROM dbo.ALM_ALMACEN_MOV aam WHERE aam.Id_ComprobantePago=@IdComprobantePago)
+    --Editamos PRI_LICITACIONES_M
+    DELETE dbo.PRI_LICITACIONES_M WHERE dbo.PRI_LICITACIONES_M.id_ComprobantePago=@IdComprobantePago
+    --Editamos CAJ_COMPROBANTE_D
+    UPDATE dbo.CAJ_COMPROBANTE_D
+    SET
+        dbo.CAJ_COMPROBANTE_D.Formalizado -= ccr.Valor,
+	   dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@CodUsuario,
+	   dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
+    FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.CAJ_COMPROBANTE_RELACION ccr ON ccd.id_ComprobantePago = ccr.id_ComprobantePago AND ccd.id_Detalle = ccr.id_Detalle
+    WHERE ccr.Id_ComprobanteRelacion=@IdComprobantePago
+    --Insertamos CAJ_SERIES
+    INSERT dbo.CAJ_SERIES
+    (
+        Cod_Tabla,
+        Id_Tabla,
+        Item,
+        Serie,
+        Fecha_Vencimiento,
+        Obs_Serie,
+        Cod_UsuarioReg,
+        Fecha_Reg,
+        Cod_UsuarioAct,
+        Fecha_Act
+    )
+    SELECT 
+    'CAJ_COMPROBANTE_PAGO',
+    @IdComprobanteNota,
+    cs.Item,
+    cs.Serie,
+    cs.Fecha_Vencimiento,
+    cs.Obs_Serie,
+    @CodUsuario,
+    GETDATE(),
+    NULL,
+    NULL
+    FROM dbo.CAJ_SERIES cs
+    WHERE cs.Id_Tabla = @IdComprobantePago
+    AND cs.Cod_Tabla='CAJ_COMPROBANTE_PAGO'
+    --Editamos CAJ_COMPROBANTE_RELACION
+    DELETE dbo.CAJ_COMPROBANTE_RELACION WHERE dbo.CAJ_COMPROBANTE_RELACION.Id_ComprobanteRelacion=@IdComprobantePago
+    --Editamos CAJ_COMPROBANTE_PAGO
+    UPDATE dbo.CAJ_COMPROBANTE_PAGO
+    SET
+        dbo.CAJ_COMPROBANTE_PAGO.Glosa='ANULADO',
+	   dbo.CAJ_COMPROBANTE_PAGO.Cod_FormaPago='004',
+        dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario, -- varchar
+        dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act = GETDATE() -- datetime
+    WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComprobantePago
+    END
+
+    --DEVOLUCION POR ITEM
+    IF(@CodTiponota IN ('07'))
+    BEGIN
+    --Editamos CAJ_FORMA_PAGO
+
+    --Insertamos CAJ_SERIES
+    INSERT dbo.CAJ_SERIES
+    (
+        Cod_Tabla,
+        Id_Tabla,
+        Item,
+        Serie,
+        Fecha_Vencimiento,
+        Obs_Serie,
+        Cod_UsuarioReg,
+        Fecha_Reg,
+        Cod_UsuarioAct,
+        Fecha_Act
+    )
+    SELECT 
+    'CAJ_COMPROBANTE_PAGO',
+    @IdComprobanteNota,
+    cs.Item,
+    cs.Serie,
+    cs.Fecha_Vencimiento,
+    cs.Obs_Serie,
+    @CodUsuario,
+    GETDATE(),
+    NULL,
+    NULL
+    FROM dbo.CAJ_SERIES cs
+    WHERE cs.Id_Tabla = @IdComprobantePago
+    AND cs.Cod_Tabla='CAJ_COMPROBANTE_PAGO'
+
+    END
+END
+GO
+
+
+--Creditos
+--ALTER TABLE dbo.CUE_CLIENTE_CUENTA DROP COLUMN Des_Cuenta, Cod_TipoCuenta, Monto_Deposito, Interes, MesesMax, Limite_Max, Flag_ITF, Cod_Moneda, Cod_EstadoCuenta, Saldo_Contable, Saldo_Disponible, Cod_UsuarioReg, Fecha_Reg, Cod_UsuarioAct, Fecha_Act;
+--GO
+--ALTER TABLE dbo.CUE_CLIENTE_CUENTA
+--ADD Fecha_Credito    DATETIME NOT NULL,
+--    Dia_Pago         INT NOT NULL,
+--    Monto_Mora       NUMERIC(38, 6) NOT NULL,
+--    Des_Cuenta       VARCHAR(512) NULL,
+--    Cod_TipoCuenta   VARCHAR(3) NOT NULL,
+--    Monto_Deposito   NUMERIC(38, 2) NOT NULL,
+--    Interes          NUMERIC(38, 4) NOT NULL,
+--    Meses_Max        INT NOT NULL,
+--    Meses_Gracia     INT NOT NULL,
+--    Limite_Max       NUMERIC(38, 2) NULL,
+--    Flag_ITF         BIT NOT NULL,
+--    Cod_Moneda       VARCHAR(3) NOT NULL,
+--    Cod_EstadoCuenta VARCHAR(3) NOT NULL,
+--    Saldo_Contable   NUMERIC(38, 2) NOT NULL,
+--    Saldo_Disponible NUMERIC(38, 2) NULL,
+--    Cod_UsuarioReg   VARCHAR(32) NOT NULL,
+--    Fecha_Reg        DATETIME NOT NULL,
+--    Cod_UsuarioAct   VARCHAR(32) NULL,
+--    Fecha_Act        DATETIME NULL;
+--GO
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CUE_CLIENTE_CUENTA_TP' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_TP
+GO
+
+CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_TP
+	@TamañoPagina varchar(16),
+	@NumeroPagina varchar(16),
+	@ScripOrden varchar(MAX) = NULL,
+	@ScripWhere varchar(MAX) = NULL
+WITH ENCRYPTION
+AS
+BEGIN
+	DECLARE @ScripSQL varchar(MAX)
+	SET @ScripSQL='SELECT NumeroFila,Cod_Cuenta , Id_ClienteProveedor , Des_Cuenta , Cod_TipoCuenta , Monto_Deposito , Interes , Meses_Max , Limite_Max , Flag_ITF , Cod_Moneda , Cod_EstadoCuenta , Saldo_Contable , Saldo_Disponible , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act  
+	FROM (SELECT TOP 100 PERCENT Cod_Cuenta , Id_ClienteProveedor , Des_Cuenta , Cod_TipoCuenta , Monto_Deposito , Interes , Meses_Max , Limite_Max , Flag_ITF , Cod_Moneda , Cod_EstadoCuenta , Saldo_Contable , Saldo_Disponible , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act ,
+		  ROW_NUMBER() OVER ('+@ScripOrden+') AS NumeroFila 
+		  FROM CUE_CLIENTE_CUENTA '+@ScripWhere+') aCUE_CLIENTE_CUENTA
+	WHERE NumeroFila BETWEEN ('+@TamañoPagina+' * '+@NumeroPagina+')+1 AND '+@TamañoPagina+' * ('+@NumeroPagina+' + 1)'
+	EXECUTE(@ScripSQL); 
+END
+GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CUE_CLIENTE_CUENTA_G' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_G
+GO
+
+CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_G 
+	@Cod_Cuenta	varchar(32), 
+	@Id_ClienteProveedor	int, 
+	@Fecha_Credito datetime,
+	@Dia_Pago int,
+	@Monto_Mora numeric(38,6),
+	@Des_Cuenta	varchar(512), 
+	@Cod_TipoCuenta	varchar(3), 
+	@Monto_Deposito	numeric(38,2), 
+	@Interes	numeric(38,4), 
+	@Meses_Max	int, 
+	@Meses_Gracia int,
+	@Limite_Max	numeric(38,2), 
+	@Flag_ITF	bit, 
+	@Cod_Moneda	varchar(3), 
+	@Cod_EstadoCuenta	varchar(3), 
+	@Saldo_Contable	numeric(38,2), 
+	@Saldo_Disponible	numeric(38,2),
+	@Cod_Usuario Varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+IF NOT EXISTS (SELECT @Cod_Cuenta FROM CUE_CLIENTE_CUENTA WHERE  (Cod_Cuenta = @Cod_Cuenta))
+	BEGIN
+		INSERT INTO CUE_CLIENTE_CUENTA  VALUES (
+		@Cod_Cuenta,
+		@Id_ClienteProveedor,
+		@Fecha_Credito,
+		@Dia_Pago,
+		@Monto_Mora,
+		@Des_Cuenta,
+		@Cod_TipoCuenta,
+		@Monto_Deposito,
+		@Interes,
+		@Meses_Max,
+		@Meses_Gracia,
+		@Limite_Max,
+		@Flag_ITF,
+		@Cod_Moneda,
+		@Cod_EstadoCuenta,
+		@Saldo_Contable,
+		@Saldo_Disponible,
+		@Cod_Usuario,GETDATE(),NULL,NULL)
+		
+	END
+	ELSE
+	BEGIN
+		UPDATE CUE_CLIENTE_CUENTA
+		SET	
+			Id_ClienteProveedor = @Id_ClienteProveedor, 
+			Fecha_Credito=@Fecha_Credito,
+			Dia_Pago=@Dia_Pago,
+			Monto_Mora=@Monto_Mora,
+			Des_Cuenta = @Des_Cuenta, 
+			Cod_TipoCuenta = @Cod_TipoCuenta, 
+			Monto_Deposito = @Monto_Deposito, 
+			Interes = @Interes, 
+			Meses_Max = @Meses_Max, 
+			Meses_Gracia=@Meses_Gracia,
+			Limite_Max = @Limite_Max, 
+			Flag_ITF = @Flag_ITF, 
+			Cod_Moneda = @Cod_Moneda, 
+			Cod_EstadoCuenta = @Cod_EstadoCuenta, 
+			Saldo_Contable = @Saldo_Contable, 
+			Saldo_Disponible = @Saldo_Disponible,
+			Cod_UsuarioAct = @Cod_Usuario, 
+			Fecha_Act = GETDATE()
+		WHERE (Cod_Cuenta = @Cod_Cuenta)	
+	END
+END
+GO
+ 
+IF EXISTS(SELECT name 
+	  FROM 	 sysobjects 
+	  WHERE  name = N'CUE_CLIENTE_CUENTA_D' 
+	  AND 	 type = 'U')
+    DROP TABLE CUE_CLIENTE_CUENTA_D
+GO
+
+CREATE TABLE CUE_CLIENTE_CUENTA_D(
+	Cod_Cuenta varchar (32) NOT NULL,
+	item int NOT NULL,
+	Des_CuentaD varchar(512) NOT NULL,
+	Saldo numeric(38,6) NOT NULL,
+	Capital_Amortizado numeric(38,6) NOT NULL,
+	Monto numeric(38, 6) NOT NULL,
+	Cancelado numeric(38, 6) NOT NULL,
+	Interes numeric(38, 6) NOT NULL,
+	Mora numeric(38, 6) NOT NULL,
+	Fecha_Emision datetime NOT NULL ,
+	Fecha_Vencimiento datetime NOT NULL,
+	Cod_EstadoDCuenta varchar(3) NULL,
+	Cod_UsuarioReg varchar(32) NOT NULL,
+	Fecha_Reg datetime NOT NULL,
+	Cod_UsuarioAct varchar(32) NULL,
+	Fecha_Act datetime NULL,
+PRIMARY KEY NONCLUSTERED 
+(
+	Cod_Cuenta ASC,
+	item ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE CUE_CLIENTE_CUENTA_D  WITH CHECK ADD FOREIGN KEY(Cod_Cuenta)
+REFERENCES CUE_CLIENTE_CUENTA (Cod_Cuenta)
+GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CUE_CLIENTE_CUENTA_D_G' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_D_G
+GO
+
+CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_D_G 
+	@Cod_Cuenta	varchar(32), 
+	@item	int, 
+	@Des_CuentaD	varchar(512), 
+	@Saldo numeric(38,6),
+	@Capital_Amortizado numeric(38,6),
+	@Monto	numeric(38,6), 
+	@Cancelado numeric(38,6),
+	@Interes numeric(38,6),
+	@Mora numeric(38,6),
+	@Fecha_Emision	datetime, 
+	@Fecha_Vencimiento	datetime, 
+	@Cod_EstadoDCuenta	varchar(3),
+	@Cod_Usuario Varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+IF NOT EXISTS (SELECT @Cod_Cuenta, @item FROM CUE_CLIENTE_CUENTA_D WHERE  (Cod_Cuenta = @Cod_Cuenta) AND (item = @item))
+	BEGIN
+		INSERT INTO CUE_CLIENTE_CUENTA_D  VALUES (
+		@Cod_Cuenta,
+		@item,
+		@Des_CuentaD,
+		@Saldo,
+		@Capital_Amortizado,
+		@Monto,
+		@Cancelado,
+		@Interes,
+		@Mora,
+		@Fecha_Emision,
+		@Fecha_Vencimiento,
+		@Cod_EstadoDCuenta,
+		@Cod_Usuario,GETDATE(),NULL,NULL)
+		
+	END
+	ELSE
+	BEGIN
+		UPDATE CUE_CLIENTE_CUENTA_D
+		SET	
+			Des_CuentaD = @Des_CuentaD, 
+			Saldo=@Saldo,
+			Capital_Amortizado=@Capital_Amortizado,
+			Monto = @Monto, 
+			Cancelado=@Cancelado,
+			Interes=@Interes,
+			Mora=@Mora,
+			Fecha_Emision = @Fecha_Emision, 
+			Fecha_Vencimiento = @Fecha_Vencimiento, 
+			Cod_EstadoDCuenta = @Cod_EstadoDCuenta,
+			Cod_UsuarioAct = @Cod_Usuario, 
+			Fecha_Act = GETDATE()
+		WHERE (Cod_Cuenta = @Cod_Cuenta) AND (item = @item)	
+	END
+END
+GO
+
+--Eliminar todos los detalles por codigo de cuenta 
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CUE_CLIENTE_CUENTA_D_EliminarXCodigo' AND type = 'P')
+	DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_D_EliminarXCodigo
+go
+CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_D_EliminarXCodigo 
+	@Cod_Cuenta	varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+    DELETE dbo.CUE_CLIENTE_CUENTA_D WHERE dbo.CUE_CLIENTE_CUENTA_D.Cod_Cuenta=@Cod_Cuenta
+END
+go
+
+--Traer paginado
+IF EXISTS(SELECT name FROM sysobjects WHERE name = 'USP_CUE_CLIENTE_CUENTA_TP' AND type = 'P')
+DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_TP
+go
+CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_TP
+@TamañoPagina varchar(16),
+@NumeroPagina varchar(16),
+@ScripOrden varchar(MAX) = NULL,
+@ScripWhere varchar(MAX) = NULL
+WITH ENCRYPTION
+AS
+BEGIN
+    DECLARE @ScripSQL varchar(MAX)
+    SET @ScripSQL = 'SELECT NumeroFila,Cod_Cuenta, Id_ClienteProveedor,Nro_Documento,Nom_Cliente,Fecha_Credito,Dia_Pago ,Monto_Mora, Des_Cuenta , Cod_TipoCuenta , Monto_Deposito , Interes , Meses_Max ,Meses_Gracia, Limite_Max , Flag_ITF , Cod_Moneda , Cod_EstadoCuenta , Saldo_Contable , Saldo_Disponible , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act  
+	   FROM(SELECT TOP 100 PERCENT Cod_Cuenta, ccc.Id_ClienteProveedor, pcp.Cliente as Nom_Cliente ,pcp.Nro_Documento ,Fecha_Credito,Dia_Pago ,Monto_Mora, Des_Cuenta , Cod_TipoCuenta , Monto_Deposito , Interes , Meses_Max ,Meses_Gracia, Limite_Max , Flag_ITF , Cod_Moneda , Cod_EstadoCuenta , Saldo_Contable , Saldo_Disponible , ccc.Cod_UsuarioReg , ccc.Fecha_Reg , ccc.Cod_UsuarioAct , ccc.Fecha_Act ,
+	   ROW_NUMBER() OVER('+@ScripOrden+') AS NumeroFila
+	   FROM CUE_CLIENTE_CUENTA ccc INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp on ccc.Id_ClienteProveedor= pcp.Id_ClienteProveedor '+@ScripWhere+') aCUE_CLIENTE_CUENTA
+	   WHERE NumeroFila BETWEEN('+@TamañoPagina+' * '+@NumeroPagina+')+1 AND '+@TamañoPagina+' * ('+@NumeroPagina+' + 1)'
+    EXECUTE(@ScripSQL);
+END
+GO
+
+-- Traer Por Claves primarias
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CUE_CLIENTE_CUENTA_TXPK' AND type = 'P')
+	DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_TXPK
+go
+CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_TXPK 
+	@Cod_Cuenta	varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+	SELECT ccc.*
+	FROM CUE_CLIENTE_CUENTA ccc
+	WHERE (ccc.Cod_Cuenta = @Cod_Cuenta)	
+END
+go
+
+--trae un datatable con los detalles del credito por codigo de cuenta
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CUE_CLIENTE_CUENTA_TraerDatatableXCodCuenta' AND type = 'P')
+	DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_TraerDatatableXCodCuenta
+go
+CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_TraerDatatableXCodCuenta 
+	@Cod_Cuenta	varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+    SELECT cccd.* FROM dbo.CUE_CLIENTE_CUENTA_D cccd WHERE cccd.Cod_Cuenta=@Cod_Cuenta ORDER BY cccd.item ASC
+END
+go
