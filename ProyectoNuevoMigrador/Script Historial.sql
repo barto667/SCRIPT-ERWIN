@@ -579,6 +579,7 @@ END
 END
 GO
 
+
 --Obtiene las mesas ocupadas y sus comandas relacionadas
 IF EXISTS (
   SELECT * 
@@ -590,28 +591,58 @@ IF EXISTS (
 GO
 
 CREATE PROCEDURE USP_VIS_MESAS_ObtenerMesasOcupadas
+@Modo int = 0
 WITH ENCRYPTION
 AS
 BEGIN
---Se identifica la orden de comanda CO cuando no esta tendida, es decir no tiene cod_caja (null) ni cod_turno(null)
-    SELECT * FROM (SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
-    COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
-    ccp.id_ComprobantePago,ccp.Fecha_Reg
-    FROM dbo.VIS_MESAS vm
-    INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
-    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
-    WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO' AND ccp.Cod_Caja IS NULL AND ccp.Cod_Turno IS NULL
-    UNION
-    SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
-    COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
-    ccp.id_ComprobantePago,ccp.Fecha_Reg
-    FROM dbo.VIS_MESAS vm
-    INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
-    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
-    WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO' AND  ccd.Formalizado!=ccd.Cantidad AND ccd.IGV=0
+    --Por el momento dos modos: 
+    --"0" modo normal
+    --"1" modo comandero
+    IF(@Modo=0)
+    BEGIN
+	   --Se identifica la orden de comanda CO cuando no esta tendida, es decir no tiene cod_caja (null) ni cod_turno(null)
+	   SELECT * FROM (SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
+	   COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
+	   ccp.id_ComprobantePago,ccp.Fecha_Reg
+	   FROM dbo.VIS_MESAS vm
+	   INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
+	   INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+	   WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO' AND ccp.Cod_Caja IS NULL AND ccp.Cod_Turno IS NULL
+	   UNION
+	   SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
+	   COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
+	   ccp.id_ComprobantePago,ccp.Fecha_Reg
+	   FROM dbo.VIS_MESAS vm
+	   INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
+	   INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+	   WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO' AND  ccd.Formalizado!=ccd.Cantidad AND ccd.IGV=0
     
-    ) a
-    ORDER BY a.Nom_Mesa,a.Fecha_Reg
+	   ) a
+	   ORDER BY a.Nom_Mesa,a.Fecha_Reg
+    END
+    IF(@Modo=1)
+    BEGIN
+	   SELECT  Mesas.Cod_Mesa,Mesas.Nom_Mesa,ISNULL(Ocupados.Cod_UsuarioVendedor,'') Cod_UsuarioVendedor,ISNULL(Ocupados.id_ComprobantePago,0) id_ComprobantePago,Ocupados.Fecha_Reg FROM 
+	   (SELECT vm.Cod_Mesa ,vm.Nom_Mesa,NULL Cod_UsuarioVendedor,NULL id_ComprobantePago,NULL Fecha_Reg
+	   FROM dbo.VIS_MESAS vm ) Mesas LEFT JOIN 
+	   (SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
+	   COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
+	   ccp.id_ComprobantePago,ccp.Fecha_Reg
+	   FROM dbo.VIS_MESAS vm
+	   INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
+	   INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+	   WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO' AND ccp.Cod_Caja IS NULL AND ccp.Cod_Turno IS NULL
+	   UNION
+	   SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
+	   COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
+	   ccp.id_ComprobantePago,ccp.Fecha_Reg
+	   FROM dbo.VIS_MESAS vm
+	   INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
+	   INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+	   WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO' AND  ccd.Formalizado!=ccd.Cantidad AND ccd.IGV=0) Ocupados
+	   ON Mesas.Cod_Mesa=Ocupados.Cod_Mesa
+	   ORDER BY Mesas.Cod_Mesa,Mesas.Fecha_Reg
+    END
 END
 GO
 
@@ -1960,7 +1991,7 @@ BEGIN
     dbo.CAJ_COMPROBANTE_PAGO ccp2 ON ccr.id_ComprobantePago = ccp2.id_ComprobantePago INNER JOIN
     dbo.VIS_TIPO_COMPROBANTES vtc ON ccp2.Cod_TipoComprobante = vtc.Cod_TipoComprobante
     WHERE ccr.Cod_TipoRelacion IN ('CRE','DEB') AND
-    ccp.id_ComprobantePago=@id_ComprobantePago
+    ccr.id_ComprobantePago=@id_ComprobantePago
 END
 GO
 
