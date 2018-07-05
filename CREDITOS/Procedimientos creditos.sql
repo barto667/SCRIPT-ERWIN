@@ -24,60 +24,181 @@ GO
 --y modificar USPs
 
 --CUE_CLIENTE_CUENTA
+-- CREATE TABLE CUE_CLIENTE_CUENTA(
+-- 	[Cod_Cuenta] [varchar](32) NOT NULL,
+-- 	[Id_ClienteProveedor] [int] NOT NULL,
+-- 	[Fecha_Credito] [datetime] NOT NULL,
+-- 	[Dia_Pago] [int] NOT NULL,
+-- 	[Monto_Mora] [numeric] (38,2) NOT NULL,
+-- 	[Des_Cuenta] [varchar](512) NULL,
+-- 	[Cod_TipoCuenta] [varchar](3) NOT NULL,
+-- 	[Monto_Deposito] [numeric](38, 2) NOT NULL,
+-- 	[Interes] [numeric](38, 4)NOT NULL,
+-- 	[Meses_Max] [int] NOT NULL,
+-- 	[Meses_Gracia] [int] NOT NULL,
+-- 	[Limite_Max] [numeric](38, 2) NULL,
+-- 	[Flag_ITF] [bit] NOT NULL,
+-- 	[Cod_Moneda] [varchar](3) NOT NULL,
+-- 	[Cod_EstadoCuenta] [varchar](3) NULL,
+-- 	[Saldo_Contable] [numeric](38, 2) NULL,
+-- 	[Saldo_Disponible] [numeric](38, 2) NULL,
+-- 	[Cod_UsuarioReg] [varchar](32) NOT NULL,
+-- 	[Fecha_Reg] [datetime] NOT NULL,
+-- 	[Cod_UsuarioAct] [varchar](32) NULL,
+-- 	[Fecha_Act] [datetime] NULL,
+-- PRIMARY KEY NONCLUSTERED 
+-- (
+-- 	[Cod_Cuenta] ASC
+-- )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+-- ) ON [PRIMARY]
+
+-- GO
+
+-- SET ANSI_PADDING OFF
+-- GO
+
+-- ALTER TABLE [dbo].[CUE_CLIENTE_CUENTA]  WITH CHECK ADD FOREIGN KEY([Id_ClienteProveedor])
+-- REFERENCES [dbo].[PRI_CLIENTE_PROVEEDOR] ([Id_ClienteProveedor])
+-- GO
+
 CREATE TABLE CUE_CLIENTE_CUENTA(
-	[Cod_Cuenta] [varchar](32) NOT NULL,
-	[Id_ClienteProveedor] [int] NOT NULL,
-	[Fecha_Credito] [datetime] NOT NULL,
-	[Dia_Pago] [int] NOT NULL,
-	[Monto_Mora] [numeric] (38,2) NOT NULL,
-	[Des_Cuenta] [varchar](512) NULL,
-	[Cod_TipoCuenta] [varchar](3) NOT NULL,
-	[Monto_Deposito] [numeric](38, 2) NOT NULL,
-	[Interes] [numeric](38, 4)NOT NULL,
-	[MesesMax] [int] NOT NULL,
-	[MesesGracia] [int] NOT NULL,
-	[Limite_Max] [numeric](38, 2) NULL,
-	[Flag_ITF] [bit] NOT NULL,
-	[Cod_Moneda] [varchar](3) NOT NULL,
-	[Cod_EstadoCuenta] [varchar](3) NULL,
-	[Saldo_Contable] [numeric](38, 2) NULL,
-	[Saldo_Disponible] [numeric](38, 2) NULL,
-	[Cod_UsuarioReg] [varchar](32) NOT NULL,
-	[Fecha_Reg] [datetime] NOT NULL,
-	[Cod_UsuarioAct] [varchar](32) NULL,
-	[Fecha_Act] [datetime] NULL,
+	Cod_Cuenta varchar(32) NOT NULL,
+	Id_ClienteProveedor int NULL,
+	Cod_Libro varchar(5) NOT NULL,
+	Fecha_Credito datetime NOT NULL,
+	Dia_Pago int NOT NULL,
+	Monto_Mora numeric(38, 6) NOT NULL,
+	Des_Cuenta varchar(512) NULL,
+	Cod_TipoCuenta varchar(3) NOT NULL,
+	Monto_Deposito numeric(38, 2) NOT NULL,
+	Interes numeric(38, 4) NOT NULL,
+	Meses_Max int NOT NULL,
+	Meses_Gracia int NOT NULL,
+	Limite_Max numeric(38, 2) NULL,
+	Flag_ITF bit NOT NULL,
+	Cod_Moneda varchar(3) NOT NULL,
+	Cod_EstadoCuenta varchar(3) NOT NULL,
+	Saldo_Contable numeric(38, 2) NOT NULL,
+	Saldo_Disponible numeric(38, 2) NULL,
+	Cod_UsuarioReg varchar(32) NOT NULL,
+	Fecha_Reg datetime NOT NULL,
+	Cod_UsuarioAct varchar(32) NULL,
+	Fecha_Act datetime NULL,
 PRIMARY KEY NONCLUSTERED 
 (
-	[Cod_Cuenta] ASC
+	Cod_Cuenta ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
-
 GO
 
-SET ANSI_PADDING OFF
-GO
-
-ALTER TABLE [dbo].[CUE_CLIENTE_CUENTA]  WITH CHECK ADD FOREIGN KEY([Id_ClienteProveedor])
-REFERENCES [dbo].[PRI_CLIENTE_PROVEEDOR] ([Id_ClienteProveedor])
+ALTER TABLE CUE_CLIENTE_CUENTA  WITH CHECK ADD FOREIGN KEY(Id_ClienteProveedor)
+REFERENCES PRI_CLIENTE_PROVEEDOR (Id_ClienteProveedor)
 GO
 
 
--- Guadar
-IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CUE_CLIENTE_CUENTA_G' AND type = 'P')
-	DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_G
+CREATE TABLE CUE_CLIENTE_CUENTA_D(
+	Cod_Cuenta varchar (32) NOT NULL,
+	item int NOT NULL,
+	Des_CuentaD varchar(512) NOT NULL,
+	Saldo numeric(38,6) NOT NULL,
+	Capital_Amortizado numeric(38,6) NOT NULL,
+	Monto numeric(38, 6) NOT NULL,
+	Cancelado numeric(38, 6) NOT NULL,
+	Interes numeric(38, 6) NOT NULL,
+	Mora numeric(38, 6) NOT NULL,
+	Fecha_Emision datetime NOT NULL ,
+	Fecha_Vencimiento datetime NOT NULL,
+	Cod_EstadoDCuenta varchar(3) NULL,
+	Cod_UsuarioReg varchar(32) NOT NULL,
+	Fecha_Reg datetime NOT NULL,
+	Cod_UsuarioAct varchar(32) NULL,
+	Fecha_Act datetime NULL,
+PRIMARY KEY NONCLUSTERED 
+(
+	Cod_Cuenta ASC,
+	item ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE CUE_CLIENTE_CUENTA_D  WITH CHECK ADD FOREIGN KEY(Cod_Cuenta)
+REFERENCES CUE_CLIENTE_CUENTA (Cod_Cuenta)
+GO
+
+CREATE TABLE CUE_CLIENTE_CUENTA_M(
+	Id_ClienteCuentaMov int IDENTITY(100000,1) NOT NULL,
+	Cod_Cuenta varchar(32) NULL,
+	Cod_TipoMovimiento varchar(16) NULL,
+	Id_Movimiento int NULL,
+	Des_Movimiento varchar(512) NULL,
+	Cod_MonedaIng varchar(5) NULL,
+	Ingreso numeric(38, 2) NULL,
+	Cod_MonedaEgr varchar(5) NULL,
+	Egreso numeric(38, 2) NULL,
+	Tipo_Cambio numeric(10, 4) NULL,
+	Fecha datetime NULL,
+	Flag_Extorno bit NOT NULL,
+	id_MovimientoCaja int NULL,
+	Cod_UsuarioReg varchar(32) NOT NULL,
+	Fecha_Reg datetime NOT NULL,
+	Cod_UsuarioAct varchar(32) NULL,
+	Fecha_Act datetime NULL,
+PRIMARY KEY NONCLUSTERED 
+(
+	Id_ClienteCuentaMov ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE CUE_CLIENTE_CUENTA_M  WITH CHECK ADD FOREIGN KEY(Cod_Cuenta)
+REFERENCES CUE_CLIENTE_CUENTA (Cod_Cuenta)
+GO
+
+--Traer paginado
+IF EXISTS(SELECT name FROM sysobjects WHERE name = 'USP_CUE_CLIENTE_CUENTA_TP' AND type = 'P')
+DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_TP
 go
+CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_TP
+@TamañoPagina varchar(16),
+@NumeroPagina varchar(16),
+@ScripOrden varchar(MAX) = NULL,
+@ScripWhere varchar(MAX) = NULL
+WITH ENCRYPTION
+AS
+BEGIN
+    DECLARE @ScripSQL varchar(MAX)
+    SET @ScripSQL = 'SELECT NumeroFila,Cod_Cuenta, Id_ClienteProveedor,
+    CASE WHEN Cod_Libro=''14'' THEN ''VENTA'' ELSE ''COMPRA'' END Tipo_Cuenta, Nro_Documento,Nom_Cliente,Fecha_Credito,Dia_Pago ,Monto_Mora, Des_Cuenta , Cod_TipoCuenta , Monto_Deposito , Interes , Meses_Max ,Meses_Gracia, Limite_Max , Flag_ITF , Cod_Moneda , Cod_EstadoCuenta , Saldo_Contable , Saldo_Disponible , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act  
+	   FROM(SELECT TOP 100 PERCENT Cod_Cuenta, ccc.Id_ClienteProveedor,ccc.Cod_Libro, pcp.Cliente as Nom_Cliente ,pcp.Nro_Documento ,Fecha_Credito,Dia_Pago ,Monto_Mora, Des_Cuenta , Cod_TipoCuenta , Monto_Deposito , Interes , Meses_Max ,Meses_Gracia, Limite_Max , Flag_ITF , Cod_Moneda , Cod_EstadoCuenta , Saldo_Contable , Saldo_Disponible , ccc.Cod_UsuarioReg , ccc.Fecha_Reg , ccc.Cod_UsuarioAct , ccc.Fecha_Act ,
+	   ROW_NUMBER() OVER('+@ScripOrden+') AS NumeroFila
+	   FROM CUE_CLIENTE_CUENTA ccc INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp on ccc.Id_ClienteProveedor= pcp.Id_ClienteProveedor '+@ScripWhere+') aCUE_CLIENTE_CUENTA
+	   WHERE NumeroFila BETWEEN('+@TamañoPagina+' * '+@NumeroPagina+')+1 AND '+@TamañoPagina+' * ('+@NumeroPagina+' + 1)'
+    EXECUTE(@ScripSQL);
+END
+GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CUE_CLIENTE_CUENTA_G' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_G
+GO
+
 CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_G 
 	@Cod_Cuenta	varchar(32), 
 	@Id_ClienteProveedor	int, 
+	@Cod_Libro varchar(5),
 	@Fecha_Credito datetime,
 	@Dia_Pago int,
-	@Monto_mora numeric(38,2),
+	@Monto_Mora numeric(38,6),
 	@Des_Cuenta	varchar(512), 
 	@Cod_TipoCuenta	varchar(3), 
 	@Monto_Deposito	numeric(38,2), 
 	@Interes	numeric(38,4), 
-	@MesesMax	int, 
-	@MesesGracia	int, 
+	@Meses_Max	int, 
+	@Meses_Gracia int,
 	@Limite_Max	numeric(38,2), 
 	@Flag_ITF	bit, 
 	@Cod_Moneda	varchar(3), 
@@ -93,15 +214,16 @@ IF NOT EXISTS (SELECT @Cod_Cuenta FROM CUE_CLIENTE_CUENTA WHERE  (Cod_Cuenta = @
 		INSERT INTO CUE_CLIENTE_CUENTA  VALUES (
 		@Cod_Cuenta,
 		@Id_ClienteProveedor,
+		@Cod_Libro,
 		@Fecha_Credito,
 		@Dia_Pago,
-		@Monto_mora,
+		@Monto_Mora,
 		@Des_Cuenta,
 		@Cod_TipoCuenta,
 		@Monto_Deposito,
 		@Interes,
-		@MesesMax,
-		@MesesGracia,
+		@Meses_Max,
+		@Meses_Gracia,
 		@Limite_Max,
 		@Flag_ITF,
 		@Cod_Moneda,
@@ -116,6 +238,7 @@ IF NOT EXISTS (SELECT @Cod_Cuenta FROM CUE_CLIENTE_CUENTA WHERE  (Cod_Cuenta = @
 		UPDATE CUE_CLIENTE_CUENTA
 		SET	
 			Id_ClienteProveedor = @Id_ClienteProveedor, 
+			Cod_Libro=@Cod_Libro,
 			Fecha_Credito=@Fecha_Credito,
 			Dia_Pago=@Dia_Pago,
 			Monto_Mora=@Monto_Mora,
@@ -123,8 +246,8 @@ IF NOT EXISTS (SELECT @Cod_Cuenta FROM CUE_CLIENTE_CUENTA WHERE  (Cod_Cuenta = @
 			Cod_TipoCuenta = @Cod_TipoCuenta, 
 			Monto_Deposito = @Monto_Deposito, 
 			Interes = @Interes, 
-			MesesMax = @MesesMax, 
-			MesesGracia=@MesesGracia,
+			Meses_Max = @Meses_Max, 
+			Meses_Gracia=@Meses_Gracia,
 			Limite_Max = @Limite_Max, 
 			Flag_ITF = @Flag_ITF, 
 			Cod_Moneda = @Cod_Moneda, 
@@ -136,7 +259,7 @@ IF NOT EXISTS (SELECT @Cod_Cuenta FROM CUE_CLIENTE_CUENTA WHERE  (Cod_Cuenta = @
 		WHERE (Cod_Cuenta = @Cod_Cuenta)	
 	END
 END
-go
+GO
 
 -- Eliminar
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CUE_CLIENTE_CUENTA_E' AND type = 'P')
@@ -160,32 +283,12 @@ CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_TT
 WITH ENCRYPTION
 AS
 BEGIN
-	SELECT ccc.Cod_Cuenta, ccc.Id_ClienteProveedor, ccc.Fecha_Credito, ccc.Dia_Pago, ccc.Monto_Mora, ccc.Des_Cuenta, ccc.Cod_TipoCuenta, ccc.Monto_Deposito, ccc.Interes, ccc.MesesMax,ccc.MesesGracia, ccc.Limite_Max, ccc.Flag_ITF, ccc.Cod_Moneda, ccc.Cod_EstadoCuenta, ccc.Saldo_Contable, ccc.Saldo_Disponible, ccc.Cod_UsuarioReg, ccc.Fecha_Reg, ccc.Cod_UsuarioAct, ccc.Fecha_Act 
+	SELECT ccc.Cod_Cuenta, ccc.Id_ClienteProveedor, ccc.Fecha_Credito, ccc.Dia_Pago, ccc.Monto_Mora, ccc.Des_Cuenta, ccc.Cod_TipoCuenta, ccc.Monto_Deposito, ccc.Interes, ccc.Meses_Max,ccc.Meses_Gracia, ccc.Limite_Max, ccc.Flag_ITF, ccc.Cod_Moneda, ccc.Cod_EstadoCuenta, ccc.Saldo_Contable, ccc.Saldo_Disponible, ccc.Cod_UsuarioReg, ccc.Fecha_Reg, ccc.Cod_UsuarioAct, ccc.Fecha_Act 
 	FROM dbo.CUE_CLIENTE_CUENTA ccc
 END
 go
 
---Traer paginado
-IF EXISTS(SELECT name FROM sysobjects WHERE name = 'USP_CUE_CLIENTE_CUENTA_TP' AND type = 'P')
-DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_TP
-go
-CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_TP
-@TamañoPagina varchar(16),
-@NumeroPagina varchar(16),
-@ScripOrden varchar(MAX) = NULL,
-@ScripWhere varchar(MAX) = NULL
-WITH ENCRYPTION
-AS
-BEGIN
-    DECLARE @ScripSQL varchar(MAX)
-    SET @ScripSQL = 'SELECT NumeroFila,Cod_Cuenta, Id_ClienteProveedor,Nro_Documento,Nom_Cliente,Fecha_Credito,Dia_Pago ,Monto_Mora, Des_Cuenta , Cod_TipoCuenta , Monto_Deposito , Interes , MesesMax ,MesesGracia, Limite_Max , Flag_ITF , Cod_Moneda , Cod_EstadoCuenta , Saldo_Contable , Saldo_Disponible , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act  
-	   FROM(SELECT TOP 100 PERCENT Cod_Cuenta, ccc.Id_ClienteProveedor, pcp.Cliente as Nom_Cliente ,pcp.Nro_Documento ,Fecha_Credito,Dia_Pago ,Monto_Mora, Des_Cuenta , Cod_TipoCuenta , Monto_Deposito , Interes , MesesMax ,MesesGracia, Limite_Max , Flag_ITF , Cod_Moneda , Cod_EstadoCuenta , Saldo_Contable , Saldo_Disponible , ccc.Cod_UsuarioReg , ccc.Fecha_Reg , ccc.Cod_UsuarioAct , ccc.Fecha_Act ,
-	   ROW_NUMBER() OVER('+@ScripOrden+') AS NumeroFila
-	   FROM CUE_CLIENTE_CUENTA ccc INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp on ccc.Id_ClienteProveedor= pcp.Id_ClienteProveedor '+@ScripWhere+') aCUE_CLIENTE_CUENTA
-	   WHERE NumeroFila BETWEEN('+@TamañoPagina+' * '+@NumeroPagina+')+1 AND '+@TamañoPagina+' * ('+@NumeroPagina+' + 1)'
-    EXECUTE(@ScripSQL);
-END
-GO
+
 
 
 
@@ -198,7 +301,7 @@ CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_TXPK
 WITH ENCRYPTION
 AS
 BEGIN
-	SELECT ccc.Cod_Cuenta, ccc.Id_ClienteProveedor, ccc.Fecha_Credito, ccc.Dia_Pago, ccc.Monto_Mora, ccc.Des_Cuenta, ccc.Cod_TipoCuenta, ccc.Monto_Deposito, ccc.Interes, ccc.MesesMax,ccc.MesesGracia, ccc.Limite_Max, ccc.Flag_ITF, ccc.Cod_Moneda, ccc.Cod_EstadoCuenta, ccc.Saldo_Contable, ccc.Saldo_Disponible, ccc.Cod_UsuarioReg, ccc.Fecha_Reg, ccc.Cod_UsuarioAct, ccc.Fecha_Act 
+	SELECT ccc.Cod_Cuenta, ccc.Id_ClienteProveedor,ccc.Cod_Libro, ccc.Fecha_Credito, ccc.Dia_Pago, ccc.Monto_Mora, ccc.Des_Cuenta, ccc.Cod_TipoCuenta, ccc.Monto_Deposito, ccc.Interes, ccc.Meses_Max,ccc.Meses_Gracia, ccc.Limite_Max, ccc.Flag_ITF, ccc.Cod_Moneda, ccc.Cod_EstadoCuenta, ccc.Saldo_Contable, ccc.Saldo_Disponible, ccc.Cod_UsuarioReg, ccc.Fecha_Reg, ccc.Cod_UsuarioAct, ccc.Fecha_Act 
 	FROM CUE_CLIENTE_CUENTA ccc
 	WHERE (ccc.Cod_Cuenta = @Cod_Cuenta)	
 END
@@ -235,57 +338,25 @@ go
 
 
 --Cuenta cliente detalle
-
-
-CREATE TABLE [dbo].[CUE_CLIENTE_CUENTA_D](
-	[Cod_Cuenta] [varchar](32) NOT NULL,
-	[item] [int] NOT NULL,
-	[Des_CuentaD] [varchar](512) NOT NULL,
-	[Saldo] [numeric](38, 2) NOT NULL,--El saldo que tenemos
-	[Capital_Amortizado] [numeric](38, 2) NULL, --El capital amortizado
-	[Monto] [numeric](38, 2) NULL, --Lo que se debe de pagar  (cuota mensual)
-	[Cancelado] [numeric](38, 2) NULL, --Lo que cancelamos
-	[Interes] [numeric](38, 2) NULL, --El monto del interes
-	[Mora] [numeric](38, 2) NULL, --El monto de la mora
-	[Fecha_Emision] [datetime] NULL,--Fecha del pago de la cuota
-	[Fecha_Vencimiento] [datetime] NULL,
-	[Cod_EstadoDCuenta] [varchar](3) NULL,
-	[Cod_UsuarioReg] [varchar](32) NOT NULL,
-	[Fecha_Reg] [datetime] NOT NULL,
-	[Cod_UsuarioAct] [varchar](32) NULL,
-	[Fecha_Act] [datetime] NULL,
-PRIMARY KEY NONCLUSTERED 
-(
-	[Cod_Cuenta] ASC,
-	[item] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-) ON [PRIMARY]
-
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CUE_CLIENTE_CUENTA_D_G' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_D_G
 GO
 
-SET ANSI_PADDING OFF
-GO
-
-ALTER TABLE [dbo].[CUE_CLIENTE_CUENTA_D]  WITH CHECK ADD FOREIGN KEY([Cod_Cuenta])
-REFERENCES [dbo].[CUE_CLIENTE_CUENTA] ([Cod_Cuenta])
-GO
-
-
-
---Guardar
-IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CUE_CLIENTE_CUENTA_D_G' AND type = 'P')
-	DROP PROCEDURE USP_CUE_CLIENTE_CUENTA_D_G
-go
 CREATE PROCEDURE USP_CUE_CLIENTE_CUENTA_D_G 
 	@Cod_Cuenta	varchar(32), 
 	@item	int, 
 	@Des_CuentaD	varchar(512), 
-	@Saldo numeric (38,2),
-	@Capital_Amortizado numeric (38,2),
-	@Monto numeric(38,2), 
-	@Cancelado numeric(38,2),
-	@Interes numeric (38,2),
-	@Mora numeric (38,2), 
+	@Saldo numeric(38,6),
+	@Capital_Amortizado numeric(38,6),
+	@Monto	numeric(38,6), 
+	@Cancelado numeric(38,6),
+	@Interes numeric(38,6),
+	@Mora numeric(38,6),
 	@Fecha_Emision	datetime, 
 	@Fecha_Vencimiento	datetime, 
 	@Cod_EstadoDCuenta	varchar(3),
@@ -316,12 +387,12 @@ IF NOT EXISTS (SELECT @Cod_Cuenta, @item FROM CUE_CLIENTE_CUENTA_D WHERE  (Cod_C
 		UPDATE CUE_CLIENTE_CUENTA_D
 		SET	
 			Des_CuentaD = @Des_CuentaD, 
-			Saldo = @Saldo,
-			Capital_Amortizado = @Capital_Amortizado,
+			Saldo=@Saldo,
+			Capital_Amortizado=@Capital_Amortizado,
 			Monto = @Monto, 
 			Cancelado=@Cancelado,
-			Interes = @Interes,
-			Mora = @Mora,
+			Interes=@Interes,
+			Mora=@Mora,
 			Fecha_Emision = @Fecha_Emision, 
 			Fecha_Vencimiento = @Fecha_Vencimiento, 
 			Cod_EstadoDCuenta = @Cod_EstadoDCuenta,
@@ -330,7 +401,8 @@ IF NOT EXISTS (SELECT @Cod_Cuenta, @item FROM CUE_CLIENTE_CUENTA_D WHERE  (Cod_C
 		WHERE (Cod_Cuenta = @Cod_Cuenta) AND (item = @item)	
 	END
 END
-go
+GO
+
 
 
 --Eliminar todos los detalles por codigo de cuenta 
@@ -474,7 +546,7 @@ AS
 BEGIN
 	SELECT DISTINCT ccc.Cod_Cuenta,vtd.Nom_TipoDoc,pcp.Nro_Documento,pcp.Cliente,CONVERT(VARCHAR(10), ccc.Fecha_Credito, 103) Fecha_Credito,
 	ccc.Dia_Pago,
-	ccc.Des_Cuenta,ccc.Cod_UsuarioReg,ccc.MesesMax,ccc.MesesGracia,ccc.Monto_Deposito, ccc.Interes,vm.Nom_Moneda,ccc.Monto_Mora,cccd.item, 
+	ccc.Des_Cuenta,ccc.Cod_UsuarioReg,ccc.Meses_Max,ccc.Meses_Gracia,ccc.Monto_Deposito, ccc.Interes,vm.Nom_Moneda,ccc.Monto_Mora,cccd.item, 
 	cccd.Saldo,
 	cccd.Capital_Amortizado, cccd.Monto, cccd.Cancelado, cccd.Interes InteresDetalle, CONVERT(VARCHAR(10), cccd.Fecha_Emision, 103) Fecha_Pago
 	FROM dbo.CUE_CLIENTE_CUENTA ccc 
@@ -512,8 +584,8 @@ AS
                             ccc.Cod_TipoCuenta,
                             ccc.Monto_Deposito,
                             ccc.Interes,
-                            ccc.MesesMax,
-                            ccc.MesesGracia,
+                            ccc.Meses_Max,
+                            ccc.Meses_Gracia,
                             ccc.Cod_Moneda,
 					   vm.Nom_Moneda,
                             ccc.Cod_EstadoCuenta,
@@ -548,8 +620,8 @@ AS
                             ccc.Cod_TipoCuenta,
                             ccc.Monto_Deposito,
                             ccc.Interes,
-                            ccc.MesesMax,
-                            ccc.MesesGracia,
+                            ccc.Meses_Max,
+                            ccc.Meses_Gracia,
                             ccc.Cod_Moneda,
 					   vm.Nom_Moneda,
                             ccc.Cod_EstadoCuenta,
@@ -601,8 +673,8 @@ AS
                             ccc.Cod_TipoCuenta,
                             ccc.Monto_Deposito,
                             ccc.Interes,
-                            ccc.MesesMax,
-                            ccc.MesesGracia,
+                            ccc.Meses_Max,
+                            ccc.Meses_Gracia,
                             ccc.Cod_Moneda,
 					   vm.Nom_Moneda,
                             ccc.Cod_EstadoCuenta,
@@ -637,8 +709,8 @@ AS
                             ccc.Cod_TipoCuenta,
                             ccc.Monto_Deposito,
                             ccc.Interes,
-                            ccc.MesesMax,
-                            ccc.MesesGracia,
+                            ccc.Meses_Max,
+                            ccc.Meses_Gracia,
                             ccc.Cod_Moneda,
 					   		vm.Nom_Moneda,
                             ccc.Cod_EstadoCuenta,
