@@ -913,3 +913,279 @@ BEGIN
     SELECT cccd.* FROM dbo.CUE_CLIENTE_CUENTA_D cccd WHERE cccd.Cod_Cuenta=@Cod_Cuenta ORDER BY cccd.item ASC
 END
 go
+
+
+---
+DECLARE @CodMoneda varchar(max) =NULL
+SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
+		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
+		  CP.Cod_Turno,
+		  CP.Glosa
+		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+		  WHERE   
+		  cp.Cod_TipoComprobante   IN ('BE') 
+		  AND CP.Serie LIKE 'B%'
+		  AND CP.Flag_Anulado	 = 0 
+		  AND CP.Cod_Libro = '14' 
+		  --AND (CR.Cod_TipoRelacion = 'CRE' OR CR.Cod_TipoRelacion IS NULL)
+		  AND CP.Id_Cliente = 1
+		  --AND CP.FechaEmision>=@FechaInicio 
+		  --AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
+		  --HAVING AVG(CP.Total)-SUM(ISNULL(abs(CN.Total), 0)) > 0
+
+
+SELECT ccp.* FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=5083
+
+
+--Procedimientos para el servicio
+--Creacion de datos para pri_cliente, se considera un rango de numeros y se borran los datos en ese rango
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_PRI_CLIENTE_PROVEEDOR_CrearClienteVacioXRango' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_CrearClienteVacioXRango
+GO
+
+CREATE PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_CrearClienteVacioXRango
+	@Inicio int, 
+	@Final int
+WITH ENCRYPTION
+AS
+BEGIN
+    DECLARE @DNI varchar(8)
+    DELETE dbo.PRI_CLIENTE_PROVEEDOR WHERE dbo.PRI_CLIENTE_PROVEEDOR.Nro_Documento>=@Inicio AND dbo.PRI_CLIENTE_PROVEEDOR.Nro_Documento<=@Final
+    WHILE @Inicio<=@final
+    BEGIN
+	   SET @DNI =  right('00000000' + Ltrim(Rtrim(@Inicio)),8)
+	   INSERT dbo.PRI_CLIENTE_PROVEEDOR
+	   VALUES
+	   (
+		  -- Id_ClienteProveedor - int
+		  '1', -- Cod_TipoDocumento - varchar
+		  @DNI, -- Nro_Documento - varchar
+		  NULL, -- Cliente - varchar
+		  NULL, -- Ap_Paterno - varchar
+		  NULL, -- Ap_Materno - varchar
+		  NULL, -- Nombres - varchar
+		  NULL, -- Direccion - varchar
+		  NULL, -- Cod_EstadoCliente - varchar
+		  NULL, -- Cod_CondicionCliente - varchar
+		  NULL, -- Cod_TipoCliente - varchar
+		  NULL, -- RUC_Natural - varchar
+		  NULL, -- Foto - binary
+		  NULL, -- Firma - binary
+		  NULL, -- Cod_TipoComprobante - varchar
+		  NULL, -- Cod_Nacionalidad - varchar
+		  NULL, -- Fecha_Nacimiento - datetime
+		  NULL, -- Cod_Sexo - varchar
+		  NULL, -- Email1 - varchar
+		  NULL, -- Email2 - varchar
+		  NULL, -- Telefono1 - varchar
+		  NULL, -- Telefono2 - varchar
+		  NULL, -- Fax - varchar
+		  NULL, -- PaginaWeb - varchar
+		  NULL, -- Cod_Ubigeo - varchar
+		  NULL, -- Cod_FormaPago - varchar
+		  NULL, -- Limite_Credito - numeric
+		  NULL, -- Obs_Cliente - xml
+		  NULL, -- Num_DiaCredito - int
+		  'GENERADOR', -- Cod_UsuarioReg - varchar
+		  GETDATE(), -- Fecha_Reg - datetime
+		  NULL, -- Cod_UsuarioAct - varchar
+		  NULL -- Fecha_Act - datetime
+	   )
+	   SET @Inicio=@Inicio+1
+    END
+END
+GO
+
+--Metodo que obtiene el id,DNI aleatorio
+--Puede obtener o no un DNI aleatorio
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_PRI_CLIENTE_PROVEEDOR_ObtenerDNIAleatorio' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_ObtenerDNIAleatorio
+GO
+
+CREATE PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_ObtenerDNIAleatorio
+WITH ENCRYPTION
+AS
+BEGIN
+    IF (SELECT COUNT(*) FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Cod_CondicionCliente IS NULL AND pcp.Cod_TipoDocumento='1')>0
+    BEGIN
+	   SELECT TOP 1 pcp.Id_ClienteProveedor,pcp.Nro_Documento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp TABLESAMPLE(10000 ROWS)
+	   WHERE pcp.Cod_CondicionCliente IS NULL AND pcp.Cod_TipoDocumento='1'
+    END
+    ELSE
+    BEGIN
+	   SELECT TOP 1 pcp.Id_ClienteProveedor,pcp.Nro_Documento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp TABLESAMPLE(10000 ROWS)
+	   WHERE pcp.Cod_CondicionCliente ='001' AND (pcp.Fecha_Nacimiento IS NULL OR pcp.Cod_Sexo='' OR pcp.Direccion='' OR pcp.PaginaWeb='' OR pcp.Cod_Ubigeo='')
+	   AND pcp.Cod_TipoDocumento='1'
+    END
+END
+GO
+
+--Modifcamos el procedimiento para que este pueda efectuar el rollbak 
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_PRI_CLIENTE_PROVEEDOR_G' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_G
+GO
+
+CREATE PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_G
+@Id_ClienteProveedor int out, 
+@Cod_TipoDocumento varchar(3), 
+@Nro_Documento varchar(32), 
+@Cliente varchar(512), 
+@Ap_Paterno varchar(128), 
+@Ap_Materno varchar(128), 
+@Nombres varchar(128), 
+@DireccioN varchar(512), 
+@Cod_EstadoCliente varchar(3), 
+@Cod_CondicionCliente varchar(3), 
+@Cod_TipoCliente varchar(3), 
+@RUC_Natural varchar(32), 
+@Foto varbinary(MAX)=NULL, 
+@Firma varbinary(MAX)=NULL, 
+@Cod_TipoComprobante varchar(5) out, 
+@Cod_Nacionalidad varchar(8), 
+@Fecha_Nacimiento datetime = NULL, 
+@Cod_Sexo varchar(3), 
+@Email1 varchar(1024), 
+@Email2 varchar(1024), 
+@Telefono1 varchar(512), 
+@Telefono2 varchar(512), 
+@Fax varchar(512), 
+@PaginaWeb varchar(512), 
+@Cod_Ubigeo varchar(8), 
+@Cod_FormaPago varchar(3), 
+@Limite_Credito numeric(38,2), 
+@Obs_Cliente xml =NULL,
+@Num_DiaCredito	int,
+@Cod_Usuario  varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+    SET XACT_ABORT ON;  
+    BEGIN TRY  
+    BEGIN TRANSACTION;  
+    IF CONVERT(NVARCHAR(MAX),ISNULL(@Obs_Cliente,'')) = ''
+    BEGIN
+	   SET @Obs_Cliente = '<Registro><OBS_CLIENTE /></Registro>'
+    END	
+    UPDATE dbo.PRI_CLIENTE_PROVEEDOR
+    SET
+        --Id_ClienteProveedor - this column value is auto-generated
+        --dbo.PRI_CLIENTE_PROVEEDOR.Cod_TipoDocumento = '', -- varchar
+        --dbo.PRI_CLIENTE_PROVEEDOR.Nro_Documento = '', -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Cliente = @Cliente, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Ap_Paterno = @Ap_Paterno, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Ap_Materno = @Ap_Materno, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Nombres = @Nombres, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Direccion = @Direccion, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Cod_EstadoCliente = @Cod_EstadoCliente, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Cod_CondicionCliente = @Cod_CondicionCliente, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Cod_TipoCliente = @Cod_TipoCliente, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.RUC_Natural = @RUC_Natural, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Foto = @Foto, -- binary
+        dbo.PRI_CLIENTE_PROVEEDOR.Firma = @Firma, -- binary
+        dbo.PRI_CLIENTE_PROVEEDOR.Cod_TipoComprobante = @Cod_TipoComprobante, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Cod_Nacionalidad = @Cod_Nacionalidad, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Fecha_Nacimiento = @Fecha_Nacimiento, -- datetime
+        dbo.PRI_CLIENTE_PROVEEDOR.Cod_Sexo = @Cod_Sexo, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Email1 = @Email1, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Email2 = @Email2, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Telefono1 = @Telefono1, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Telefono2 = @Telefono2, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Fax = @Fax, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.PaginaWeb = @PaginaWeb, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Cod_Ubigeo = @Cod_Ubigeo, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Cod_FormaPago = @Cod_FormaPago, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Limite_Credito = @Limite_Credito, -- numeric
+        dbo.PRI_CLIENTE_PROVEEDOR.Obs_Cliente = @Obs_Cliente, -- xml
+        dbo.PRI_CLIENTE_PROVEEDOR.Num_DiaCredito = @Num_DiaCredito, -- int
+        --dbo.PRI_CLIENTE_PROVEEDOR.Cod_UsuarioReg = '', -- varchar
+        --dbo.PRI_CLIENTE_PROVEEDOR.Fecha_Reg = '2018-07-18 16:42:02', -- datetime
+        dbo.PRI_CLIENTE_PROVEEDOR.Cod_UsuarioAct = @Cod_Usuario, -- varchar
+        dbo.PRI_CLIENTE_PROVEEDOR.Fecha_Act = GETDATE() -- datetime
+	   WHERE dbo.PRI_CLIENTE_PROVEEDOR.Id_ClienteProveedor=@Id_ClienteProveedor
+    COMMIT TRANSACTION;
+    END TRY  
+      
+    BEGIN CATCH  
+    IF (XACT_STATE()) = -1  
+    BEGIN  
+	   ROLLBACK TRANSACTION; 
+    END;  
+    IF (XACT_STATE()) = 1  
+    BEGIN  
+	   COMMIT TRANSACTION;    
+    END;  
+    THROW;
+    END CATCH;  
+END
+GO
+
+--Libros electronicos
+
+DECLARE @Codigo_Asiento varchar(1)='A'
+
+SELECT TOP 10
+CASE WHEN ccp.Cod_Periodo IS NOT NULL AND (PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 1) IS NOT NULL OR LTRIM(RTRIM(PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 1)))<>''
+AND PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 2) IS NOT NULL OR LTRIM(RTRIM(PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 2)))<>'') THEN 
+PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 2)+RIGHT('00'+PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 1),2)+'00' ELSE --AAAAMM00
+CAST(YEAR(ccp.FechaEmision) AS varchar(4))+  RIGHT('00'+CAST(MONTH(ccp.FechaEmision) AS varchar(2)),2)+'00' END Cod_Periodo,
+'00-14-'+ CASE WHEN ccp.Cod_Periodo IS NOT NULL AND (PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 1) IS NOT NULL OR LTRIM(RTRIM(PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 1)))<>''
+AND PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 2) IS NOT NULL OR LTRIM(RTRIM(PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 2)))<>'') THEN 
+RIGHT('00'+PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 1),2) ELSE 
+RIGHT('00'+ CAST(MONTH(ccp.FechaEmision) AS varchar(2)),2)
+END + '-' + RIGHT('000000' + LTRIM(RTRIM(ROW_NUMBER() OVER(ORDER BY ccp.FechaEmision))),6) Correlativo_Mes,
+@Codigo_Asiento + CASE WHEN ccp.Cod_Periodo IS NOT NULL AND (PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 1) IS NOT NULL OR LTRIM(RTRIM(PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 1)))<>''
+AND PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 2) IS NOT NULL OR LTRIM(RTRIM(PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 2)))<>'') THEN 
+RIGHT('00'+PARSENAME(REPLACE(ccp.Cod_Periodo, '-', '.'), 1),2) ELSE 
+RIGHT('00'+ CAST(MONTH(ccp.FechaEmision) AS varchar(2)),2) END +'-'+ RIGHT('000000' + LTRIM(RTRIM(ROW_NUMBER() OVER(ORDER BY ccp.FechaEmision))),6) Correlativo_Asiento,
+CONVERT(varchar(10),CONVERT(date,ccp.FechaEmision,106),103) Fecha_Emision,
+CONVERT(varchar(10),CONVERT(date,ccp.FechaEmision,106),103) Fecha_Vencimiento, --Por evaluar
+vtc.Cod_Sunat Cod_Tipo_Comprobante,
+ccp.Serie,
+ccp.Numero,
+NULL Numero_Correlativo,
+ccp.Cod_TipoDoc Cod_Doc_Cliente,
+ccp.Doc_Cliente Nro_Doc_Cliente,
+ccp.Nom_Cliente,
+CASE WHEN ccp.Cod_TipoOperacion ='02' THEN  SUM(CASE WHEN ccd.Cod_TipoIGV IN ('40') THEN  ROUND(ccd.Cantidad*ccd.PrecioUnitario,2) ELSE 0 END) ELSE NULL END Valor_Exportacion,
+CASE WHEN ccp.Cod_TipoOperacion ='01' THEN  
+ROUND(SUM(CASE WHEN ccd.Cod_TipoIGV IN ('10','11','12','13','14','15','16') THEN ccd.Cantidad*((ccd.PrecioUnitario*100)/(100+ISNULL(ccd.Porcentaje_IGV,0)+ISNULL(ccd.Porcentaje_ISC,0))) ELSE 0 END),2) ELSE NULL END Valor_Gravadas,
+NULL Descuento_Base_Imponible,
+CASE WHEN ccp.Cod_TipoOperacion ='01' THEN  
+ROUND(SUM(CASE WHEN ccd.Cod_TipoIGV IN ('10') THEN ccd.Cantidad*((ccd.PrecioUnitario*100)/(100+ISNULL(ccd.Porcentaje_IGV,0)+ISNULL(ccd.Porcentaje_ISC,0)))*(ISNULL(ccd.Porcentaje_IGV,0)/100) ELSE 0 END),2) ELSE NULL END IGV,
+NULL Descuento_IGV,
+CASE WHEN ccp.Cod_TipoOperacion ='01' THEN  
+ROUND(SUM(CASE WHEN ccd.Cod_TipoIGV IN ('20') THEN ccd.Cantidad*((ccd.PrecioUnitario*100)/(100+ISNULL(ccd.Porcentaje_ISC,0))) ELSE 0 END),2) ELSE NULL END Valor_Exoneradas,
+CASE WHEN ccp.Cod_TipoOperacion ='01' THEN  
+ROUND(SUM(CASE WHEN ccd.Cod_TipoIGV IN ('30','31','32','33','34','35','36') THEN ccd.Cantidad*((ccd.PrecioUnitario*100)/(100+ISNULL(ccd.Porcentaje_ISC,0))) ELSE 0 END),2) ELSE NULL END Valor_Inafectas,
+ROUND(SUM(CASE WHEN ccd.Cod_TipoISC IS NOT NULL AND LTRIM(RTRIM(ccd.Cod_TipoISC))<>''  THEN ccd.Cantidad*((ccd.PrecioUnitario*100)/(100+ISNULL(ccd.Porcentaje_IGV,0)+ISNULL(ccd.Porcentaje_ISC,0)))*(ISNULL(ccd.Porcentaje_ISC,0)/100) ELSE 0 END),2)   ISC,
+NULL Valor_Arroz_Pilado,
+NULL Impuesto_Arroz_Pilado,
+ABS(AVG(ccp.Otros_Cargos))+ABS(AVG(ccp.Otros_Tributos)) Otros_Cargos_Tributos
+FROM dbo.CAJ_COMPROBANTE_PAGO ccp INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON ccp.Cod_TipoComprobante = vtc.Cod_TipoComprobante
+INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+WHERE ccp.Cod_Periodo IS NOT NULL
+AND ccp.Cod_Libro='14'
+AND ccp.Flag_Anulado=0
+AND ccp.Cod_TipoComprobante IN ('BE','FE','NCE','NDE','FA','BO','NCE','NDE','NC','ND')
+GROUP BY ccp.Cod_Periodo,ccp.FechaEmision,vtc.Cod_Sunat,ccp.Serie,ccp.Numero,ccp.Cod_TipoDoc,ccp.Doc_Cliente,ccp.Nom_Cliente,ccp.Cod_TipoOperacion

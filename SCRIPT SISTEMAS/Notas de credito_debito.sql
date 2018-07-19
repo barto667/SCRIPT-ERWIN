@@ -1,6 +1,163 @@
 
 --NOTAS DE CREDITO
 --exec URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota 26127,'NC','14','B101','PEN','2016-04-29 00:00:00:000','2018-06-08 00:00:00:000'
+-- IF EXISTS (SELECT name FROM sysobjects WHERE name = 'URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota' AND type = 'P')
+-- DROP PROCEDURE URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota
+-- go
+-- CREATE PROCEDURE URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota 
+-- @IdCliente int,
+-- @CodTipoComprobanteNota varchar(10),
+-- @CodLibro varchar(10),
+-- @Serie varchar(10),
+-- @CodMoneda varchar(10) = NULL,
+-- @FechaInicio datetime,
+-- @FechaFin datetime 
+-- WITH ENCRYPTION
+-- AS
+-- BEGIN
+--     SET DATEFORMAT ymd;
+--     --NC : puede afectar a FE,BE,FA,BO,TKB,TKF no importa la serie
+--     IF(@CodTipoComprobanteNota='NC') 
+--     BEGIN
+-- 	   SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
+-- 	   CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+-- 	   SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
+-- 	   CP.Cod_Turno,
+-- 	   CP.Glosa
+-- 	   FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+-- 	   CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+-- 	   LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+-- 	   WHERE   cp.Cod_TipoComprobante   IN ('FE','BE','TKB','TKF','FA','BO') 
+-- 	   AND CP.Flag_Anulado	 = 0 
+-- 	   AND CP.Cod_Libro = @CodLibro 
+-- 	   AND (CR.Cod_TipoRelacion = 'CRE' OR CR.Cod_TipoRelacion IS NULL)
+-- 	   AND CP.Id_Cliente = @IdCliente
+-- 	   AND CP.FechaEmision>=@FechaInicio 
+-- 	   AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+-- 	   AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+-- 	   GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
+-- 	   HAVING AVG(CP.Total)-SUM(ISNULL(abs(CN.Total), 0)) > 0
+--     END
+--     --NCE : solo puede afectar a FE,BE si la serie empieza con F solo afecta a comprobantes de serie F, igual con B
+--     IF(@CodTipoComprobanteNota='NCE') 
+--     BEGIN
+-- 	   IF(LEFT(@Serie,1) ='F')
+-- 	   BEGIN
+-- 		  SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
+-- 		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+-- 		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
+-- 		  CP.Cod_Turno,
+-- 		  CP.Glosa
+-- 		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+-- 		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+-- 		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+-- 		  WHERE   
+-- 		  cp.Cod_TipoComprobante   IN ('FE') 
+-- 		  AND CP.Serie LIKE 'F%'
+-- 		  AND CP.Flag_Anulado	 = 0 
+-- 		  AND CP.Cod_Libro = @CodLibro 
+-- 		  AND (CR.Cod_TipoRelacion = 'CRE' OR CR.Cod_TipoRelacion IS NULL)
+-- 		  AND CP.Id_Cliente = @IdCliente
+-- 		  AND CP.FechaEmision>=@FechaInicio 
+-- 		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+-- 		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+-- 		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
+-- 		  HAVING AVG(CP.Total)-SUM(ISNULL(abs(CN.Total), 0)) > 0
+-- 	   END
+-- 	   IF(LEFT(@Serie,1) ='B')
+-- 	   BEGIN
+-- 		  SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
+-- 		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+-- 		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
+-- 		  CP.Cod_Turno,
+-- 		  CP.Glosa
+-- 		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+-- 		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+-- 		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+-- 		  WHERE   
+-- 		  cp.Cod_TipoComprobante   IN ('BE') 
+-- 		  AND CP.Serie LIKE 'B%'
+-- 		  AND CP.Flag_Anulado	 = 0 
+-- 		  AND CP.Cod_Libro = @CodLibro 
+-- 		  AND (CR.Cod_TipoRelacion = 'CRE' OR CR.Cod_TipoRelacion IS NULL)
+-- 		  AND CP.Id_Cliente = @IdCliente
+-- 		  AND CP.FechaEmision>=@FechaInicio 
+-- 		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+-- 		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+-- 		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
+-- 		  HAVING AVG(CP.Total)-SUM(ISNULL(abs(CN.Total), 0)) > 0
+-- 	   END
+--     END
+--     --ND : puede afectar a FE,BE,FA,BO,TKB,TKF no importa la serie
+--     IF(@CodTipoComprobanteNota='ND')
+--     BEGIN
+-- 	   SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
+-- 	   CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento ,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+-- 	   SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
+-- 	   CP.Cod_Turno,
+-- 	   CP.Glosa
+-- 	   FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+-- 	   CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+-- 	   LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+-- 	   WHERE   cp.Cod_TipoComprobante   IN ('FE','BE','TKB','TKF','FA','BO') 
+-- 	   AND CP.Flag_Anulado	 = 0 
+-- 	   AND CP.Cod_Libro = @CodLibro
+-- 	   AND CP.Id_Cliente = @IdCliente
+-- 	   AND CP.FechaEmision>=@FechaInicio 
+-- 	   AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+-- 	   AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+-- 	   GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
+--     END	
+--     --NDE : : solo puede afectar a FE,BE si la serie empieza con F solo afecta a comprobantes de serie F, igual con B
+--     IF(@CodTipoComprobanteNota='NDE') 
+--     BEGIN
+-- 	   IF(LEFT(@Serie,1) ='F')
+-- 	   BEGIN
+-- 		 SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
+-- 		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento ,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+-- 		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
+-- 		  CP.Cod_Turno,
+-- 		  CP.Glosa
+-- 		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+-- 		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+-- 		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+-- 		  WHERE   
+-- 		  cp.Cod_TipoComprobante   IN ('FE') 
+-- 		  AND cp.Serie LIKE 'F%'
+-- 		  AND CP.Flag_Anulado	 = 0 
+-- 		  AND CP.Cod_Libro = @CodLibro
+-- 		  AND CP.Id_Cliente = @IdCliente
+-- 		  AND CP.FechaEmision>=@FechaInicio 
+-- 		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+-- 		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+-- 		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
+-- 	   END
+-- 	   IF(LEFT(@Serie,1) ='B')
+-- 	   BEGIN
+-- 		  SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
+-- 		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento ,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
+-- 		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
+-- 		  CP.Cod_Turno,
+-- 		  CP.Glosa
+-- 		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
+-- 		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
+-- 		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
+-- 		  WHERE   
+-- 		  cp.Cod_TipoComprobante   IN ('BE') 
+-- 		  AND cp.Serie LIKE 'B%'
+-- 		  AND CP.Flag_Anulado	 = 0 
+-- 		  AND CP.Cod_Libro = @CodLibro
+-- 		  AND CP.Id_Cliente = @IdCliente
+-- 		  AND CP.FechaEmision>=@FechaInicio 
+-- 		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
+-- 		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
+-- 		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
+-- 	   END
+--     END
+-- END
+-- go
+
+--exec URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota 26127,'NC','14','B101','PEN','2016-04-29 00:00:00:000','2018-06-08 00:00:00:000'
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota' AND type = 'P')
 DROP PROCEDURE URP_CAJ_COMPROBANTE_PAGO_TraerComprobantesAfectarNota
 go
@@ -19,143 +176,259 @@ BEGIN
     --NC : puede afectar a FE,BE,FA,BO,TKB,TKF no importa la serie
     IF(@CodTipoComprobanteNota='NC') 
     BEGIN
-	   SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
-	   CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
-	   SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
-	   CP.Cod_Turno,
-	   CP.Glosa
-	   FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
-	   CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
-	   LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
-	   WHERE   cp.Cod_TipoComprobante   IN ('FE','BE','TKB','TKF','FA','BO') 
-	   AND CP.Flag_Anulado	 = 0 
-	   AND CP.Cod_Libro = @CodLibro 
-	   AND (CR.Cod_TipoRelacion = 'CRE' OR CR.Cod_TipoRelacion IS NULL)
-	   AND CP.Id_Cliente = @IdCliente
-	   AND CP.FechaEmision>=@FechaInicio 
-	   AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
-	   AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
-	   GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
-	   HAVING AVG(CP.Total)-SUM(ISNULL(abs(CN.Total), 0)) > 0
+	  SELECT Res.id_ComprobantePago,
+       Res.FechaEmision,
+       Res.Cod_Moneda,
+       Res.Documento,
+       Res.Cliente,
+       CAST(Res.Total AS NUMERIC(38, 6)) Total,
+	  CAST(Res.TotalNotas AS NUMERIC(38, 6)) TotalNotas,
+	  CAST(Res.Total - Res.TotalNotas AS NUMERIC(38, 6)) Disponible,
+       Res.Cod_Turno,
+       Res.Glosa
+	  FROM
+	   (
+		  SELECT ccp.id_ComprobantePago,
+			    ccp.FechaEmision,
+			    ccp.Cod_Moneda,
+			    ccp.Cod_TipoComprobante+':'+ccp.Serie+'-'+ccp.Numero Documento,
+			    ccp.Doc_Cliente+':'+ccp.Nom_Cliente Cliente,
+			    ccp.Total,
+			    ISNULL(
+			    (
+				    SELECT SUM(ABS(ISNULL(ccp2.Total,0)))
+				    FROM dbo.CAJ_COMPROBANTE_PAGO ccp2
+					    INNER JOIN dbo.CAJ_COMPROBANTE_RELACION ccr ON ccp2.id_ComprobantePago = ccr.id_ComprobantePago
+				    WHERE ccr.Cod_TipoRelacion = 'CRE'
+						AND ccr.Id_ComprobanteRelacion = ccp.id_ComprobantePago
+			    ), 0) TotalNotas,
+			    ccp.Cod_Turno,
+			    ccp.Glosa
+		  FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+		  WHERE ccp.Cod_TipoComprobante IN ('FE','BE','TKB','TKF','FA','BO') 
+			    AND ccp.Flag_Anulado = 0
+			    AND ccp.Cod_Libro = @CodLibro
+			    AND (@CodMoneda IS NULL
+				    OR @CodMoneda = ccp.Cod_Moneda)
+			    AND ccp.Id_Cliente=@IdCliente
+	   ) Res
+	   WHERE Res.Total - Res.TotalNotas > 0
+	   AND Res.FechaEmision >= @FechaInicio
+	   AND Res.FechaEmision<DATEADD(day,1,@FechaFin)
+	   ORDER BY Res.FechaEmision
+
+
     END
     --NCE : solo puede afectar a FE,BE si la serie empieza con F solo afecta a comprobantes de serie F, igual con B
     IF(@CodTipoComprobanteNota='NCE') 
     BEGIN
-	   IF(LEFT(@Serie,1) ='F')
+	   IF(@Serie LIKE 'F%')
 	   BEGIN
-		  SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
-		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
-		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
-		  CP.Cod_Turno,
-		  CP.Glosa
-		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
-		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
-		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
-		  WHERE   
-		  cp.Cod_TipoComprobante   IN ('FE') 
-		  AND CP.Serie LIKE 'F%'
-		  AND CP.Flag_Anulado	 = 0 
-		  AND CP.Cod_Libro = @CodLibro 
-		  AND (CR.Cod_TipoRelacion = 'CRE' OR CR.Cod_TipoRelacion IS NULL)
-		  AND CP.Id_Cliente = @IdCliente
-		  AND CP.FechaEmision>=@FechaInicio 
-		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
-		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
-		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
-		  HAVING AVG(CP.Total)-SUM(ISNULL(abs(CN.Total), 0)) > 0
+		  SELECT Res.id_ComprobantePago,
+		  Res.FechaEmision,
+		  Res.Cod_Moneda,
+		  Res.Documento,
+		  Res.Cliente,
+		  CAST(Res.Total AS NUMERIC(38, 6)) Total,
+		  CAST(Res.TotalNotas AS NUMERIC(38, 6)) TotalNotas,
+		  CAST(Res.Total - Res.TotalNotas AS NUMERIC(38, 6)) Disponible,
+		  Res.Cod_Turno,
+		  Res.Glosa
+		  FROM
+		  (
+			 SELECT ccp.id_ComprobantePago,
+				   ccp.FechaEmision,
+				   ccp.Cod_Moneda,
+				   ccp.Cod_TipoComprobante+':'+ccp.Serie+'-'+ccp.Numero Documento,
+				   ccp.Doc_Cliente+':'+ccp.Nom_Cliente Cliente,
+				   ccp.Total,
+				   ISNULL(
+				   (
+					   SELECT SUM(ABS(ccp2.Total))
+					   FROM dbo.CAJ_COMPROBANTE_PAGO ccp2
+					   WHERE ccp2.id_ComprobanteRef = ccp.id_ComprobantePago
+						    AND ccp2.Cod_Libro = @CodLibro
+						    AND ccp2.Flag_Anulado = 0
+				   ), 0) TotalNotas,
+				   ccp.Cod_Turno,
+				   ccp.Glosa
+			 FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+			 WHERE ccp.Cod_TipoComprobante IN('FE')
+				   AND ccp.Serie LIKE 'F%'
+				   AND ccp.Flag_Anulado = 0
+				   AND ccp.Cod_Libro = @CodLibro
+				   AND (@CodMoneda IS NULL
+					   OR @CodMoneda = ccp.Cod_Moneda)
+				   AND ccp.Id_Cliente=@IdCliente
+		  ) Res
+		  WHERE Res.Total - Res.TotalNotas > 0
+		  AND Res.FechaEmision >= @FechaInicio
+		  AND Res.FechaEmision<DATEADD(day,1,@FechaFin) 
+		  ORDER BY Res.FechaEmision
+
 	   END
-	   IF(LEFT(@Serie,1) ='B')
+	   IF(@Serie LIKE 'B%')
 	   BEGIN
-		  SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
-		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
-		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
-		  CP.Cod_Turno,
-		  CP.Glosa
-		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
-		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
-		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
-		  WHERE   
-		  cp.Cod_TipoComprobante   IN ('BE') 
-		  AND CP.Serie LIKE 'B%'
-		  AND CP.Flag_Anulado	 = 0 
-		  AND CP.Cod_Libro = @CodLibro 
-		  AND (CR.Cod_TipoRelacion = 'CRE' OR CR.Cod_TipoRelacion IS NULL)
-		  AND CP.Id_Cliente = @IdCliente
-		  AND CP.FechaEmision>=@FechaInicio 
-		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
-		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
-		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
-		  HAVING AVG(CP.Total)-SUM(ISNULL(abs(CN.Total), 0)) > 0
+		  SELECT Res.id_ComprobantePago,
+		  Res.FechaEmision,
+		  Res.Cod_Moneda,
+		  Res.Documento,
+		  Res.Cliente,
+		  CAST(Res.Total AS NUMERIC(38, 6)) Total,
+		  CAST(Res.TotalNotas AS NUMERIC(38, 6)) TotalNotas,
+		  CAST(Res.Total - Res.TotalNotas AS NUMERIC(38, 6)) Disponible,
+		  Res.Cod_Turno,
+		  Res.Glosa
+		  FROM
+		  (
+			 SELECT ccp.id_ComprobantePago,
+				   ccp.FechaEmision,
+				   ccp.Cod_Moneda,
+				   ccp.Cod_TipoComprobante+':'+ccp.Serie+'-'+ccp.Numero Documento,
+				   ccp.Doc_Cliente+':'+ccp.Nom_Cliente Cliente,
+				   ccp.Total,
+				   ISNULL(
+				   (
+					   SELECT SUM(ABS(ccp2.Total))
+					   FROM dbo.CAJ_COMPROBANTE_PAGO ccp2
+					   WHERE ccp2.id_ComprobanteRef = ccp.id_ComprobantePago
+						    AND ccp2.Cod_Libro = @CodLibro
+						    AND ccp2.Flag_Anulado = 0
+				   ), 0) TotalNotas,
+				   ccp.Cod_Turno,
+				   ccp.Glosa
+			 FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+			 WHERE ccp.Cod_TipoComprobante IN('BE')
+				   AND ccp.Serie LIKE 'B%'
+				   AND ccp.Flag_Anulado = 0
+				   AND ccp.Cod_Libro = @CodLibro
+				   AND (@CodMoneda IS NULL
+					   OR @CodMoneda = ccp.Cod_Moneda)
+				   AND ccp.Id_Cliente=@IdCliente
+		  ) Res
+		  WHERE Res.Total - Res.TotalNotas > 0
+		  AND Res.FechaEmision >= @FechaInicio
+		  AND Res.FechaEmision<DATEADD(day,1,@FechaFin) 
+		  ORDER BY Res.FechaEmision
 	   END
     END
+
     --ND : puede afectar a FE,BE,FA,BO,TKB,TKF no importa la serie
     IF(@CodTipoComprobanteNota='ND')
     BEGIN
-	   SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
-	   CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento ,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
-	   SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
-	   CP.Cod_Turno,
-	   CP.Glosa
-	   FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
-	   CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
-	   LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
-	   WHERE   cp.Cod_TipoComprobante   IN ('FE','BE','TKB','TKF','FA','BO') 
-	   AND CP.Flag_Anulado	 = 0 
-	   AND CP.Cod_Libro = @CodLibro
-	   AND CP.Id_Cliente = @IdCliente
-	   AND CP.FechaEmision>=@FechaInicio 
-	   AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
-	   AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
-	   GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
+	  SELECT Res.id_ComprobantePago,
+       Res.FechaEmision,
+       Res.Cod_Moneda,
+       Res.Documento,
+       Res.Cliente,
+       CAST(Res.Total AS NUMERIC(38, 6)) Total,
+	  CAST(Res.TotalNotas AS NUMERIC(38, 6)) TotalNotas,
+	  CAST(Res.Total - Res.TotalNotas AS NUMERIC(38, 6)) Disponible,
+       Res.Cod_Turno,
+       Res.Glosa
+	  FROM
+	   (
+		  SELECT ccp.id_ComprobantePago,
+			    ccp.FechaEmision,
+			    ccp.Cod_Moneda,
+			    ccp.Cod_TipoComprobante+':'+ccp.Serie+'-'+ccp.Numero Documento,
+			    ccp.Doc_Cliente+':'+ccp.Nom_Cliente Cliente,
+			    ccp.Total,
+			    0 TotalNotas,
+			    ccp.Cod_Turno,
+			    ccp.Glosa
+		  FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+		  WHERE ccp.Cod_TipoComprobante IN ('FE','BE','TKB','TKF','FA','BO') 
+			    AND ccp.Flag_Anulado = 0
+			    AND ccp.Cod_Libro = @CodLibro
+			    AND (@CodMoneda IS NULL
+				    OR @CodMoneda = ccp.Cod_Moneda)
+			    AND ccp.Id_Cliente=@IdCliente
+	   ) Res
+	   WHERE Res.FechaEmision >= @FechaInicio
+	   AND Res.FechaEmision<DATEADD(day,1,@FechaFin)
+	   ORDER BY Res.FechaEmision
     END	
     --NDE : : solo puede afectar a FE,BE si la serie empieza con F solo afecta a comprobantes de serie F, igual con B
     IF(@CodTipoComprobanteNota='NDE') 
     BEGIN
-	   IF(LEFT(@Serie,1) ='F')
+	   IF(@Serie LIKE 'F%')
 	   BEGIN
-		 SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
-		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento ,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
-		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
-		  CP.Cod_Turno,
-		  CP.Glosa
-		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
-		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
-		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
-		  WHERE   
-		  cp.Cod_TipoComprobante   IN ('FE') 
-		  AND cp.Serie LIKE 'F%'
-		  AND CP.Flag_Anulado	 = 0 
-		  AND CP.Cod_Libro = @CodLibro
-		  AND CP.Id_Cliente = @IdCliente
-		  AND CP.FechaEmision>=@FechaInicio 
-		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
-		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
-		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
+		 SELECT Res.id_ComprobantePago,
+		  Res.FechaEmision,
+		  Res.Cod_Moneda,
+		  Res.Documento,
+		  Res.Cliente,
+		  CAST(Res.Total AS NUMERIC(38, 6)) Total,
+		  CAST(Res.TotalNotas AS NUMERIC(38, 6)) TotalNotas,
+		  CAST(Res.Total - Res.TotalNotas AS NUMERIC(38, 6)) Disponible,
+		  Res.Cod_Turno,
+		  Res.Glosa
+		  FROM
+		  (
+			 SELECT ccp.id_ComprobantePago,
+				   ccp.FechaEmision,
+				   ccp.Cod_Moneda,
+				   ccp.Cod_TipoComprobante+':'+ccp.Serie+'-'+ccp.Numero Documento,
+				   ccp.Doc_Cliente+':'+ccp.Nom_Cliente Cliente,
+				   ccp.Total,
+				   0 TotalNotas,
+				   ccp.Cod_Turno,
+				   ccp.Glosa
+			 FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+			 WHERE ccp.Cod_TipoComprobante IN('FE')
+				   AND ccp.Serie LIKE 'F%'
+				   AND ccp.Flag_Anulado = 0
+				   AND ccp.Cod_Libro = @CodLibro
+				   AND (@CodMoneda IS NULL
+					   OR @CodMoneda = ccp.Cod_Moneda)
+				   AND ccp.Id_Cliente=@IdCliente
+		  ) Res
+		  WHERE Res.FechaEmision >= @FechaInicio
+		  AND Res.FechaEmision<DATEADD(day,1,@FechaFin) 
+		  ORDER BY Res.FechaEmision
+
 	   END
-	   IF(LEFT(@Serie,1) ='B')
+	   IF(@Serie LIKE 'B%')
 	   BEGIN
-		  SELECT DISTINCT   CP.id_ComprobantePago,CP.FechaEmision,CP.Cod_Moneda,
-		  CP.Cod_TipoComprobante+':'+ CP.Serie+'-'+CP.Numero Documento ,CP.Doc_Cliente+':'+CP.Nom_Cliente Cliente, AVG(CP.Total) AS Total,
-		  SUM(ISNULL(abs(CN.Total), 0)) AS TotalNotas, AVG(CP.Total)- SUM(ISNULL(abs(CN.Total), 0)) AS Disponible,
-		  CP.Cod_Turno,
-		  CP.Glosa
-		  FROM   CAJ_COMPROBANTE_PAGO AS CP LEFT OUTER JOIN
-		  CAJ_COMPROBANTE_RELACION AS CR ON CR.Id_ComprobanteRelacion = CP.id_ComprobantePago					 
-		  LEFT OUTER JOIN CAJ_COMPROBANTE_PAGO AS CN  ON CN.id_ComprobantePago = CR.id_ComprobantePago
-		  WHERE   
-		  cp.Cod_TipoComprobante   IN ('BE') 
-		  AND cp.Serie LIKE 'B%'
-		  AND CP.Flag_Anulado	 = 0 
-		  AND CP.Cod_Libro = @CodLibro
-		  AND CP.Id_Cliente = @IdCliente
-		  AND CP.FechaEmision>=@FechaInicio 
-		  AND CP.FechaEmision< DATEADD(day,1, @FechaFin)
-		  AND ((@CodMoneda IS NULL AND CP.Cod_Moneda<>'') OR (CP.Cod_Moneda = @CodMoneda))
-		  GROUP BY CP.id_ComprobantePago, CP.FechaEmision,CP.Cod_TipoComprobante,CP.Serie,CP.Numero,CP.Doc_Cliente,CP.Nom_Cliente,CP.Cod_Turno,CP.Glosa,CP.Cod_Moneda
+		  SELECT Res.id_ComprobantePago,
+		  Res.FechaEmision,
+		  Res.Cod_Moneda,
+		  Res.Documento,
+		  Res.Cliente,
+		  CAST(Res.Total AS NUMERIC(38, 6)) Total,
+		  CAST(Res.TotalNotas AS NUMERIC(38, 6)) TotalNotas,
+		  CAST(Res.Total - Res.TotalNotas AS NUMERIC(38, 6)) Disponible,
+		  Res.Cod_Turno,
+		  Res.Glosa
+		  FROM
+		  (
+			 SELECT ccp.id_ComprobantePago,
+				   ccp.FechaEmision,
+				   ccp.Cod_Moneda,
+				   ccp.Cod_TipoComprobante+':'+ccp.Serie+'-'+ccp.Numero Documento,
+				   ccp.Doc_Cliente+':'+ccp.Nom_Cliente Cliente,
+				   ccp.Total,
+				   0 TotalNotas,
+				   ccp.Cod_Turno,
+				   ccp.Glosa
+			 FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+			 WHERE ccp.Cod_TipoComprobante IN('BE')
+				   AND ccp.Serie LIKE 'B%'
+				   AND ccp.Flag_Anulado = 0
+				   AND ccp.Cod_Libro = @CodLibro
+				   AND (@CodMoneda IS NULL
+					   OR @CodMoneda = ccp.Cod_Moneda)
+				   AND ccp.Id_Cliente=@IdCliente
+		  ) Res
+		  WHERE Res.FechaEmision >= @FechaInicio
+		  AND Res.FechaEmision<DATEADD(day,1,@FechaFin) 
+		  ORDER BY Res.FechaEmision
 	   END
     END
 END
 go
+
 
 
 -- IF EXISTS
@@ -367,183 +640,187 @@ CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_AfectarXNotaCreditoVenta
 WITH ENCRYPTION
 AS
 BEGIN
-    --ANULACION COMPLETA
-    IF(@CodTiponota IN ('01','02'))
+    DECLARE @CodTipoCOmprobante varchar(5) = (SELECT ccp.Cod_TipoComprobante FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=@IdComprobanteNota)
+    IF @CodTipoCOmprobante IN ('NC','NCE')
     BEGIN
-    --Editamos CAJ_FORMA_PAGO
-    UPDATE dbo.CAJ_FORMA_PAGO
-    SET
-        dbo.CAJ_FORMA_PAGO.Monto=0,
-	   dbo.CAJ_FORMA_PAGO.Cod_UsuarioAct = @CodUsuario,
-	   dbo.CAJ_FORMA_PAGO.Fecha_Act=GETDATE()
-    WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@IdComprobantePago
-    --Editamos ALMACEN_MOV
-    UPDATE dbo.ALM_ALMACEN_MOV
-    SET
-        dbo.ALM_ALMACEN_MOV.Motivo = 'ANULADO',
-	   dbo.ALM_ALMACEN_MOV.Cod_UsuarioAct=@CodUsuario,
-	   dbo.ALM_ALMACEN_MOV.Fecha_Act=GETDATE()
-    WHERE dbo.ALM_ALMACEN_MOV.Id_ComprobantePago = @IdComprobantePago
-    --Editamos ALMACEN_MOV_D
-    UPDATE dbo.ALM_ALMACEN_MOV_D
-    SET
-	   dbo.ALM_ALMACEN_MOV_D.Precio_Unitario=0,
-	   dbo.ALM_ALMACEN_MOV_D.Cantidad=0,
-	   dbo.ALM_ALMACEN_MOV_D.Cod_UsuarioAct=@CodUsuario,
-	   dbo.ALM_ALMACEN_MOV_D.Fecha_Act=GETDATE()
-    WHERE dbo.ALM_ALMACEN_MOV_D.Id_AlmacenMov = (SELECT aam.Id_AlmacenMov FROM dbo.ALM_ALMACEN_MOV aam WHERE aam.Id_ComprobantePago=@IdComprobantePago)
-    --Editamos PRI_LICITACIONES_M
-    DELETE dbo.PRI_LICITACIONES_M WHERE dbo.PRI_LICITACIONES_M.id_ComprobantePago=@IdComprobantePago
-    --Editamos CAJ_COMPROBANTE_D
-    UPDATE dbo.CAJ_COMPROBANTE_D
-    SET
-        dbo.CAJ_COMPROBANTE_D.Formalizado -= ccr.Valor,
-	   dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@CodUsuario,
-	   dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
-    FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.CAJ_COMPROBANTE_RELACION ccr ON ccd.id_ComprobantePago = ccr.id_ComprobantePago AND ccd.id_Detalle = ccr.id_Detalle
-    WHERE ccr.Id_ComprobanteRelacion=@IdComprobantePago
-    --Editamos CAJ_SERIES
-    DELETE FROM dbo.CAJ_SERIES
-    WHERE (dbo.CAJ_SERIES.Id_Tabla = @IdComprobantePago AND dbo.CAJ_SERIES.Cod_Tabla = 'CAJ_COMPROBANTE_PAGO')
-    --Editamos CAJ_COMPROBANTE_RELACION
-    DELETE dbo.CAJ_COMPROBANTE_RELACION WHERE dbo.CAJ_COMPROBANTE_RELACION.Id_ComprobanteRelacion=@IdComprobantePago
-    --Editamos CAJ_COMPROBANTE_PAGO
-    UPDATE dbo.CAJ_COMPROBANTE_PAGO
-    SET
-        dbo.CAJ_COMPROBANTE_PAGO.Glosa='ANULADO',
-	   dbo.CAJ_COMPROBANTE_PAGO.Cod_FormaPago='004',
-        dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario, -- varchar
-        dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act = GETDATE() -- datetime
-    WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComprobantePago
-    END
+	   --ANULACION COMPLETA
+	   IF(@CodTiponota IN ('01','02'))
+	   BEGIN
+	   --Editamos CAJ_FORMA_PAGO
+	   UPDATE dbo.CAJ_FORMA_PAGO
+	   SET
+		  dbo.CAJ_FORMA_PAGO.Monto=0,
+		  dbo.CAJ_FORMA_PAGO.Cod_UsuarioAct = @CodUsuario,
+		  dbo.CAJ_FORMA_PAGO.Fecha_Act=GETDATE()
+	   WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@IdComprobantePago
+	   --Editamos ALMACEN_MOV
+	   UPDATE dbo.ALM_ALMACEN_MOV
+	   SET
+		  dbo.ALM_ALMACEN_MOV.Motivo = 'ANULADO',
+		  dbo.ALM_ALMACEN_MOV.Cod_UsuarioAct=@CodUsuario,
+		  dbo.ALM_ALMACEN_MOV.Fecha_Act=GETDATE()
+	   WHERE dbo.ALM_ALMACEN_MOV.Id_ComprobantePago = @IdComprobantePago
+	   --Editamos ALMACEN_MOV_D
+	   UPDATE dbo.ALM_ALMACEN_MOV_D
+	   SET
+		  dbo.ALM_ALMACEN_MOV_D.Precio_Unitario=0,
+		  dbo.ALM_ALMACEN_MOV_D.Cantidad=0,
+		  dbo.ALM_ALMACEN_MOV_D.Cod_UsuarioAct=@CodUsuario,
+		  dbo.ALM_ALMACEN_MOV_D.Fecha_Act=GETDATE()
+	   WHERE dbo.ALM_ALMACEN_MOV_D.Id_AlmacenMov = (SELECT aam.Id_AlmacenMov FROM dbo.ALM_ALMACEN_MOV aam WHERE aam.Id_ComprobantePago=@IdComprobantePago)
+	   --Editamos PRI_LICITACIONES_M
+	   DELETE dbo.PRI_LICITACIONES_M WHERE dbo.PRI_LICITACIONES_M.id_ComprobantePago=@IdComprobantePago
+	   --Editamos CAJ_COMPROBANTE_D
+	   UPDATE dbo.CAJ_COMPROBANTE_D
+	   SET
+		  dbo.CAJ_COMPROBANTE_D.Formalizado -= ccr.Valor,
+		  dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@CodUsuario,
+		  dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
+	   FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.CAJ_COMPROBANTE_RELACION ccr ON ccd.id_ComprobantePago = ccr.id_ComprobantePago AND ccd.id_Detalle = ccr.id_Detalle
+	   WHERE ccr.Id_ComprobanteRelacion=@IdComprobantePago
+	   --Editamos CAJ_SERIES
+	   DELETE FROM dbo.CAJ_SERIES
+	   WHERE (dbo.CAJ_SERIES.Id_Tabla = @IdComprobantePago AND dbo.CAJ_SERIES.Cod_Tabla = 'CAJ_COMPROBANTE_PAGO')
+	   --Editamos CAJ_COMPROBANTE_RELACION
+	   DELETE dbo.CAJ_COMPROBANTE_RELACION WHERE dbo.CAJ_COMPROBANTE_RELACION.Id_ComprobanteRelacion=@IdComprobantePago
+	   --Editamos CAJ_COMPROBANTE_PAGO
+	   UPDATE dbo.CAJ_COMPROBANTE_PAGO
+	   SET
+		  dbo.CAJ_COMPROBANTE_PAGO.Glosa='ANULADO',
+		  dbo.CAJ_COMPROBANTE_PAGO.Cod_FormaPago='004',
+		  dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario, -- varchar
+		  dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act = GETDATE() -- datetime
+	   WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComprobantePago
+	   END
 
-    --CORECCION POR ERROR EN LA DESCRIPCION
-    --No se hace nada
+	   --CORECCION POR ERROR EN LA DESCRIPCION
+	   --No se hace nada
 
-    ----DESCUENTO GLOBAL,DESCUENTO POR ITEM,BONIFICACION,DISMINUCION EN EL VALOR,OTROS CONCEPTOS
-    --IF(@CodTiponota IN ('04','05','08','09','10'))
-    --BEGIN
-    ----Editamos CAJ_FORMA_PAGO
-    ----Debemos obtener el total de la nota de credito, luego debemos de obtener la razon entre el total de la nota y el total del comprobante y multiplicar por ese valor 
-    ----Todos los items de la forma de pago
-    --DECLARE @TotalNota numeric(38,6) = (SELECT ccp.Total FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago = @IdComprobanteNota)
-    --DECLARE @TotalComprobante numeric(38,6) = (SELECT ISNULL(SUM(cfp.Monto),0) FROM dbo.CAJ_FORMA_PAGO cfp WHERE cfp.id_ComprobantePago = @IdComprobantePago)
-    --DECLARE @Factor numeric(38,6) = (1 - (@TotalNota/@TotalComprobante))
-    --UPDATE dbo.CAJ_FORMA_PAGO
-    --SET
-    --    dbo.CAJ_FORMA_PAGO.Monto=dbo.CAJ_FORMA_PAGO.Monto*@Factor
-    --WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@IdComprobantePago
-    --END
+	   ----DESCUENTO GLOBAL,DESCUENTO POR ITEM,BONIFICACION,DISMINUCION EN EL VALOR,OTROS CONCEPTOS
+	   --IF(@CodTiponota IN ('04','05','08','09','10'))
+	   --BEGIN
+	   ----Editamos CAJ_FORMA_PAGO
+	   ----Debemos obtener el total de la nota de credito, luego debemos de obtener la razon entre el total de la nota y el total del comprobante y multiplicar por ese valor 
+	   ----Todos los items de la forma de pago
+	   --DECLARE @TotalNota numeric(38,6) = (SELECT ccp.Total FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago = @IdComprobanteNota)
+	   --DECLARE @TotalComprobante numeric(38,6) = (SELECT ISNULL(SUM(cfp.Monto),0) FROM dbo.CAJ_FORMA_PAGO cfp WHERE cfp.id_ComprobantePago = @IdComprobantePago)
+	   --DECLARE @Factor numeric(38,6) = (1 - (@TotalNota/@TotalComprobante))
+	   --UPDATE dbo.CAJ_FORMA_PAGO
+	   --SET
+	   --    dbo.CAJ_FORMA_PAGO.Monto=dbo.CAJ_FORMA_PAGO.Monto*@Factor
+	   --WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@IdComprobantePago
+	   --END
 
-    --DEVOLUCION TOTAL
-    IF(@CodTiponota IN ('06'))
-    BEGIN
-    --Editamos CAJ_FORMA_PAGO
-    UPDATE dbo.CAJ_FORMA_PAGO
-    SET
-        dbo.CAJ_FORMA_PAGO.Monto=0,
-	   dbo.CAJ_FORMA_PAGO.Cod_UsuarioAct = @CodUsuario,
-	   dbo.CAJ_FORMA_PAGO.Fecha_Act=GETDATE()
-    WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@IdComprobantePago
-    --Editamos ALMACEN_MOV
-    UPDATE dbo.ALM_ALMACEN_MOV
-    SET
-        dbo.ALM_ALMACEN_MOV.Motivo = 'ANULADO',
-	   dbo.ALM_ALMACEN_MOV.Cod_UsuarioAct=@CodUsuario,
-	   dbo.ALM_ALMACEN_MOV.Fecha_Act=GETDATE()
-    WHERE dbo.ALM_ALMACEN_MOV.Id_ComprobantePago = @IdComprobantePago
-    --Editamos ALMACEN_MOV_D
-    UPDATE dbo.ALM_ALMACEN_MOV_D
-    SET
-	   dbo.ALM_ALMACEN_MOV_D.Precio_Unitario=0,
-	   dbo.ALM_ALMACEN_MOV_D.Cantidad=0,
-	   dbo.ALM_ALMACEN_MOV_D.Cod_UsuarioAct=@CodUsuario,
-	   dbo.ALM_ALMACEN_MOV_D.Fecha_Act=GETDATE()
-    WHERE dbo.ALM_ALMACEN_MOV_D.Id_AlmacenMov = (SELECT aam.Id_AlmacenMov FROM dbo.ALM_ALMACEN_MOV aam WHERE aam.Id_ComprobantePago=@IdComprobantePago)
-    --Editamos PRI_LICITACIONES_M
-    DELETE dbo.PRI_LICITACIONES_M WHERE dbo.PRI_LICITACIONES_M.id_ComprobantePago=@IdComprobantePago
-    --Editamos CAJ_COMPROBANTE_D
-    UPDATE dbo.CAJ_COMPROBANTE_D
-    SET
-        dbo.CAJ_COMPROBANTE_D.Formalizado -= ccr.Valor,
-	   dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@CodUsuario,
-	   dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
-    FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.CAJ_COMPROBANTE_RELACION ccr ON ccd.id_ComprobantePago = ccr.id_ComprobantePago AND ccd.id_Detalle = ccr.id_Detalle
-    WHERE ccr.Id_ComprobanteRelacion=@IdComprobantePago
-    --Insertamos CAJ_SERIES
-    INSERT dbo.CAJ_SERIES
-    (
-        Cod_Tabla,
-        Id_Tabla,
-        Item,
-        Serie,
-        Fecha_Vencimiento,
-        Obs_Serie,
-        Cod_UsuarioReg,
-        Fecha_Reg,
-        Cod_UsuarioAct,
-        Fecha_Act
-    )
-    SELECT 
-    'CAJ_COMPROBANTE_PAGO',
-    @IdComprobanteNota,
-    cs.Item,
-    cs.Serie,
-    cs.Fecha_Vencimiento,
-    cs.Obs_Serie,
-    @CodUsuario,
-    GETDATE(),
-    NULL,
-    NULL
-    FROM dbo.CAJ_SERIES cs
-    WHERE cs.Id_Tabla = @IdComprobantePago
-    AND cs.Cod_Tabla='CAJ_COMPROBANTE_PAGO'
-    --Editamos CAJ_COMPROBANTE_RELACION
-    DELETE dbo.CAJ_COMPROBANTE_RELACION WHERE dbo.CAJ_COMPROBANTE_RELACION.Id_ComprobanteRelacion=@IdComprobantePago
-    --Editamos CAJ_COMPROBANTE_PAGO
-    UPDATE dbo.CAJ_COMPROBANTE_PAGO
-    SET
-        dbo.CAJ_COMPROBANTE_PAGO.Glosa='ANULADO',
-	   dbo.CAJ_COMPROBANTE_PAGO.Cod_FormaPago='004',
-        dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario, -- varchar
-        dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act = GETDATE() -- datetime
-    WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComprobantePago
-    END
+	   --DEVOLUCION TOTAL
+	   IF(@CodTiponota IN ('06'))
+	   BEGIN
+	   --Editamos CAJ_FORMA_PAGO
+	   UPDATE dbo.CAJ_FORMA_PAGO
+	   SET
+		  dbo.CAJ_FORMA_PAGO.Monto=0,
+		  dbo.CAJ_FORMA_PAGO.Cod_UsuarioAct = @CodUsuario,
+		  dbo.CAJ_FORMA_PAGO.Fecha_Act=GETDATE()
+	   WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@IdComprobantePago
+	   --Editamos ALMACEN_MOV
+	   UPDATE dbo.ALM_ALMACEN_MOV
+	   SET
+		  dbo.ALM_ALMACEN_MOV.Motivo = 'ANULADO',
+		  dbo.ALM_ALMACEN_MOV.Cod_UsuarioAct=@CodUsuario,
+		  dbo.ALM_ALMACEN_MOV.Fecha_Act=GETDATE()
+	   WHERE dbo.ALM_ALMACEN_MOV.Id_ComprobantePago = @IdComprobantePago
+	   --Editamos ALMACEN_MOV_D
+	   UPDATE dbo.ALM_ALMACEN_MOV_D
+	   SET
+		  dbo.ALM_ALMACEN_MOV_D.Precio_Unitario=0,
+		  dbo.ALM_ALMACEN_MOV_D.Cantidad=0,
+		  dbo.ALM_ALMACEN_MOV_D.Cod_UsuarioAct=@CodUsuario,
+		  dbo.ALM_ALMACEN_MOV_D.Fecha_Act=GETDATE()
+	   WHERE dbo.ALM_ALMACEN_MOV_D.Id_AlmacenMov = (SELECT aam.Id_AlmacenMov FROM dbo.ALM_ALMACEN_MOV aam WHERE aam.Id_ComprobantePago=@IdComprobantePago)
+	   --Editamos PRI_LICITACIONES_M
+	   DELETE dbo.PRI_LICITACIONES_M WHERE dbo.PRI_LICITACIONES_M.id_ComprobantePago=@IdComprobantePago
+	   --Editamos CAJ_COMPROBANTE_D
+	   UPDATE dbo.CAJ_COMPROBANTE_D
+	   SET
+		  dbo.CAJ_COMPROBANTE_D.Formalizado -= ccr.Valor,
+		  dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@CodUsuario,
+		  dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
+	   FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.CAJ_COMPROBANTE_RELACION ccr ON ccd.id_ComprobantePago = ccr.id_ComprobantePago AND ccd.id_Detalle = ccr.id_Detalle
+	   WHERE ccr.Id_ComprobanteRelacion=@IdComprobantePago
+	   --Insertamos CAJ_SERIES
+	   INSERT dbo.CAJ_SERIES
+	   (
+		  Cod_Tabla,
+		  Id_Tabla,
+		  Item,
+		  Serie,
+		  Fecha_Vencimiento,
+		  Obs_Serie,
+		  Cod_UsuarioReg,
+		  Fecha_Reg,
+		  Cod_UsuarioAct,
+		  Fecha_Act
+	   )
+	   SELECT 
+	   'CAJ_COMPROBANTE_PAGO',
+	   @IdComprobanteNota,
+	   cs.Item,
+	   cs.Serie,
+	   cs.Fecha_Vencimiento,
+	   cs.Obs_Serie,
+	   @CodUsuario,
+	   GETDATE(),
+	   NULL,
+	   NULL
+	   FROM dbo.CAJ_SERIES cs
+	   WHERE cs.Id_Tabla = @IdComprobantePago
+	   AND cs.Cod_Tabla='CAJ_COMPROBANTE_PAGO'
+	   --Editamos CAJ_COMPROBANTE_RELACION
+	   DELETE dbo.CAJ_COMPROBANTE_RELACION WHERE dbo.CAJ_COMPROBANTE_RELACION.Id_ComprobanteRelacion=@IdComprobantePago
+	   --Editamos CAJ_COMPROBANTE_PAGO
+	   UPDATE dbo.CAJ_COMPROBANTE_PAGO
+	   SET
+		  dbo.CAJ_COMPROBANTE_PAGO.Glosa='ANULADO',
+		  dbo.CAJ_COMPROBANTE_PAGO.Cod_FormaPago='004',
+		  dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario, -- varchar
+		  dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act = GETDATE() -- datetime
+	   WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComprobantePago
+	   END
 
-    --DEVOLUCION POR ITEM
-    IF(@CodTiponota IN ('07'))
-    BEGIN
-    --Editamos CAJ_FORMA_PAGO
+	   --DEVOLUCION POR ITEM
+	   IF(@CodTiponota IN ('07'))
+	   BEGIN
+	   --Editamos CAJ_FORMA_PAGO
 
-    --Insertamos CAJ_SERIES
-    INSERT dbo.CAJ_SERIES
-    (
-        Cod_Tabla,
-        Id_Tabla,
-        Item,
-        Serie,
-        Fecha_Vencimiento,
-        Obs_Serie,
-        Cod_UsuarioReg,
-        Fecha_Reg,
-        Cod_UsuarioAct,
-        Fecha_Act
-    )
-    SELECT 
-    'CAJ_COMPROBANTE_PAGO',
-    @IdComprobanteNota,
-    cs.Item,
-    cs.Serie,
-    cs.Fecha_Vencimiento,
-    cs.Obs_Serie,
-    @CodUsuario,
-    GETDATE(),
-    NULL,
-    NULL
-    FROM dbo.CAJ_SERIES cs
-    WHERE cs.Id_Tabla = @IdComprobantePago
-    AND cs.Cod_Tabla='CAJ_COMPROBANTE_PAGO'
+	   --Insertamos CAJ_SERIES
+	   INSERT dbo.CAJ_SERIES
+	   (
+		  Cod_Tabla,
+		  Id_Tabla,
+		  Item,
+		  Serie,
+		  Fecha_Vencimiento,
+		  Obs_Serie,
+		  Cod_UsuarioReg,
+		  Fecha_Reg,
+		  Cod_UsuarioAct,
+		  Fecha_Act
+	   )
+	   SELECT 
+	   'CAJ_COMPROBANTE_PAGO',
+	   @IdComprobanteNota,
+	   cs.Item,
+	   cs.Serie,
+	   cs.Fecha_Vencimiento,
+	   cs.Obs_Serie,
+	   @CodUsuario,
+	   GETDATE(),
+	   NULL,
+	   NULL
+	   FROM dbo.CAJ_SERIES cs
+	   WHERE cs.Id_Tabla = @IdComprobantePago
+	   AND cs.Cod_Tabla='CAJ_COMPROBANTE_PAGO'
 
+	   END
     END
 END
 GO
