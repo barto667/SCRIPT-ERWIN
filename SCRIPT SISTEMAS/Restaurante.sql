@@ -1023,13 +1023,13 @@ BEGIN
 	   AS 
 	   (
 		  SELECT ccd.id_Detalle,CONVERT(int,ccd.IGV) Grupo,ccd.Cod_Manguera,ccp.Numero,ccp.Cod_UsuarioReg,ccp.FechaEmision,ccd.Cantidad,
-		  CASE WHEN ccd.Flag_AplicaImpuesto = 0 THEN  ccd.Descripcion ELSE ccd.Descripcion+'-PARA LLEVAR' END  Descripcion, 0 Nivel
+		  CASE WHEN ccd.Flag_AplicaImpuesto = 0 THEN  ccd.Descripcion ELSE CASE WHEN ccd.IGV = 0 THEN ccd.Descripcion+'(PARA LLEVAR)' ELSE ccd.Descripcion END END  Descripcion, 0 Nivel
 		  FROM dbo.CAJ_COMPROBANTE_PAGO ccp INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
 		  WHERE (ccp.id_ComprobantePago=@Id_ComprobantePago
 		  AND ccd.Cod_Almacen=@CodAlmacen AND ccd.IGV=0)
 		  UNION ALL
 		  SELECT ccd.id_Detalle, CONVERT(int,ccd.IGV) Grupo,ccd.Cod_Manguera,res.Numero,res.Cod_UsuarioReg,res.FechaEmision,ccd.Cantidad,
-		  CASE WHEN ccd.Flag_AplicaImpuesto = 0 THEN  ccd.Descripcion ELSE ccd.Descripcion+'-PARA LLEVAR' END  Descripcion, Nivel + 1  Nivel
+		  CASE WHEN ccd.Flag_AplicaImpuesto = 0 THEN  ccd.Descripcion ELSE CASE WHEN ccd.IGV = 0 THEN ccd.Descripcion+'(PARA LLEVAR)' ELSE ccd.Descripcion END END  Descripcion, Nivel + 1  Nivel
 		  FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN PRIMERORDEN res ON res.id_Detalle = ccd.IGV
 		  WHERE ccd.id_ComprobantePago=@Id_ComprobantePago
 	   )
@@ -1050,13 +1050,13 @@ BEGIN
 	   AS 
 	   (
 		  SELECT ccd.id_Detalle,CONVERT(int,ccd.IGV) Grupo,ccd.Cod_Manguera,ccp.Numero,ccp.Cod_UsuarioReg,ccp.FechaEmision,ccd.Cantidad,
-		  CASE WHEN ccd.Flag_AplicaImpuesto = 0 THEN  ccd.Descripcion ELSE ccd.Descripcion+'-PARA LLEVAR' END  Descripcion, 0 Nivel
+		  CASE WHEN ccd.Flag_AplicaImpuesto = 0  THEN  ccd.Descripcion  ELSE CASE WHEN ccd.IGV = 0 THEN ccd.Descripcion+'(PARA LLEVAR)' ELSE ccd.Descripcion END END  Descripcion, 0 Nivel
 		  FROM dbo.CAJ_COMPROBANTE_PAGO ccp INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
 		  WHERE (ccp.id_ComprobantePago=@Id_ComprobantePago
 		  AND ccd.Cod_Almacen=@CodAlmacen AND ccd.IGV=0 AND ccd.Obs_ComprobanteD='NUEVO')
 		  UNION ALL
 		  SELECT ccd.id_Detalle, CONVERT(int,ccd.IGV) Grupo,ccd.Cod_Manguera,res.Numero,res.Cod_UsuarioReg,res.FechaEmision,ccd.Cantidad,
-		  CASE WHEN ccd.Flag_AplicaImpuesto = 0 THEN  ccd.Descripcion ELSE ccd.Descripcion+'-PARA LLEVAR' END  Descripcion, Nivel + 1  Nivel
+		  CASE WHEN ccd.Flag_AplicaImpuesto = 0 THEN  ccd.Descripcion  ELSE CASE WHEN ccd.IGV = 0 THEN ccd.Descripcion+'(PARA LLEVAR)' ELSE ccd.Descripcion END END  Descripcion, Nivel + 1  Nivel
 		  FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN PRIMERORDEN res ON res.id_Detalle = ccd.IGV
 		  WHERE ccd.id_ComprobantePago=@Id_ComprobantePago AND ccd.Obs_ComprobanteD='NUEVO'
 	   )
