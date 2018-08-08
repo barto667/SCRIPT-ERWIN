@@ -290,13 +290,23 @@ BEGIN
     SET XACT_ABORT ON;  
     BEGIN TRY  
 	   BEGIN TRANSACTION;  
+	   --Recuperamos algunos campos
+	   DECLARE @Documento varchar(max) = '14-'+'CO:0000-'+ (SELECT ccp.Numero FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=@Id_ComprobantePago)
+	   DECLARE @Proveedor varchar(max) = (SELECT TOP 1 ccp.Cod_TipoDoc+':'+ccp.Doc_Cliente+'-'+ccp.Nom_Cliente FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=@Id_ComprobantePago)
+	   DECLARE @Detalle varchar(max) = STUFF(( SELECT distinct ' ; ' + convert(varchar,D.Id_Producto) +'|'+d.Descripcion +'|'+convert(varchar,d.Cantidad)
+                                     FROM   CAJ_COMPROBANTE_D D
+                                     WHERE  D.id_ComprobantePago = @Id_ComprobantePago AND D.id_Detalle=@Id_Detalle 
+                                   FOR
+                                     XML PATH('')
+                                   ), 1, 2, '') + ''
+	   DECLARE @FechaEmision datetime = (SELECT ccp.FechaEmision FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=@Id_ComprobantePago)
 	   --Recuperamos el total de dicha item, el impuesto 
 	   DECLARE @TotalItem numeric(38,6)=(SELECT ccd.Cantidad * ccd.PrecioUnitario FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComprobantePago AND ccd.id_Detalle=@Id_Detalle)
 	   DECLARE @CodMesa varchar(max)=(SELECT TOP 1 ccd.Cod_Manguera FROM dbo.CAJ_COMPROBANTE_D ccd WHERE @Id_ComprobantePago=@Id_ComprobantePago AND ccd.id_Detalle=@Id_Detalle)
 	   --ELiminamos el detalle y sus detalles hijos
 	   DELETE dbo.CAJ_COMPROBANTE_D WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@Id_ComprobantePago AND dbo.CAJ_COMPROBANTE_D.id_Detalle=@Id_Detalle
 	   DELETE dbo.CAJ_COMPROBANTE_D WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@Id_ComprobantePago AND dbo.CAJ_COMPROBANTE_D.IGV=@Id_Detalle
-	   --Restamos al total de la comanda el total del item y su impuesto
+	   --Restamos al total de la comanda el total del item
 	   UPDATE dbo.CAJ_COMPROBANTE_PAGO
 	   SET
 	   dbo.CAJ_COMPROBANTE_PAGO.Total=dbo.CAJ_COMPROBANTE_PAGO.Total-@TotalItem
@@ -314,8 +324,19 @@ BEGIN
 		  END
 
 	   END
-	   --Introducimos la justificacion
 
+	   DECLARE @FechaActual datetime =GETDATE()
+	   --Introducimos la justificacion
+	    DECLARE  @id_Fila int  = (SELECT ISNULL(COUNT(*)/9,1)+1 FROM PAR_FILA WHERE Cod_Tabla = '079')
+	    EXEC USP_PAR_FILA_G '079','001',@id_Fila,@Documento,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','002',@id_Fila,'CAJ_COMPROBANTE_PAGO_COMANDA',NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','003',@id_Fila,@Proveedor,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','004',@id_Fila,@Detalle,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','005',@id_Fila,NULL,NULL,NULL,@FechaEmision,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','006',@id_Fila,NULL,NULL,NULL,@FechaActual,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','007',@id_Fila,@Cod_Usuario,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','008',@id_Fila,@Justificacion,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','009',@id_Fila,NULL,NULL,NULL,NULL,1,1,'MIGRACION';	
 	   COMMIT TRANSACTION;
     END TRY  
       
@@ -334,6 +355,7 @@ END
 GO
 
 
+
 IF EXISTS (
   SELECT * 
     FROM sysobjects 
@@ -347,6 +369,7 @@ CREATE PROCEDURE USP_VIS_MESA_IncrementarDisminuirCantidadItemComanda
 	@Id_ComprobantePago int,
 	@Id_Detalle int,
 	@Valor numeric(38,6),
+	@Justificacion varchar(max),
 	@Cod_Usuario varchar(max)
   WITH ENCRYPTION
 AS
@@ -354,6 +377,17 @@ BEGIN
     SET XACT_ABORT ON;  
     BEGIN TRY  
 	   BEGIN TRANSACTION;  
+	   --Recuepramos algunos datos
+	   DECLARE @Documento varchar(max) = '14-'+'CO:0000-'+ (SELECT ccp.Numero FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=@Id_ComprobantePago)
+	   DECLARE @Proveedor varchar(max) = (SELECT TOP 1 ccp.Cod_TipoDoc+':'+ccp.Doc_Cliente+'-'+ccp.Nom_Cliente FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=@Id_ComprobantePago)
+	   DECLARE @Detalle varchar(max) = STUFF(( SELECT distinct ' ; ' + convert(varchar,D.Id_Producto) +'|'+d.Descripcion +'|'+convert(varchar,d.Cantidad)
+                                     FROM   CAJ_COMPROBANTE_D D
+                                     WHERE  D.id_ComprobantePago = @Id_ComprobantePago AND D.id_Detalle=@Id_Detalle 
+                                   FOR
+                                     XML PATH('')
+                                   ), 1, 2, '') + ''
+	   DECLARE @FechaEmision datetime = (SELECT ccp.FechaEmision FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=@Id_ComprobantePago)
+
 	   --Agregamos o disminuimos de acuerdo a la cantidad un determiando valor al detalle
 	   DECLARE @Cantidad numeric(38,6)
 	   DECLARE @PU numeric(38,6)
@@ -377,6 +411,21 @@ BEGIN
 	   SET
 	       dbo.CAJ_COMPROBANTE_PAGO.Total= dbo.CAJ_COMPROBANTE_PAGO.Total + (@Valor*@PU)
 	   WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@Id_ComprobantePago
+
+	   DECLARE @FechaActual datetime =GETDATE()
+	   DECLARE @Accion varchar(max) = CONCAT('CAJ_COMPROBANTE_PAGO_COMANDA_MODIFICACION_',@Valor)
+	   --Introducimos la justificacion
+	    DECLARE  @id_Fila int  = (SELECT ISNULL(COUNT(*)/9,1)+1 FROM PAR_FILA WHERE Cod_Tabla = '079')
+	    EXEC USP_PAR_FILA_G '079','001',@id_Fila,@Documento,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','002',@id_Fila,@Accion,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','003',@id_Fila,@Proveedor,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','004',@id_Fila,@Detalle,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','005',@id_Fila,NULL,NULL,NULL,@FechaEmision,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','006',@id_Fila,NULL,NULL,NULL,@FechaActual,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','007',@id_Fila,@Cod_Usuario,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','008',@id_Fila,@Justificacion,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	    EXEC USP_PAR_FILA_G '079','009',@id_Fila,NULL,NULL,NULL,NULL,1,1,'MIGRACION';	
+
 	   COMMIT TRANSACTION;
     END TRY  
       
@@ -815,7 +864,7 @@ AS
 BEGIN
 
 DECLARE @id_ComprobantePago int = 0,
-@Cod_Libro	varchar(2) = '14',  
+@Cod_Libro	varchar(2) = '',  
 @FechaEmision	datetime = getdate(), 
 @Cod_Periodo	varchar =  '', 
 @Cod_Caja	varchar(32) = NULL, 
@@ -881,7 +930,7 @@ BEGIN
 SET @Obs_Comprobante = dbo.UFN_VIS_DIAGRAMAS_XML_XTabla('CAJ_COMPROBANTE_PAGO');
 END
 
-IF (@Numero = '' and @Cod_Libro = '14')
+IF (@Numero = '' and @Cod_Libro = '')
 begin
 set @Numero = (SELECT RIGHT('00000000'+CONVERT( varchar(38), ISNULL(CONVERT(BIGint,MAX(Numero)),0)+1), 8) 
 FROM CAJ_COMPROBANTE_PAGO 
@@ -1398,3 +1447,321 @@ BEGIN
 END
 GO
 
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_COMPROBANTE_D_MoverDetalleXOrigenDestino' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_COMPROBANTE_D_MoverDetalleXOrigenDestino
+GO
+
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_D_MoverDetalleXOrigenDestino
+ @IdComprobanteComandaOrigen int ,
+ @IdDetalleComandaOrigen int ,
+ @IdComprobanteComandaDestino int ,
+ @CantidadDestino numeric(38,6),
+ @CodUsuario varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+    --Obtenemos la cantidad del origen
+    DECLARE @CantidadOrigen numeric(38,6) = (SELECT ccd.Cantidad FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@IdComprobanteComandaOrigen AND ccd.id_Detalle=@IdDetalleComandaOrigen)
+
+    IF @CantidadOrigen=@CantidadDestino
+    BEGIN
+	   --Cambiamos el id_comprobantePago ademas del usuario de registro y la fecha,
+	   --Tanto a la cabezera como a los hijos
+	   UPDATE dbo.CAJ_COMPROBANTE_D
+	   SET
+	   dbo.CAJ_COMPROBANTE_D.id_ComprobantePago = @IdComprobanteComandaDestino,
+	   dbo.CAJ_COMPROBANTE_D.Cod_UsuarioReg=@CodUsuario,
+	   dbo.CAJ_COMPROBANTE_D.Fecha_Reg = GETDATE(),
+	   dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct =NULL,
+	   dbo.CAJ_COMPROBANTE_D.Fecha_Act = NULL
+	   WHERE (dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@IdComprobanteComandaOrigen AND dbo.CAJ_COMPROBANTE_D.id_Detalle=@IdDetalleComandaOrigen AND dbo.CAJ_COMPROBANTE_D.IGV=0)
+	   OR (dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@IdComprobanteComandaOrigen AND dbo.CAJ_COMPROBANTE_D.IGV = @IdDetalleComandaOrigen)
+    END
+    ELSE
+    BEGIN
+	   --se debe crear un detalle duplicado con los mismos campos del detalle origen 
+	   INSERT  dbo.CAJ_COMPROBANTE_D
+	   (
+		  id_ComprobantePago,
+		  id_Detalle,
+		  Id_Producto,
+		  Cod_Almacen,
+		  Cantidad,
+		  Cod_UnidadMedida,
+		  Despachado,
+		  Descripcion,
+		  PrecioUnitario,
+		  Descuento,
+		  Sub_Total,
+		  Tipo,
+		  Obs_ComprobanteD,
+		  Cod_Manguera,
+		  Flag_AplicaImpuesto,
+		  Formalizado,
+		  Valor_NoOneroso,
+		  Cod_TipoISC,
+		  Porcentaje_ISC,
+		  ISC,
+		  Cod_TipoIGV,
+		  Porcentaje_IGV,
+		  IGV,
+		  Cod_UsuarioReg,
+		  Fecha_Reg,
+		  Cod_UsuarioAct,
+		  Fecha_Act
+	   )
+	   SELECT 
+		 @IdComprobanteComandaDestino,
+		 ccd.id_Detalle,
+		 ccd.Id_Producto,
+		 ccd.Cod_Almacen,
+		 CASE WHEN ccd.IGV = 0 THEN @CantidadDestino ELSE ccd.Cantidad END,
+		 ccd.Cod_UnidadMedida,
+		 ccd.Despachado,
+		 ccd.Descripcion,
+		 ccd.PrecioUnitario,
+		 ccd.Descuento,
+		 CASE WHEN ccd.IGV = 0 THEN @CantidadDestino*ccd.PrecioUnitario ELSE ccd.Cantidad END,
+		 ccd.Tipo,
+		 ccd.Obs_ComprobanteD,
+		 ccd.Cod_Manguera,
+		 ccd.Flag_AplicaImpuesto,
+		 0,
+		 ccd.Valor_NoOneroso,
+		 ccd.Cod_TipoISC,
+		 ccd.Porcentaje_ISC,
+		 ccd.ISC,
+		 ccd.Cod_TipoIGV,
+		 ccd.Porcentaje_IGV,
+		 ccd.IGV,
+		 @CodUsuario,
+		 GETDATE(),
+		 NULL,
+		 NULL
+	   FROM dbo.CAJ_COMPROBANTE_D ccd
+	   WHERE(ccd.id_ComprobantePago = @IdComprobanteComandaOrigen
+		    AND ccd.id_Detalle = @IdDetalleComandaOrigen
+		    AND ccd.IGV = 0) OR
+		   (ccd.id_ComprobantePago = @IdComprobanteComandaOrigen
+		    AND ccd.IGV = @IdDetalleComandaOrigen) 
+	   
+	   --Actualziamos el origen
+	   UPDATE dbo.CAJ_COMPROBANTE_D
+	   SET
+
+	       dbo.CAJ_COMPROBANTE_D.Cantidad = dbo.CAJ_COMPROBANTE_D.Cantidad-@CantidadDestino, -- numeric
+		  dbo.CAJ_COMPROBANTE_D.Sub_Total = (dbo.CAJ_COMPROBANTE_D.Cantidad-@CantidadDestino-dbo.CAJ_COMPROBANTE_D.Formalizado)*dbo.CAJ_COMPROBANTE_D.PrecioUnitario,
+	       dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct = @CodUsuario, -- varchar
+	       dbo.CAJ_COMPROBANTE_D.Fecha_Act = GETDATE() -- datetime
+	   WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@IdComprobanteComandaOrigen
+	   AND dbo.CAJ_COMPROBANTE_D.id_Detalle=@IdDetalleComandaOrigen
+    END
+END
+GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda
+GO
+
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda
+@IdComprobanteComanda int,
+@CodUsuario varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+    UPDATE dbo.CAJ_COMPROBANTE_PAGO
+    SET
+	  dbo.CAJ_COMPROBANTE_PAGO.Total = (SELECT SUM((ccd.Cantidad-ccd.Formalizado)*ccd.PrecioUnitario) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@IdComprobanteComanda AND ccd.IGV=0), 
+	  dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario, 
+	  dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act = GETDATE()
+    WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComprobanteComanda
+END
+GO
+
+
+--Coreccion 
+UPDATE ccp
+SET
+ccp.Total = (SELECT SUM(ccd.Sub_Total) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=ccp.id_ComprobantePago AND ccd.IGV=0)
+FROM CAJ_COMPROBANTE_PAGO ccp 
+WHERE ccp.Cod_TipoComprobante='CO'
+AND ccp.Serie='0000'
+
+UPDATE ccp
+SET
+ccp.Total = (SELECT SUM(ccd.Sub_Total) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=ccp.id_ComprobantePago)
+FROM CAJ_COMPROBANTE_PAGO ccp 
+WHERE ccp.Cod_TipoComprobante IN ('BE','FE','NCE')
+AND ccp.Cod_Libro='14'
+AND ( ccp.Serie LIKE 'F%' OR ccp.Serie LIKE 'B%')
+
+--Nueva version--BETA
+--Necesaria para nueva interfaz
+
+--Se agerag una nueva columna a la vista mesas
+EXEC USP_PAR_COLUMNA_G '103','005','Cod_Ambiente','Código del ambiente donde se ubica la mesa','CADENA',0,32,'',0,'MIGRACION';
+EXEC USP_PAR_COLUMNA_G '103','006','Flag_Delivery','Indica si la mesa es delivery o no','BOLEANO',0,1,'0',0,'MIGRACION';
+EXEC USP_PAR_TABLA_GENERADOR_VISTAS '103';
+GO
+
+--Metodo que trae los usuarios por PIN, si trae multiples resultados
+--significa que los PIN estan mal asignados
+--La pregunta secreta debe ser PIN, ademas el PIN puede ser 1..4 caracteres
+--No importa la caja, se asume que el usuario puede desplazarse entre las cajas sin ningun problema
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_PRI_USUARIO_TraerUsuarioXPIN' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_PRI_USUARIO_TraerUsuarioXPIN
+GO
+
+CREATE PROCEDURE USP_PRI_USUARIO_TraerUsuarioXPIN
+	@PIN varchar(4)
+WITH ENCRYPTION
+AS
+BEGIN
+    SELECT DISTINCT pu.*
+    FROM dbo.PRI_USUARIO pu 
+    WHERE pu.Pregunta='PIN' AND pu.Respuesta=@PIN 
+END
+GO
+
+--CONDICIONES PREVIA:
+--Si la mesa no tiene el flag delivery, se trae solo las mesas con su codigo
+--Si tiene el flag existen dos opciones:
+--Si el campo ambiente es vacio entonces esa mesa delkivery es disponible para cualqueir ambiente
+--Caso contrario se respeta el ambiente al que pertenece
+--EXEC dbo.USP_VIS_MESAS_ObtenerMesasXCodAmbiente 'PISO 2'
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_VIS_MESAS_ObtenerMesasXCodAmbiente' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_VIS_MESAS_ObtenerMesasXCodAmbiente
+GO
+
+CREATE PROCEDURE USP_VIS_MESAS_ObtenerMesasXCodAmbiente
+@Cod_Ambiente varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+    SELECT DISTINCT
+       Mesas.Cod_Mesa,
+       COUNT(Ocupadas.id_ComprobantePago) Total_Ordenes,
+       MAX(Mesas.Nom_Mesa) Nom_Mesa,
+       MAX(Ocupadas.id_ComprobantePago) Id_Comanda,
+       SUM(Ocupadas.Total) Total,
+       MAX(Ocupadas.Cod_UsuarioVendedor) Cod_UsuarioVendedor,
+	  Mesas.Flag_Delivery
+	FROM
+	(
+		SELECT vm.Cod_Mesa,
+			vm.Nom_Mesa,
+			NULL id_ComprobantePago,
+			NULL Total,
+			NULL Cod_UsuarioVendedor,
+			vm.Flag_Delivery
+		FROM dbo.VIS_MESAS vm
+		WHERE 
+		(
+		(vm.Cod_Ambiente = @Cod_Ambiente AND vm.Flag_Delivery = 0) OR
+		(vm.Flag_Delivery = 1 AND 
+			(
+				(vm.Cod_Ambiente IS NULL OR RTRIM(LTRIM(vm.Cod_Ambiente)) = '') OR (vm.Cod_Ambiente = @Cod_Ambiente)
+			)
+		)
+		)
+		AND vm.Estado = 1
+	) Mesas
+	LEFT JOIN
+	(
+		SELECT DISTINCT
+			vm.Cod_Mesa,
+			vm.Nom_Mesa,
+			ccd.id_ComprobantePago,
+			ccp.Total,
+			COALESCE(ccp.Cod_UsuarioAct, ccd.Cod_UsuarioReg) Cod_UsuarioVendedor,
+			vm.Flag_Delivery
+		FROM dbo.VIS_MESAS vm
+			INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccd.Cod_Manguera = vm.Cod_Mesa
+			INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+		WHERE((vm.Cod_Ambiente = @Cod_Ambiente
+			AND vm.Flag_Delivery = 0)
+			OR (vm.Flag_Delivery = 1
+				AND ((vm.Cod_Ambiente IS NULL
+						OR RTRIM(LTRIM(vm.Cod_Ambiente)) = '')
+					OR (vm.Cod_Ambiente = @Cod_Ambiente))))
+			AND vm.Estado = 1
+			AND vm.Estado_Mesa = 'OCUPADO'
+			AND ccp.Cod_TipoComprobante = 'CO'
+			AND ccd.Cantidad > 0
+			AND ((ccp.Cod_Caja IS NULL
+				AND ccp.Cod_Turno IS NULL)
+				OR (ccd.Formalizado != ccd.Cantidad
+					AND ccd.IGV = 0))
+	) Ocupadas ON Mesas.Cod_Mesa = Ocupadas.Cod_Mesa
+	GROUP BY Mesas.Cod_Mesa,Mesas.Flag_Delivery
+	ORDER BY Mesas.Cod_Mesa;
+END
+GO
+
+
+
+ IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_VIS_MESAS_ObtenerDetallesMesasXCodAmbienteCodMesa' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_VIS_MESAS_ObtenerDetallesMesasXCodAmbienteCodMesa
+GO
+
+CREATE PROCEDURE USP_VIS_MESAS_ObtenerDetallesMesasXCodAmbienteCodMesa
+@Cod_Ambiente varchar(32),
+@Cod_Mesa varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+	SELECT DISTINCT
+		vm.Cod_Mesa,
+		1 Total_Ordenes,
+		vm.Nom_Mesa,
+		ccd.id_ComprobantePago Id_Comanda,
+		ccp.Total,
+		COALESCE(ccp.Cod_UsuarioAct, ccd.Cod_UsuarioReg) Cod_UsuarioVendedor,
+		vm.Flag_Delivery
+	FROM dbo.VIS_MESAS vm
+		INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccd.Cod_Manguera = vm.Cod_Mesa
+		INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+	WHERE((vm.Cod_Ambiente = @Cod_Ambiente
+		AND vm.Flag_Delivery = 0)
+		OR (vm.Flag_Delivery = 1
+			AND ((vm.Cod_Ambiente IS NULL
+					OR RTRIM(LTRIM(vm.Cod_Ambiente)) = '')
+				OR (vm.Cod_Ambiente = @Cod_Ambiente))))
+		AND vm.Estado = 1
+		AND vm.Estado_Mesa = 'OCUPADO'
+		AND ccp.Cod_TipoComprobante = 'CO'
+		AND ccd.Cantidad > 0
+		AND ((ccp.Cod_Caja IS NULL
+			AND ccp.Cod_Turno IS NULL)
+			OR (ccd.Formalizado != ccd.Cantidad
+				AND ccd.IGV = 0))
+		AND vm.Cod_Mesa = @Cod_Mesa
+	ORDER BY vm.Cod_Mesa;
+END
+GO

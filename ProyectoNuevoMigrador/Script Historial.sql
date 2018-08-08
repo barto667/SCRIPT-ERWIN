@@ -1018,19 +1018,21 @@ IF EXISTS (
 GO
 
 CREATE PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_ObtenerDNIAleatorio
+@RangoInicial int = 1,
+@RangoFinal int = 99999999
 WITH ENCRYPTION
 AS
 BEGIN
     IF (SELECT COUNT(*) FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Cod_CondicionCliente IS NULL AND pcp.Cod_TipoDocumento='1')>0
     BEGIN
 	   SELECT TOP 1 pcp.Id_ClienteProveedor,pcp.Nro_Documento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp TABLESAMPLE(10000 ROWS)
-	   WHERE pcp.Cod_CondicionCliente IS NULL AND pcp.Cod_TipoDocumento='1'
+	   WHERE pcp.Cod_CondicionCliente IS NULL AND pcp.Cod_TipoDocumento='1' AND pcp.Nro_Documento>=@RangoInicial AND pcp.Nro_Documento<=@RangoFinal
     END
     ELSE
     BEGIN
 	   SELECT TOP 1 pcp.Id_ClienteProveedor,pcp.Nro_Documento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp TABLESAMPLE(10000 ROWS)
 	   WHERE pcp.Cod_CondicionCliente ='001' AND (pcp.Fecha_Nacimiento IS NULL OR pcp.Cod_Sexo='' OR pcp.Direccion='' OR pcp.PaginaWeb='' OR pcp.Cod_Ubigeo='')
-	   AND pcp.Cod_TipoDocumento='1'
+	   AND pcp.Cod_TipoDocumento='1' AND pcp.Nro_Documento>=@RangoInicial AND pcp.Nro_Documento<=@RangoFinal
     END
 END
 GO
@@ -1087,42 +1089,44 @@ BEGIN
     BEGIN
 	   SET @Obs_Cliente = '<Registro><OBS_CLIENTE /></Registro>'
     END	
-    UPDATE dbo.PRI_CLIENTE_PROVEEDOR
+    UPDATE pcp
     SET
         --Id_ClienteProveedor - this column value is auto-generated
-        --dbo.PRI_CLIENTE_PROVEEDOR.Cod_TipoDocumento = '', -- varchar
-        --dbo.PRI_CLIENTE_PROVEEDOR.Nro_Documento = '', -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Cliente = @Cliente, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Ap_Paterno = @Ap_Paterno, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Ap_Materno = @Ap_Materno, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Nombres = @Nombres, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Direccion = @Direccion, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Cod_EstadoCliente = @Cod_EstadoCliente, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Cod_CondicionCliente = @Cod_CondicionCliente, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Cod_TipoCliente = @Cod_TipoCliente, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.RUC_Natural = @RUC_Natural, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Foto = @Foto, -- binary
-        dbo.PRI_CLIENTE_PROVEEDOR.Firma = @Firma, -- binary
-        dbo.PRI_CLIENTE_PROVEEDOR.Cod_TipoComprobante = @Cod_TipoComprobante, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Cod_Nacionalidad = @Cod_Nacionalidad, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Fecha_Nacimiento = @Fecha_Nacimiento, -- datetime
-        dbo.PRI_CLIENTE_PROVEEDOR.Cod_Sexo = @Cod_Sexo, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Email1 = @Email1, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Email2 = @Email2, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Telefono1 = @Telefono1, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Telefono2 = @Telefono2, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Fax = @Fax, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.PaginaWeb = @PaginaWeb, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Cod_Ubigeo = @Cod_Ubigeo, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Cod_FormaPago = @Cod_FormaPago, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Limite_Credito = @Limite_Credito, -- numeric
-        dbo.PRI_CLIENTE_PROVEEDOR.Obs_Cliente = @Obs_Cliente, -- xml
-        dbo.PRI_CLIENTE_PROVEEDOR.Num_DiaCredito = @Num_DiaCredito, -- int
-        --dbo.PRI_CLIENTE_PROVEEDOR.Cod_UsuarioReg = '', -- varchar
-        --dbo.PRI_CLIENTE_PROVEEDOR.Fecha_Reg = '2018-07-18 16:42:02', -- datetime
-        dbo.PRI_CLIENTE_PROVEEDOR.Cod_UsuarioAct = @Cod_Usuario, -- varchar
-        dbo.PRI_CLIENTE_PROVEEDOR.Fecha_Act = GETDATE() -- datetime
-	   WHERE dbo.PRI_CLIENTE_PROVEEDOR.Id_ClienteProveedor=@Id_ClienteProveedor
+        --pcp.Cod_TipoDocumento = '', -- varchar
+        --pcp.Nro_Documento = '', -- varchar
+        pcp.Cliente = @Cliente, -- varchar
+        pcp.Ap_Paterno = @Ap_Paterno, -- varchar
+        pcp.Ap_Materno = @Ap_Materno, -- varchar
+        pcp.Nombres = @Nombres, -- varchar
+        pcp.Direccion = @Direccion, -- varchar
+        pcp.Cod_EstadoCliente = @Cod_EstadoCliente, -- varchar
+        pcp.Cod_CondicionCliente = @Cod_CondicionCliente, -- varchar
+        pcp.Cod_TipoCliente = @Cod_TipoCliente, -- varchar
+        pcp.RUC_Natural = @RUC_Natural, -- varchar
+        pcp.Foto = @Foto, -- binary
+        pcp.Firma = @Firma, -- binary
+        pcp.Cod_TipoComprobante = @Cod_TipoComprobante, -- varchar
+        pcp.Cod_Nacionalidad = @Cod_Nacionalidad, -- varchar
+        pcp.Fecha_Nacimiento = @Fecha_Nacimiento, -- datetime
+        pcp.Cod_Sexo = @Cod_Sexo, -- varchar
+        pcp.Email1 = @Email1, -- varchar
+        pcp.Email2 = @Email2, -- varchar
+        pcp.Telefono1 = @Telefono1, -- varchar
+        pcp.Telefono2 = @Telefono2, -- varchar
+        pcp.Fax = @Fax, -- varchar
+        pcp.PaginaWeb = @PaginaWeb, -- varchar
+        pcp.Cod_Ubigeo = @Cod_Ubigeo, -- varchar
+        pcp.Cod_FormaPago = @Cod_FormaPago, -- varchar
+        pcp.Limite_Credito = @Limite_Credito, -- numeric
+        pcp.Obs_Cliente = @Obs_Cliente, -- xml
+        pcp.Num_DiaCredito = @Num_DiaCredito, -- int
+        --pcp.Cod_UsuarioReg = '', -- varchar
+        --pcp.Fecha_Reg = '2018-07-18 16:42:02', -- datetime
+        pcp.Cod_UsuarioAct = @Cod_Usuario, -- varchar
+        pcp.Fecha_Act = GETDATE() -- datetime
+	   FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
+	   WITH (INDEX(IDX_PRI_CLIENTE_PROVEEDOR_Id_ClienteProveedor))
+	   WHERE pcp.Id_ClienteProveedor=@Id_ClienteProveedor
     COMMIT TRANSACTION;
     END TRY  
       
@@ -1189,3 +1193,22 @@ AND ccp.Cod_Libro='14'
 AND ccp.Flag_Anulado=0
 AND ccp.Cod_TipoComprobante IN ('BE','FE','NCE','NDE','FA','BO','NCE','NDE','NC','ND')
 GROUP BY ccp.Cod_Periodo,ccp.FechaEmision,vtc.Cod_Sunat,ccp.Serie,ccp.Numero,ccp.Cod_TipoDoc,ccp.Doc_Cliente,ccp.Nom_Cliente,ccp.Cod_TipoOperacion
+
+
+--GUIA DE REMISION
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_PRI_SUCURSAL_TraerSucursalesActivas' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_PRI_SUCURSAL_TraerSucursalesActivas
+GO
+
+CREATE PROCEDURE USP_PRI_SUCURSAL_TraerSucursalesActivas
+WITH ENCRYPTION
+AS
+BEGIN
+	SELECT ps.Cod_Sucursal, ps.Nom_Sucursal, ps.Dir_Sucursal, ps.Por_UtilidadMax, ps.Por_UtilidadMin, ps.Cod_UsuarioAdm, ps.Cabecera_Pagina, ps.Pie_Pagina, ps.Cod_Ubigeo,COALESCE(ps.Cod_UsuarioAct,ps.Cod_UsuarioReg) Cod_Usuario,COALESCE(ps.Fecha_Act,ps.Fecha_Reg) Fecha_UltimaModificacion FROM dbo.PRI_SUCURSAL ps WHERE ps.Flag_Activo = 1
+END
+GO
