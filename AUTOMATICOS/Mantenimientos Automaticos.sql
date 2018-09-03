@@ -150,10 +150,10 @@ go
 
 --Crea un procedimiento por el cual se pueden eliminar copias de seguridad en una tarea, ejecutar sobre la bd destino
 --En la ruta C:\APLICACIONES\TEMP y con extension palerp
---Crea una copias, por defecto las 12 horas 
+--Elimina copias de seguridad con antiguedad mayor a UN MES comparado con la hora del servidor
 --NumeroIntentos entero el numero de intentos , si es 0 sin reintentos
 --IntervaloMinutos entero que indica el intervalo de tiempo en minutos si hay numero de intentos >0
---Hora entero que indica la hora en que sucede la copia
+--Hora entero que indica la hora en que sucede la eliminacion
 --tiene el formato de 24 horas de la siguiente forma HHMMSS (ej 235958- Copia a las 23 horas 59 minutos 58 segundos)
 --exec USP_CrearTareaEliminarCopiasSeguridad N'ELIMINAR COPIA DE SEGURIDAD',0,0,120000
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CrearTareaEliminarCopiasSeguridad' AND type = 'P')
