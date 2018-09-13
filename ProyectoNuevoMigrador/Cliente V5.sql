@@ -21331,6 +21331,7 @@ BEGIN
 			  CONVERT(varchar(max),pcc.Flag_CuentaAnalitica)+','+
 			  CONVERT(varchar(max),pcc.Flag_CentroCostos)+','+
 			  CONVERT(varchar(max),pcc.Flag_CuentaBancaria)+','+
+			  CASE WHEN  pcc.Cod_EntidadBancaria IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcc.Cod_EntidadBancaria,'''','')+''','END+
 			  CASE WHEN  pcc.Numero_Cuenta IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcc.Numero_Cuenta,'''','')+''','END+
 			  CASE WHEN  pcc.Clase_Cuenta IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcc.Clase_Cuenta,'''','')+''','END+
 			  ''''+REPLACE(COALESCE(pcc.Cod_UsuarioAct,pcc.Cod_UsuarioReg),'''','')   +''';' 
@@ -29733,7 +29734,7 @@ GO
 
 
 ----Actualziamos todos las tablas en orden relacional, solo para servidores nuevos que
---necesitan ser replicados en uno principal
+----necesitan ser replicados en uno principal
 --UPDATE dbo.PRI_MENSAJES
 --SET
 --    Cod_UsuarioAct = 'MIGRACION', 
