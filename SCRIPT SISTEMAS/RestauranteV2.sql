@@ -1853,7 +1853,8 @@ FROM            PRI_PRODUCTOS AS P INNER JOIN
 where   p.Flag_Activo = 1 and Cod_TipoProducto = 'PRO'
 END
 GO
-
+  
+  
 --EXEC URP_CAJ_COMPROBANTEPAGO_TraerOrdenComandaImpresion 6767,'A103'
 IF EXISTS (
   SELECT * 
