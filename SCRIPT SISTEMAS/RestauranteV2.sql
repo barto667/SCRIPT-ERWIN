@@ -1141,6 +1141,184 @@ END
 GO
 
 
+-- IF EXISTS (
+--   SELECT * 
+--     FROM sysobjects 
+--    WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_FusionarComandas' 
+-- 	 AND type = 'P'
+-- )
+--   DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_FusionarComandas
+-- GO
+
+-- CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_FusionarComandas
+--     @IdComandaDestino int,--Donde se volcaran los datos del origen
+--     @IdComandaOrigen int, --De donde se copiaran los datos
+--     @CodUsuario varchar(32)
+-- WITH ENCRYPTION
+-- AS
+-- BEGIN
+--     --Reglas
+--     --Escenarios: 
+--     --1. Ambas variables con datos, ninguna es null o con id=0
+--     --Se realiza el cambio normal
+--     --2. El destino es null y el origen tiene valor
+--     --No se realizan acciones, esto corresponde a un cambio de mesa
+--     --3. el destino tiene valor y el origen no
+--     --No se puede realziar acciones
+--     --4. Ambas variables con valores nulos o 0
+--     --No se puede realizar ninguna accion
+--     --SOLO SE USA EL ESCENARIO 1, con los otros escenarios no realiza nada
+--     IF  @IdComandaDestino IS NOT NULL AND @IdComandaDestino > 0 AND @IdComandaOrigen IS NOT NULL AND @IdComandaOrigen > 0
+--     BEGIN
+-- 	IF @IdComandaDestino<>@IdComandaOrigen
+-- 	BEGIN
+-- 			SET XACT_ABORT ON;  
+-- 			BEGIN TRY  
+-- 				BEGIN TRANSACTION;  
+-- 				--Se obtiene el id_detalle maximo de destino para continuar la numeracion en el destino
+-- 				DECLARE @IdDetalleMaximoDestino int =(SELECT MAX (ccd.id_Detalle) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@IdComandaDestino)
+-- 				--Obtenemos la mesa del destino
+-- 				DECLARE @CodMesaDestino varchar(5) = (SELECT TOP 1 ccd.Cod_Manguera FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@IdComandaDestino )
+-- 				--Obtenemos la mesa del origen
+-- 				DECLARE @CodMesaOrigen varchar(5) = (SELECT TOP 1 ccd.Cod_Manguera FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@IdComandaOrigen)
+-- 				--Se procede insertar los detalles  del origen en el destino
+-- 				INSERT INTO dbo.CAJ_COMPROBANTE_D
+-- 				(
+-- 					id_ComprobantePago,
+-- 					id_Detalle,
+-- 					Id_Producto,
+-- 					Cod_Almacen,
+-- 					Cantidad,
+-- 					Cod_UnidadMedida,
+-- 					Despachado,
+-- 					Descripcion,
+-- 					PrecioUnitario,
+-- 					Descuento,
+-- 					Sub_Total,
+-- 					Tipo,
+-- 					Obs_ComprobanteD,
+-- 					Cod_Manguera,
+-- 					Flag_AplicaImpuesto,
+-- 					Formalizado,
+-- 					Valor_NoOneroso,
+-- 					Cod_TipoISC,
+-- 					Porcentaje_ISC,
+-- 					ISC,
+-- 					Cod_TipoIGV,
+-- 					Porcentaje_IGV,
+-- 					IGV,
+-- 					Cod_UsuarioReg,
+-- 					Fecha_Reg,
+-- 					Cod_UsuarioAct,
+-- 					Fecha_Act
+-- 				)
+-- 				SELECT @IdComandaDestino,
+-- 						ccd.id_Detalle+@IdDetalleMaximoDestino,
+-- 						ccd.Id_Producto,
+-- 						ccd.Cod_Almacen,
+-- 						ccd.Cantidad,
+-- 						ccd.Cod_UnidadMedida,
+-- 						ccd.Despachado,
+-- 						ccd.Descripcion,
+-- 						ccd.PrecioUnitario,
+-- 						ccd.Descuento,
+-- 						ccd.Sub_Total,
+-- 						ccd.Tipo,
+-- 						ccd.Obs_ComprobanteD,
+-- 						@CodMesaDestino,
+-- 						ccd.Flag_AplicaImpuesto,
+-- 						ccd.Formalizado,
+-- 						ccd.Valor_NoOneroso,
+-- 						ccd.Cod_TipoISC,
+-- 						ccd.Porcentaje_ISC,
+-- 						ccd.ISC,
+-- 						ccd.Cod_TipoIGV,
+-- 						ccd.Porcentaje_IGV,
+-- 						CASE WHEN ccd.IGV IS NULL OR ccd.IGV=0 THEN 0 ELSE ccd.IGV+@IdDetalleMaximoDestino END,
+-- 						@CodUsuario,
+-- 						GETDATE(),
+-- 						NULL,
+-- 						NULL
+-- 				FROM dbo.CAJ_COMPROBANTE_D ccd
+-- 				WHERE ccd.id_ComprobantePago = @IdComandaOrigen
+-- 				--Actualizamos el total de la comanda de destino
+-- 				UPDATE dbo.CAJ_COMPROBANTE_PAGO
+-- 				SET
+-- 				dbo.CAJ_COMPROBANTE_PAGO.Total += (SELECT ccp.Total FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=@IdComandaOrigen),
+-- 				dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario,
+-- 				dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act=GETDATE()
+-- 				WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComandaDestino
+-- 				--Actualizamos el total de la comanda de origen
+-- 				UPDATE dbo.CAJ_COMPROBANTE_PAGO
+-- 				SET
+-- 				dbo.CAJ_COMPROBANTE_PAGO.Total = 0,
+-- 				dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario,
+-- 				dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act=GETDATE()
+-- 				WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComandaOrigen
+-- 				--Actualziamos los detalles del origen 
+-- 				UPDATE dbo.CAJ_COMPROBANTE_D
+-- 				SET
+-- 				dbo.CAJ_COMPROBANTE_D.Cantidad=0,
+-- 				dbo.CAJ_COMPROBANTE_D.Sub_Total=0,
+-- 				dbo.CAJ_COMPROBANTE_D.Formalizado=0,
+-- 				dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct =@CodUsuario,
+-- 				dbo.CAJ_COMPROBANTE_D.Fecha_Act=getdate()
+-- 				WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@IdComandaOrigen
+
+-- 				--Se procede a liberar la mesa de origen
+-- 				IF @CodMesaOrigen<>@CodMesaDestino
+-- 				BEGIN
+
+-- 				    DECLARE @IdMesaComanda int
+-- 				    SELECT  @IdMesaComanda=a.id_ComprobantePago FROM (SELECT  Mesas.Cod_Mesa,Mesas.Nom_Mesa,ISNULL(Ocupados.Cod_UsuarioVendedor,'') Cod_UsuarioVendedor,ISNULL(Ocupados.id_ComprobantePago,0) id_ComprobantePago,Ocupados.Fecha_Reg FROM 
+-- 				    (SELECT vm.Cod_Mesa ,vm.Nom_Mesa,NULL Cod_UsuarioVendedor,NULL id_ComprobantePago,NULL Fecha_Reg
+-- 				    FROM dbo.VIS_MESAS vm WHERE vm.Estado=1 ) Mesas LEFT JOIN 
+-- 				    (SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
+-- 				    COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
+-- 				    ccp.id_ComprobantePago,ccp.Fecha_Reg
+-- 				    FROM dbo.VIS_MESAS vm
+-- 				    INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
+-- 				    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+-- 				    WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO' AND ccp.Cod_Caja IS NULL AND ccp.Cod_Turno IS NULL AND ccd.Cantidad-ccd.Formalizado>0
+-- 				    UNION
+-- 				    SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
+-- 				    COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
+-- 				    ccp.id_ComprobantePago,ccp.Fecha_Reg
+-- 				    FROM dbo.VIS_MESAS vm
+-- 				    INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
+-- 				    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+-- 				    WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO'  AND ccd.IGV=0 AND ccd.Cantidad-ccd.Formalizado>0) Ocupados
+-- 				    ON Mesas.Cod_Mesa=Ocupados.Cod_Mesa
+-- 				    ) a
+-- 				    WHERE a.Cod_Mesa=@CodMesaOrigen 
+
+-- 				    IF @IdMesaComanda=0
+-- 				    BEGIN
+-- 					   EXEC dbo.USP_VIS_MESAS_GXEstado
+-- 					   @Cod_Mesa = @CodMesaOrigen,
+-- 					   @Estado_Mesa = 'LIBRE',
+-- 					   @Cod_Vendedor = @CodUsuario
+-- 				    END
+-- 				END
+-- 				COMMIT TRANSACTION;
+-- 			END TRY  
+			
+-- 			BEGIN CATCH  
+-- 				IF (XACT_STATE()) = -1  
+-- 				BEGIN  
+-- 					ROLLBACK TRANSACTION; 
+-- 				END;  
+-- 				IF (XACT_STATE()) = 1  
+-- 				BEGIN  
+-- 					COMMIT TRANSACTION;    
+-- 				END;  
+-- 				THROW;
+-- 			END CATCH;  
+-- 	   END
+--     END
+-- END
+-- GO
+
 IF EXISTS (
   SELECT * 
     FROM sysobjects 
@@ -1151,170 +1329,299 @@ IF EXISTS (
 GO
 
 CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_FusionarComandas
-    @IdComandaDestino int,--Donde se volcaran los datos del origen
-    @IdComandaOrigen int, --De donde se copiaran los datos
-    @CodUsuario varchar(32)
+    @Id_ComandaDestino int,--Donde se volcaran los datos del origen
+    @Id_ComandaOrigen int, --De donde se copiaran los datos
+    @Cod_Usuario varchar(32)
 WITH ENCRYPTION
 AS
 BEGIN
-    --Reglas
-    --Escenarios: 
-    --1. Ambas variables con datos, ninguna es null o con id=0
-    --Se realiza el cambio normal
-    --2. El destino es null y el origen tiene valor
-    --No se realizan acciones, esto corresponde a un cambio de mesa
-    --3. el destino tiene valor y el origen no
-    --No se puede realziar acciones
-    --4. Ambas variables con valores nulos o 0
-    --No se puede realizar ninguna accion
-    --SOLO SE USA EL ESCENARIO 1, con los otros escenarios no realiza nada
-    IF  @IdComandaDestino IS NOT NULL AND @IdComandaDestino > 0 AND @IdComandaOrigen IS NOT NULL AND @IdComandaOrigen > 0
+    IF  @Id_ComandaDestino IS NOT NULL AND @Id_ComandaDestino > 0 AND @Id_ComandaOrigen IS NOT NULL AND @Id_ComandaOrigen > 0 AND @Id_ComandaOrigen!=@Id_ComandaDestino
     BEGIN
-	IF @IdComandaDestino<>@IdComandaOrigen
-	BEGIN
-			SET XACT_ABORT ON;  
-			BEGIN TRY  
-				BEGIN TRANSACTION;  
-				--Se obtiene el id_detalle maximo de destino para continuar la numeracion en el destino
-				DECLARE @IdDetalleMaximoDestino int =(SELECT MAX (ccd.id_Detalle) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@IdComandaDestino)
-				--Obtenemos la mesa del destino
-				DECLARE @CodMesaDestino varchar(5) = (SELECT TOP 1 ccd.Cod_Manguera FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@IdComandaDestino )
-				--Obtenemos la mesa del origen
-				DECLARE @CodMesaOrigen varchar(5) = (SELECT TOP 1 ccd.Cod_Manguera FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@IdComandaOrigen)
-				--Se procede insertar los detalles  del origen en el destino
-				INSERT INTO dbo.CAJ_COMPROBANTE_D
-				(
-					id_ComprobantePago,
-					id_Detalle,
-					Id_Producto,
-					Cod_Almacen,
-					Cantidad,
-					Cod_UnidadMedida,
-					Despachado,
-					Descripcion,
-					PrecioUnitario,
-					Descuento,
-					Sub_Total,
-					Tipo,
-					Obs_ComprobanteD,
-					Cod_Manguera,
-					Flag_AplicaImpuesto,
-					Formalizado,
-					Valor_NoOneroso,
-					Cod_TipoISC,
-					Porcentaje_ISC,
-					ISC,
-					Cod_TipoIGV,
-					Porcentaje_IGV,
-					IGV,
-					Cod_UsuarioReg,
-					Fecha_Reg,
-					Cod_UsuarioAct,
-					Fecha_Act
-				)
-				SELECT @IdComandaDestino,
-						ccd.id_Detalle+@IdDetalleMaximoDestino,
-						ccd.Id_Producto,
-						ccd.Cod_Almacen,
-						ccd.Cantidad,
-						ccd.Cod_UnidadMedida,
-						ccd.Despachado,
-						ccd.Descripcion,
-						ccd.PrecioUnitario,
-						ccd.Descuento,
-						ccd.Sub_Total,
-						ccd.Tipo,
-						ccd.Obs_ComprobanteD,
-						@CodMesaDestino,
-						ccd.Flag_AplicaImpuesto,
-						ccd.Formalizado,
-						ccd.Valor_NoOneroso,
-						ccd.Cod_TipoISC,
-						ccd.Porcentaje_ISC,
-						ccd.ISC,
-						ccd.Cod_TipoIGV,
-						ccd.Porcentaje_IGV,
-						CASE WHEN ccd.IGV IS NULL OR ccd.IGV=0 THEN 0 ELSE ccd.IGV+@IdDetalleMaximoDestino END,
-						@CodUsuario,
-						GETDATE(),
-						NULL,
-						NULL
-				FROM dbo.CAJ_COMPROBANTE_D ccd
-				WHERE ccd.id_ComprobantePago = @IdComandaOrigen
-				--Actualizamos el total de la comanda de destino
-				UPDATE dbo.CAJ_COMPROBANTE_PAGO
-				SET
-				dbo.CAJ_COMPROBANTE_PAGO.Total += (SELECT ccp.Total FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=@IdComandaOrigen),
-				dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario,
-				dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act=GETDATE()
-				WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComandaDestino
-				--Actualizamos el total de la comanda de origen
-				UPDATE dbo.CAJ_COMPROBANTE_PAGO
-				SET
-				dbo.CAJ_COMPROBANTE_PAGO.Total = 0,
-				dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario,
-				dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act=GETDATE()
-				WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComandaOrigen
-				--Actualziamos los detalles del origen 
-				UPDATE dbo.CAJ_COMPROBANTE_D
-				SET
-				dbo.CAJ_COMPROBANTE_D.Cantidad=0,
-				dbo.CAJ_COMPROBANTE_D.Sub_Total=0,
-				dbo.CAJ_COMPROBANTE_D.Formalizado=0,
-				dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct =@CodUsuario,
-				dbo.CAJ_COMPROBANTE_D.Fecha_Act=getdate()
-				WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@IdComandaOrigen
+	   SET XACT_ABORT ON
+	   BEGIN TRY  
+		  BEGIN TRANSACTION
+		  --Variables a utilizar
+		  --Origen
+		  DECLARE @Origen_IdDetalle int
+		  DECLARE @Origen_IdProducto int
+		  DECLARE @Origen_Descripcion varchar(max)
+		  DECLARE @Origen_PrecioUnitario numeric(38,6)
+		  DECLARE @Origen_Observacion varchar(1024)
+		  DECLARE @Origen_Contador int = 0
+		  DECLARE @Origen_TotalDetalles int = (SELECT count(ccd.id_Detalle) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND ccd.IGV=0)
+		  DECLARE @Origen_CodMesa varchar(5) = (SELECT TOP 1 ccd.Cod_Manguera FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago = @Id_ComandaOrigen)
 
-				--Se procede a liberar la mesa de origen
-				IF @CodMesaOrigen<>@CodMesaDestino
+		  --Destino
+		  DECLARE @Destino_IdDetalle int
+		  DECLARE @Destino_IdProducto int
+		  DECLARE @Destino_Descripcion varchar(max)
+		  DECLARE @Destino_PrecioUnitario numeric(38,6)
+		  DECLARE @Destino_Observacion varchar(1024)
+		  DECLARE @Destino_Contador int = 0
+		  DECLARE @Destino_TotalDetalles int= (SELECT count(ccd.id_Detalle) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaDestino AND ccd.IGV=0)
+		  DECLARE @Destino_IdDetalleMaximo int
+		  DECLARE @Destino_CodMesa varchar(5) = (SELECT TOP 1 ccd.Cod_Manguera FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago = @Id_ComandaDestino)
+
+		  --Variable de control
+		  DECLARE @Item_Encontrado bit  = 0
+
+		  --Recorremos los items del origen
+		  IF (SELECT CURSOR_STATUS('global','Cursor_Origen')) >= -1
+		  BEGIN
+			 IF (SELECT CURSOR_STATUS('global','Cursor_Origen')) > -1
+			 BEGIN
+				CLOSE Cursor_Origen
+			 END
+			 DEALLOCATE Cursor_Origen
+		  END
+		  DECLARE Cursor_Origen CURSOR LOCAL FOR
+		  SELECT ccd.id_Detalle, ccd.Id_Producto, ccd.Descripcion, ccd.PrecioUnitario, ccd.Obs_ComprobanteD 
+		  FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND ccd.IGV=0 ORDER BY ccd.id_Detalle
+		  OPEN Cursor_Origen
+		  FETCH NEXT  FROM Cursor_Origen INTO  @Origen_IdDetalle,@Origen_IdProducto,@Origen_Descripcion,@Origen_PrecioUnitario,@Origen_Observacion
+		  WHILE @Origen_Contador<@Origen_TotalDetalles
+		  BEGIN
+			 IF (SELECT CURSOR_STATUS('global','Cursor_Destino')) >= -1
+			 BEGIN
+				IF (SELECT CURSOR_STATUS('global','Cursor_Destino')) > -1
 				BEGIN
+				    CLOSE Cursor_Destino
+				END
+				DEALLOCATE Cursor_Destino
+			 END
+			 --Empezamos con un cursor para reccorrer los items del destin cuyo IGV=0 (padres)
+			 SET @Item_Encontrado = 0
+			 SET @Destino_TotalDetalles = (SELECT count(ccd.id_Detalle) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaDestino AND ccd.IGV=0)
+			 SET @Destino_Contador = 0
 
-				    DECLARE @IdMesaComanda int
-				    SELECT  @IdMesaComanda=a.id_ComprobantePago FROM (SELECT  Mesas.Cod_Mesa,Mesas.Nom_Mesa,ISNULL(Ocupados.Cod_UsuarioVendedor,'') Cod_UsuarioVendedor,ISNULL(Ocupados.id_ComprobantePago,0) id_ComprobantePago,Ocupados.Fecha_Reg FROM 
-				    (SELECT vm.Cod_Mesa ,vm.Nom_Mesa,NULL Cod_UsuarioVendedor,NULL id_ComprobantePago,NULL Fecha_Reg
-				    FROM dbo.VIS_MESAS vm WHERE vm.Estado=1 ) Mesas LEFT JOIN 
-				    (SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
-				    COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
-				    ccp.id_ComprobantePago,ccp.Fecha_Reg
-				    FROM dbo.VIS_MESAS vm
-				    INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
-				    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
-				    WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO' AND ccp.Cod_Caja IS NULL AND ccp.Cod_Turno IS NULL AND ccd.Cantidad-ccd.Formalizado>0
-				    UNION
-				    SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
-				    COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
-				    ccp.id_ComprobantePago,ccp.Fecha_Reg
-				    FROM dbo.VIS_MESAS vm
-				    INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
-				    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
-				    WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO'  AND ccd.IGV=0 AND ccd.Cantidad-ccd.Formalizado>0) Ocupados
-				    ON Mesas.Cod_Mesa=Ocupados.Cod_Mesa
-				    ) a
-				    WHERE a.Cod_Mesa=@CodMesaOrigen 
+			 DECLARE Cursor_Destino CURSOR LOCAL FOR
+			 SELECT ccd.id_Detalle, ccd.Id_Producto, ccd.Descripcion, ccd.PrecioUnitario, ccd.Obs_ComprobanteD 
+			 FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaDestino AND ccd.IGV=0 ORDER BY ccd.id_Detalle
+			 OPEN Cursor_Destino
+			 FETCH NEXT FROM Cursor_Destino INTO @Destino_IdDetalle,@Destino_IdProducto,@Destino_Descripcion,@Destino_PrecioUnitario,@Destino_Observacion
+			 WHILE @Destino_Contador<@Destino_TotalDetalles AND @Item_Encontrado = 0
+			 BEGIN
 
-				    IF @IdMesaComanda=0
+				IF @Origen_IdProducto = @Destino_IdProducto AND @Origen_Descripcion = @Destino_Descripcion AND 
+				@Origen_PrecioUnitario = @Destino_PrecioUnitario AND @Origen_Observacion = @Destino_Observacion --La cabezera coincide
+				BEGIN
+				    --Comparamos los hijos
+				    DECLARE @SumaHijosDestino bigint = ISNULL((SELECT SUM(CAST(CHECKSUM(ccd.Id_Producto,ccd.Descripcion,ccd.PrecioUnitario,ccd.Obs_ComprobanteD) AS bigint)) FROM dbo.CAJ_COMPROBANTE_D ccd
+				    WHERE ccd.id_ComprobantePago = @Id_ComandaDestino AND CAST(ccd.IGV as int)=@Destino_IdDetalle),0)
+				    DECLARE @SumaHijosOrigen bigint  = ISNULL((SELECT SUM(CAST(CHECKSUM(ccd.Id_Producto,ccd.Descripcion,ccd.PrecioUnitario,ccd.Obs_ComprobanteD) AS bigint)) FROM dbo.CAJ_COMPROBANTE_D ccd
+				    WHERE ccd.id_ComprobantePago = @Id_ComandaOrigen AND CAST(ccd.IGV as int)=@Origen_IdDetalle),0)
+				    IF @SumaHijosDestino = @SumaHijosOrigen
 				    BEGIN
-					   EXEC dbo.USP_VIS_MESAS_GXEstado
-					   @Cod_Mesa = @CodMesaOrigen,
-					   @Estado_Mesa = 'LIBRE',
-					   @Cod_Vendedor = @CodUsuario
+					   --Actualizamos el destino
+					   UPDATE dbo.CAJ_COMPROBANTE_D
+					   SET
+						  dbo.CAJ_COMPROBANTE_D.Cantidad = dbo.CAJ_COMPROBANTE_D.Cantidad +  (SELECT ccd.Cantidad-ccd.Formalizado FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND ccd.id_Detalle=@Origen_IdDetalle),
+						  dbo.CAJ_COMPROBANTE_D.Sub_Total = ROUND((dbo.CAJ_COMPROBANTE_D.Cantidad +  (SELECT ccd.Cantidad-ccd.Formalizado FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND ccd.id_Detalle=@Origen_IdDetalle))*dbo.CAJ_COMPROBANTE_D.PrecioUnitario,2),
+						  dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@Cod_Usuario,
+						  dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
+					   WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@Id_ComandaDestino AND dbo.CAJ_COMPROBANTE_D.id_Detalle=@Destino_IdDetalle
+					   --Debemos editar el origen, poniendo  el campo cantidad=Formalizado
+					   UPDATE dbo.CAJ_COMPROBANTE_D
+					   SET
+						  dbo.CAJ_COMPROBANTE_D.Cantidad = 0,
+						  dbo.CAJ_COMPROBANTE_D.Sub_Total = 0,
+						  dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@Cod_Usuario,
+						  dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
+					   WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@Id_ComandaOrigen AND (dbo.CAJ_COMPROBANTE_D.id_Detalle=@Origen_IdDetalle OR 
+					   CAST(dbo.CAJ_COMPROBANTE_D.IGV AS int) = @Origen_IdDetalle)
+					   SET @Item_Encontrado = 1
 				    END
 				END
-				COMMIT TRANSACTION;
-			END TRY  
+				FETCH NEXT FROM Cursor_Destino INTO @Destino_IdDetalle,@Destino_IdProducto,@Destino_Descripcion,@Destino_PrecioUnitario,@Destino_Observacion
+				SET @Destino_Contador = @Destino_Contador + 1
+			 END	
+			 CLOSE Cursor_Destino
+			 DEALLOCATE Cursor_Destino
+
+			 --Si no se encontro el el item entonces se procede a insertar en el destino
+			 IF @Item_Encontrado = 0
+			 BEGIN
+				SET @Destino_IdDetalleMaximo = (SELECT MAX(ccd.id_Detalle)  FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaDestino)
+				--Se procede a insertar los detalles del origen al destino, incluidos sus hijos
+				INSERT dbo.CAJ_COMPROBANTE_D
+				(
+				    id_ComprobantePago,
+				    id_Detalle,
+				    Id_Producto,
+				    Cod_Almacen,
+				    Cantidad,
+				    Cod_UnidadMedida,
+				    Despachado,
+				    Descripcion,
+				    PrecioUnitario,
+				    Descuento,
+				    Sub_Total,
+				    Tipo,
+				    Obs_ComprobanteD,
+				    Cod_Manguera,
+				    Flag_AplicaImpuesto,
+				    Formalizado,
+				    Valor_NoOneroso,
+				    Cod_TipoISC,
+				    Porcentaje_ISC,
+				    ISC,
+				    Cod_TipoIGV,
+				    Porcentaje_IGV,
+				    IGV,
+				    Cod_UsuarioReg,
+				    Fecha_Reg,
+				    Cod_UsuarioAct,
+				    Fecha_Act
+				)
+				SELECT 
+				@Id_ComandaDestino,
+				ccd.id_Detalle + @Destino_IdDetalleMaximo,
+				ccd.Id_Producto, 
+				ccd.Cod_Almacen, 
+				ccd.Cantidad, 
+				ccd.Cod_UnidadMedida, 
+				ccd.Despachado, 
+				ccd.Descripcion, 
+				ccd.PrecioUnitario, 
+				ccd.Descuento, 
+				ccd.Sub_Total, 
+				ccd.Tipo, 
+				ccd.Obs_ComprobanteD, 
+				@Destino_CodMesa, 
+				ccd.Flag_AplicaImpuesto, 
+				ccd.Formalizado, 
+				ccd.Valor_NoOneroso, 
+				ccd.Cod_TipoISC, 
+				ccd.Porcentaje_ISC, 
+				ccd.ISC, 
+				ccd.Cod_TipoIGV, 
+				ccd.Porcentaje_IGV, 
+				CASE WHEN ccd.IGV IS NULL OR ccd.IGV=0 THEN 0 ELSE ccd.IGV+@Destino_IdDetalleMaximo END,
+				@Cod_Usuario, 
+				GETDATE(), 
+				NULL, 
+				NULL
+				FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND 
+				(ccd.id_Detalle = @Origen_IdDetalle OR CAST(ccd.IGV AS int) = @Origen_IdDetalle)
+				--Debemos editar el destino, poniendo  el campo cantidad+=Formalizado
+				UPDATE dbo.CAJ_COMPROBANTE_D
+				SET
+				    dbo.CAJ_COMPROBANTE_D.Cantidad = dbo.CAJ_COMPROBANTE_D.Cantidad +  (SELECT ccd.Cantidad-ccd.Formalizado FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND ccd.id_Detalle=@Origen_IdDetalle),
+				    dbo.CAJ_COMPROBANTE_D.Sub_Total = ROUND((dbo.CAJ_COMPROBANTE_D.Cantidad +  (SELECT ccd.Cantidad-ccd.Formalizado FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND ccd.id_Detalle=@Origen_IdDetalle))*dbo.CAJ_COMPROBANTE_D.PrecioUnitario,2),
+				    dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@Cod_Usuario,
+				    dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
+				WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@Id_ComandaDestino AND dbo.CAJ_COMPROBANTE_D.id_Detalle=@Destino_IdDetalle
+				--Debemos editar el origen, poniendo  el campo cantidad=Formalizado
+				UPDATE dbo.CAJ_COMPROBANTE_D
+				SET
+				    dbo.CAJ_COMPROBANTE_D.Cantidad = 0,
+				    dbo.CAJ_COMPROBANTE_D.Sub_Total = 0,
+				    dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@Cod_Usuario,
+				    dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
+				WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@Id_ComandaOrigen AND (dbo.CAJ_COMPROBANTE_D.id_Detalle=@Origen_IdDetalle OR 
+					   CAST(dbo.CAJ_COMPROBANTE_D.IGV AS int) = @Origen_IdDetalle)
+			 END
+
+			 FETCH NEXT  FROM Cursor_Origen INTO  @Origen_IdDetalle,@Origen_IdProducto,@Origen_Descripcion,@Origen_PrecioUnitario,@Origen_Observacion
+			 SET @Origen_Contador= @Origen_Contador + 1
+		  END
+    
+		  CLOSE Cursor_Origen
+		  DEALLOCATE Cursor_Origen
+
+		  --Actualizamos los totales de las cabezeras del origen y el destino
+		  --Origen
+		  UPDATE dbo.CAJ_COMPROBANTE_PAGO
+		  SET dbo.CAJ_COMPROBANTE_PAGO.Total = ROUND((SELECT SUM(ccd.Cantidad*ccd.PrecioUnitario) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen),2),
+		  dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct=@Cod_Usuario,
+		  dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act=GETDATE()
+		  WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@Id_ComandaOrigen 
+		  --Destino
+		  UPDATE dbo.CAJ_COMPROBANTE_PAGO
+		  SET dbo.CAJ_COMPROBANTE_PAGO.Total = ROUND((SELECT SUM(ccd.Cantidad*ccd.PrecioUnitario) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaDestino),2),
+		  dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct=@Cod_Usuario,
+		  dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act=GETDATE()
+		  WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@Id_ComandaDestino 
+		  --Se procede a liberar la mesa de origen
+		  IF @Origen_CodMesa<>@Destino_CodMesa
+		  BEGIN
+			 DECLARE @IdMesaComanda int
+			 SELECT  @IdMesaComanda=a.id_ComprobantePago FROM (SELECT  Mesas.Cod_Mesa,Mesas.Nom_Mesa,ISNULL(Ocupados.Cod_UsuarioVendedor,'') Cod_UsuarioVendedor,ISNULL(Ocupados.id_ComprobantePago,0) id_ComprobantePago,Ocupados.Fecha_Reg FROM 
+			 (SELECT vm.Cod_Mesa ,vm.Nom_Mesa,NULL Cod_UsuarioVendedor,NULL id_ComprobantePago,NULL Fecha_Reg
+			 FROM dbo.VIS_MESAS vm WHERE vm.Estado=1 ) Mesas LEFT JOIN 
+			 (SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
+			 COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
+			 ccp.id_ComprobantePago,ccp.Fecha_Reg
+			 FROM dbo.VIS_MESAS vm
+			 INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
+			 INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+			 WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO' AND ccp.Cod_Caja IS NULL AND ccp.Cod_Turno IS NULL AND ccd.Cantidad-ccd.Formalizado>0
+			 UNION
+			 SELECT DISTINCT vm.Cod_Mesa,vm.Nom_Mesa,
+			 COALESCE(CASE WHEN LEN(REPLACE(ccp.Cod_UsuarioVendedor,' ',''))=0 THEN NULL ELSE ccp.Cod_UsuarioVendedor END,ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
+			 ccp.id_ComprobantePago,ccp.Fecha_Reg
+			 FROM dbo.VIS_MESAS vm
+			 INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON vm.Cod_Mesa=ccd.Cod_Manguera
+			 INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+			 WHERE vm.Estado_Mesa='OCUPADO' AND vm.Estado=1 AND ccp.Cod_TipoComprobante='CO'  AND ccd.IGV=0 AND ccd.Cantidad-ccd.Formalizado>0) Ocupados
+			 ON Mesas.Cod_Mesa=Ocupados.Cod_Mesa
+			 ) a
+			 WHERE a.Cod_Mesa=@Origen_CodMesa 
+
+			 IF @IdMesaComanda=0
+			 BEGIN
+				EXEC dbo.USP_VIS_MESAS_GXEstado
+				@Cod_Mesa = @Origen_CodMesa,
+				@Estado_Mesa = 'LIBRE',
+				@Cod_Vendedor = @Cod_Usuario
+			 END
+		  END
+		  COMMIT TRANSACTION
+	   END TRY  
 			
-			BEGIN CATCH  
-				IF (XACT_STATE()) = -1  
-				BEGIN  
-					ROLLBACK TRANSACTION; 
-				END;  
-				IF (XACT_STATE()) = 1  
-				BEGIN  
-					COMMIT TRANSACTION;    
-				END;  
-				THROW;
-			END CATCH;  
-	   END
+	   BEGIN CATCH  
+		  IF (XACT_STATE()) = -1  
+		  BEGIN  
+			 ROLLBACK TRANSACTION
+			 IF (SELECT CURSOR_STATUS('global','Cursor_Origen')) >= -1
+			 BEGIN
+				IF (SELECT CURSOR_STATUS('global','Cursor_Origen')) > -1
+				BEGIN
+				    CLOSE Cursor_Origen
+				END
+				DEALLOCATE Cursor_Origen
+			 END
+			 IF (SELECT CURSOR_STATUS('global','Cursor_Destino')) >= -1
+			 BEGIN
+				IF (SELECT CURSOR_STATUS('global','Cursor_Destino')) > -1
+				BEGIN
+				    CLOSE Cursor_Destino
+				END
+				DEALLOCATE Cursor_Destino
+			 END
+		  END
+		  IF (XACT_STATE()) = 1  
+		  BEGIN  
+				COMMIT TRANSACTION 
+				IF (SELECT CURSOR_STATUS('global','Cursor_Origen')) >= -1
+				BEGIN
+				    IF (SELECT CURSOR_STATUS('global','Cursor_Origen')) > -1
+				    BEGIN
+					   CLOSE Cursor_Origen
+				    END
+				    DEALLOCATE Cursor_Origen
+				END
+				IF (SELECT CURSOR_STATUS('global','Cursor_Destino')) >= -1
+				BEGIN
+				    IF (SELECT CURSOR_STATUS('global','Cursor_Destino')) > -1
+				    BEGIN
+					   CLOSE Cursor_Destino
+				    END
+				    DEALLOCATE Cursor_Destino
+				END
+		  END;
+		  THROW
+	   END CATCH 
     END
 END
 GO
@@ -2111,6 +2418,7 @@ AS
      END;
 GO
 
+
 IF EXISTS (
   SELECT * 
     FROM sysobjects 
@@ -2156,7 +2464,7 @@ BEGIN
 END
 GO
 
---Metodo modificado para no traer comandas
+----Metodo modificado para no traer comandas
 -- IF EXISTS (
 --   SELECT * 
 --     FROM sysobjects 
