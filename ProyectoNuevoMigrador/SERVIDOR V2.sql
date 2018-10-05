@@ -19,7 +19,7 @@ CREATE PROCEDURE USP_PRI_CLIENTE_CONTACTO_I
 	@Email_Personal	varchar(512), 
 	@Celular	varchar(64), 
 	@Cod_TipoRelacion	varchar(8), 
-	@Fecha_Incorporacion	datetime,
+	@Fecha_Incorporacion	VARCHAR(32),
 	@Cod_Usuario Varchar(32)
 WITH ENCRYPTION
 AS
@@ -43,7 +43,7 @@ IF NOT EXISTS (SELECT * FROM PRI_CLIENTE_CONTACTO WHERE  (Id_ClienteProveedor = 
 		@Email_Personal,
 		@Celular,
 		@Cod_TipoRelacion,
-		@Fecha_Incorporacion,
+		CONVERT(DATETIME, @Fecha_Incorporacion,121),
 		@Cod_Usuario,GETDATE(),NULL,NULL)
 		
 	END
@@ -63,7 +63,7 @@ IF NOT EXISTS (SELECT * FROM PRI_CLIENTE_CONTACTO WHERE  (Id_ClienteProveedor = 
 			Email_Personal = @Email_Personal, 
 			Celular = @Celular, 
 			Cod_TipoRelacion = @Cod_TipoRelacion, 
-			Fecha_Incorporacion = @Fecha_Incorporacion,
+			Fecha_Incorporacion = CONVERT(DATETIME,@Fecha_Incorporacion,121),
 			Cod_UsuarioAct = @Cod_Usuario, 
 			Fecha_Act = GETDATE()
 		WHERE (Id_ClienteProveedor = @Id_ClienteProveedor) AND (Id_ClienteContacto = @Id_ClienteContacto)	
@@ -195,15 +195,15 @@ CREATE PROCEDURE USP_PRI_PERSONAL_I
 	@Ref_Direccion	varchar(256), 
 	@Telefono	varchar(256), 
 	@Email	varchar(256), 
-	@Fecha_Ingreso	datetime, 
-	@Fecha_Nacimiento	datetime, 
+	@Fecha_Ingreso	varchar(32), 
+	@Fecha_Nacimiento	varchar(32), 
 	@Cod_Cargo	varchar(32), 
 	@Cod_Estado	varchar(32), 
 	@Cod_Area	varchar(32), 
 	@Cod_Local	varchar(16), 
 	@Cod_CentroCostos	varchar(16), 
 	@Cod_EstadoCivil	varchar(32), 
-	@Fecha_InsESSALUD	datetime, 
+	@Fecha_InsESSALUD	varchar(32), 
 	@AutoGeneradoEsSalud	varchar(64), 
 	@Cod_CuentaCTS	varchar(5), 
 	@Num_CuentaCTS	varchar(128), 
@@ -238,15 +238,15 @@ IF NOT EXISTS (SELECT @Cod_Personal FROM PRI_PERSONAL WHERE  (Cod_Personal = @Co
 		@Ref_Direccion,
 		@Telefono,
 		@Email,
-		@Fecha_Ingreso,
-		@Fecha_Nacimiento,
+		convert(datetime,@Fecha_Ingreso,121),
+		convert(datetime,@Fecha_Nacimiento,121),
 		@Cod_Cargo,
 		@Cod_Estado,
 		@Cod_Area,
 		@Cod_Local,
 		@Cod_CentroCostos,
 		@Cod_EstadoCivil,
-		@Fecha_InsESSALUD,
+		convert(datetime,@Fecha_InsESSALUD,121),
 		@AutoGeneradoEsSalud,
 		@Cod_CuentaCTS,
 		@Num_CuentaCTS,
@@ -280,15 +280,15 @@ IF NOT EXISTS (SELECT @Cod_Personal FROM PRI_PERSONAL WHERE  (Cod_Personal = @Co
 			Ref_Direccion = @Ref_Direccion, 
 			Telefono = @Telefono, 
 			Email = @Email, 
-			Fecha_Ingreso = @Fecha_Ingreso, 
-			Fecha_Nacimiento = @Fecha_Nacimiento, 
+			Fecha_Ingreso = convert(datetime,@Fecha_Ingreso,121),
+			Fecha_Nacimiento = convert(datetime,@Fecha_Nacimiento,121),
 			Cod_Cargo = @Cod_Cargo, 
 			Cod_Estado = @Cod_Estado, 
 			Cod_Area = @Cod_Area, 
 			Cod_Local = @Cod_Local, 
 			Cod_CentroCostos = @Cod_CentroCostos, 
 			Cod_EstadoCivil = @Cod_EstadoCivil, 
-			Fecha_InsESSALUD = @Fecha_InsESSALUD, 
+			Fecha_InsESSALUD = convert(datetime,@Fecha_InsESSALUD,121),
 			AutoGeneradoEsSalud = @AutoGeneradoEsSalud, 
 			Cod_CuentaCTS = @Cod_CuentaCTS, 
 			Num_CuentaCTS = @Num_CuentaCTS, 
@@ -322,8 +322,8 @@ CREATE PROCEDURE USP_PRI_PADRONES_I
 	@Nro_Documento  varchar(32), 
 	@Cod_TipoPadron	varchar(32), 
 	@Des_Padron	varchar(32), 
-	@Fecha_Inicio	datetime, 
-	@Fecha_Fin	datetime, 
+	@Fecha_Inicio	varchar(32), 
+	@Fecha_Fin	varchar(32), 
 	@Nro_Resolucion	varchar(64),
 	@Cod_Usuario Varchar(32)
 WITH ENCRYPTION
@@ -340,8 +340,8 @@ IF NOT EXISTS (SELECT * FROM PRI_PADRONES WHERE  (Cod_Padron = @Cod_Padron) AND 
 		@Id_ClienteProveedor,
 		@Cod_TipoPadron,
 		@Des_Padron,
-		@Fecha_Inicio,
-		@Fecha_Fin,
+		CONVERT(DATETIME, @Fecha_Inicio,121),
+		CONVERT(datetime, @Fecha_Fin, 121),
 		@Nro_Resolucion,
 		@Cod_Usuario,GETDATE(),NULL,NULL)
 		
@@ -352,8 +352,8 @@ IF NOT EXISTS (SELECT * FROM PRI_PADRONES WHERE  (Cod_Padron = @Cod_Padron) AND 
 		SET	
 			Cod_TipoPadron = @Cod_TipoPadron, 
 			Des_Padron = @Des_Padron, 
-			Fecha_Inicio = @Fecha_Inicio, 
-			Fecha_Fin = @Fecha_Fin, 
+			Fecha_Inicio = CONVERT(DATETIME, @Fecha_Inicio,121),
+			Fecha_Fin = CONVERT(datetime, @Fecha_Fin, 121),
 			Nro_Resolucion = @Nro_Resolucion,
 			Cod_UsuarioAct = @Cod_Usuario, 
 			Fecha_Act = GETDATE()
@@ -368,11 +368,11 @@ IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_MENSAJES_I' AND typ
 go
 CREATE PROCEDURE USP_PRI_MENSAJES_I  
 	@Cod_UsuarioRemite	varchar(32), 
-	@Fecha_Remite	datetime, 
+	@Fecha_Remite	VARCHAR(32), 
 	@Mensaje	varchar(1024), 
 	@Flag_Leido	bit, 
 	@Cod_UsuarioRecibe	varchar(32), 
-	@Fecha_Recibe	datetime,
+	@Fecha_Recibe	VARCHAR(32),
 	@Cod_Usuario Varchar(32)
 WITH ENCRYPTION
 AS
@@ -383,11 +383,11 @@ IF NOT EXISTS (SELECT @Id_Mensaje FROM PRI_MENSAJES WHERE  (Id_Mensaje = @Id_Men
 	BEGIN
 		INSERT INTO PRI_MENSAJES  VALUES (
 		@Cod_UsuarioRemite,
-		@Fecha_Remite,
+		CONVERT(datetime, @Fecha_Remite,121),
 		@Mensaje,
 		@Flag_Leido,
 		@Cod_UsuarioRecibe,
-		@Fecha_Recibe,
+		CONVERT(DATETIME, @Fecha_Recibe ,121),
 		@Cod_Usuario,GETDATE(),NULL,NULL)
 	END
 	ELSE
@@ -395,11 +395,11 @@ IF NOT EXISTS (SELECT @Id_Mensaje FROM PRI_MENSAJES WHERE  (Id_Mensaje = @Id_Men
 		UPDATE PRI_MENSAJES
 		SET	
 			Cod_UsuarioRemite = @Cod_UsuarioRemite, 
-			Fecha_Remite = @Fecha_Remite, 
+			Fecha_Remite = CONVERT(datetime, @Fecha_Remite,121),
 			Mensaje = @Mensaje, 
 			Flag_Leido = @Flag_Leido, 
 			Cod_UsuarioRecibe = @Cod_UsuarioRecibe, 
-			Fecha_Recibe = @Fecha_Recibe,
+			Fecha_Recibe = CONVERT(DATETIME, @Fecha_Recibe ,121),
 			Cod_UsuarioAct = @Cod_Usuario, 
 			Fecha_Act = GETDATE()
 		WHERE (Id_Mensaje = @Id_Mensaje)	
@@ -544,8 +544,8 @@ CREATE PROCEDURE USP_PRI_DESCUENTOS_I
 	@Cod_TipoCliente	varchar(32), 
 	@Cod_TipoPrecio	varchar(5), 
 	@Monto_Precio	numeric(38,6), 
-	@Fecha_Inicia	datetime, 
-	@Fecha_Fin	datetime, 
+	@Fecha_Inicia	VARCHAR(32), 
+	@Fecha_Fin	VARCHAR(32), 
 	@Obs_Descuento	varchar(1024),
 	@Cod_Usuario Varchar(32)
 WITH ENCRYPTION
@@ -566,8 +566,8 @@ IF NOT EXISTS (SELECT * FROM PRI_DESCUENTOS WHERE  (Id_Descuento = @Id_Descuento
 		@Cod_TipoCliente,
 		@Cod_TipoPrecio,
 		@Monto_Precio,
-		@Fecha_Inicia,
-		@Fecha_Fin,
+		CONVERT(datetime, @Fecha_Inicia,121),
+		CONVERT(DATETIME, @Fecha_Fin,121),
 		@Obs_Descuento,
 		@Cod_Usuario,GETDATE(),NULL,NULL)
 		
@@ -583,8 +583,8 @@ IF NOT EXISTS (SELECT * FROM PRI_DESCUENTOS WHERE  (Id_Descuento = @Id_Descuento
 			Cod_TipoCliente = @Cod_TipoCliente, 
 			Cod_TipoPrecio = @Cod_TipoPrecio, 
 			Monto_Precio = @Monto_Precio, 
-			Fecha_Inicia = @Fecha_Inicia, 
-			Fecha_Fin = @Fecha_Fin, 
+			Fecha_Inicia = CONVERT(datetime, @Fecha_Inicia,121),
+			Fecha_Fin = CONVERT(DATETIME, @Fecha_Fin,121),
 			Obs_Descuento = @Obs_Descuento,
 			Cod_UsuarioAct = @Cod_Usuario, 
 			Fecha_Act = GETDATE()
@@ -661,10 +661,10 @@ CREATE PROCEDURE USP_PRI_CLIENTE_VISITAS_I
 	@Ruta	varchar(64), 
 	@Cod_TipoVisita	varchar(5), 
 	@Cod_Resultado	varchar(5), 
-	@Fecha_HoraVisita	datetime, 
+	@Fecha_HoraVisita	VARCHAR(32), 
 	@Comentarios	varchar(1024), 
 	@Flag_Compromiso	bit, 
-	@Fecha_HoraCompromiso	datetime, 
+	@Fecha_HoraCompromiso	VARCHAR(32), 
 	@Cod_UsuarioResponsable	varchar(8), 
 	@Des_Compromiso	varchar(1024),
 	@Cod_Usuario Varchar(32)
@@ -684,10 +684,10 @@ IF NOT EXISTS (SELECT @Cod_ClienteVisita FROM PRI_CLIENTE_VISITAS WHERE  (Cod_Cl
 		@Ruta,
 		@Cod_TipoVisita,
 		@Cod_Resultado,
-		@Fecha_HoraVisita,
+		CONVERT(datetime, @Fecha_HoraVisita,121),
 		@Comentarios,
 		@Flag_Compromiso,
-		@Fecha_HoraCompromiso,
+		CONVERT (datetime,@Fecha_HoraCompromiso,121),
 		@Cod_UsuarioResponsable,
 		@Des_Compromiso,
 		@Cod_Usuario,GETDATE(),NULL,NULL)
@@ -702,10 +702,10 @@ IF NOT EXISTS (SELECT @Cod_ClienteVisita FROM PRI_CLIENTE_VISITAS WHERE  (Cod_Cl
 			Ruta = @Ruta, 
 			Cod_TipoVisita = @Cod_TipoVisita, 
 			Cod_Resultado = @Cod_Resultado, 
-			Fecha_HoraVisita = @Fecha_HoraVisita, 
+			Fecha_HoraVisita = CONVERT(datetime, @Fecha_HoraVisita,121),
 			Comentarios = @Comentarios, 
 			Flag_Compromiso = @Flag_Compromiso, 
-			Fecha_HoraCompromiso = @Fecha_HoraCompromiso, 
+			Fecha_HoraCompromiso = CONVERT (datetime,@Fecha_HoraCompromiso,121),
 			Cod_UsuarioResponsable = @Cod_UsuarioResponsable, 
 			Des_Compromiso = @Des_Compromiso,
 			Cod_UsuarioAct = @Cod_Usuario, 
@@ -898,7 +898,7 @@ IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CAJ_TIPOCAMBIO_I' AND t
 	DROP PROCEDURE USP_CAJ_TIPOCAMBIO_I
 go
 CREATE PROCEDURE USP_CAJ_TIPOCAMBIO_I 
-	@FechaHora	datetime, 
+	@FechaHora	VARCHAR(32), 
 	@Cod_Moneda	varchar(3), 
 	@SunatCompra	numeric(38,4), 
 	@SunatVenta	numeric(38,4), 
@@ -912,7 +912,7 @@ DECLARE @Id_TipoCambio	int = (SELECT ct.Id_TipoCambio FROM dbo.CAJ_TIPOCAMBIO ct
 IF NOT EXISTS (SELECT @Id_TipoCambio FROM CAJ_TIPOCAMBIO WHERE  (Id_TipoCambio = @Id_TipoCambio))
 	BEGIN
 		INSERT INTO CAJ_TIPOCAMBIO  VALUES (
-		@FechaHora,
+	    CONVERT(DATETIME, @FechaHora,121),
 		@Cod_Moneda,
 		@SunatCompra,
 		@SunatVenta,
@@ -924,7 +924,7 @@ IF NOT EXISTS (SELECT @Id_TipoCambio FROM CAJ_TIPOCAMBIO WHERE  (Id_TipoCambio =
 	BEGIN
 		UPDATE CAJ_TIPOCAMBIO
 		SET	
-			FechaHora = @FechaHora, 
+			FechaHora = CONVERT(DATETIME, @FechaHora,121),
 			Cod_Moneda = @Cod_Moneda, 
 			SunatCompra = @SunatCompra, 
 			SunatVenta = @SunatVenta, 
@@ -1711,8 +1711,8 @@ go
 CREATE PROCEDURE USP_CAJ_TURNO_ATENCION_I 
 	@Cod_Turno	varchar(32), 
 	@Des_Turno	varchar(512), 
-	@Fecha_Inicio	datetime, 
-	@Fecha_Fin	datetime, 
+	@Fecha_Inicio	VARCHAR(32), 
+	@Fecha_Fin	VARCHAR(32), 
 	@Flag_Cerrado	bit,
 	@Cod_Usuario Varchar(32)
 WITH ENCRYPTION
@@ -1723,8 +1723,8 @@ IF NOT EXISTS (SELECT * FROM CAJ_TURNO_ATENCION WHERE  (Cod_Turno = @Cod_Turno))
 		INSERT INTO CAJ_TURNO_ATENCION  VALUES (
 		@Cod_Turno,
 		@Des_Turno,
-		@Fecha_Inicio,
-		@Fecha_Fin,
+		CONVERT(datetime,@Fecha_Inicio,121),
+		CONVERT(datetime,@Fecha_Fin,121),
 		@Flag_Cerrado,
 		@Cod_Usuario,GETDATE(),NULL,NULL)
 		
@@ -1734,8 +1734,8 @@ IF NOT EXISTS (SELECT * FROM CAJ_TURNO_ATENCION WHERE  (Cod_Turno = @Cod_Turno))
 		UPDATE CAJ_TURNO_ATENCION
 		SET	
 			Des_Turno = @Des_Turno, 
-			Fecha_Inicio = @Fecha_Inicio, 
-			Fecha_Fin = @Fecha_Fin, 
+			Fecha_Inicio = CONVERT(datetime,@Fecha_Inicio,121),
+			Fecha_Fin = CONVERT(datetime,@Fecha_Fin,121),
 			Flag_Cerrado = @Flag_Cerrado,
 			Cod_UsuarioAct = @Cod_Usuario, 
 			Fecha_Act = GETDATE()
@@ -1753,7 +1753,7 @@ CREATE PROCEDURE USP_CAJ_MEDICION_VC_I
 	@Medio_AMedir	varchar(32), 
 	@Medida_Anterior	numeric(38,4), 
 	@Medida_Actual	numeric(38,4), 
-	@Fecha_Medicion	datetime, 
+	@Fecha_Medicion	VARCHAR(32), 
 	@Cod_Turno	varchar(32), 
 	@Cod_UsuarioMedicion	varchar(32),
 	@Cod_Usuario Varchar(32)
@@ -1767,7 +1767,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_MEDICION_VC WHERE  (Cod_AMedir = @Cod_AMedir) A
 		@Medio_AMedir,
 		@Medida_Anterior,
 		@Medida_Actual,
-		@Fecha_Medicion,
+		CONVERT (DATETIME, @Fecha_Medicion,121),
 		@Cod_Turno,
 		@Cod_UsuarioMedicion,
 		@Cod_Usuario,GETDATE(),NULL,NULL)
@@ -1780,7 +1780,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_MEDICION_VC WHERE  (Cod_AMedir = @Cod_AMedir) A
 			Medio_AMedir = @Medio_AMedir, 
 			Medida_Anterior = @Medida_Anterior, 
 			Medida_Actual = @Medida_Actual, 
-			Fecha_Medicion = @Fecha_Medicion, 
+			Fecha_Medicion = CONVERT (DATETIME,@Fecha_Medicion,121),
 			Cod_Turno = @Cod_Turno, 
 			Cod_UsuarioMedicion = @Cod_UsuarioMedicion,
 			Cod_UsuarioAct = @Cod_Usuario, 
@@ -1801,7 +1801,7 @@ CREATE PROCEDURE USP_CAJ_ARQUEOFISICO_I
 	@Numero	int, 
 	@Des_ArqueoFisico	varchar(512), 
 	@Obs_ArqueoFisico	varchar(1024), 
-	@Fecha	datetime, 
+	@Fecha	VARCHAR(32), 
 	@Flag_Cerrado	bit,
 	@Cod_Usuario Varchar(32)
 WITH ENCRYPTION
@@ -1816,7 +1816,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_ARQUEOFISICO WHERE  (id_ArqueoFisico = @id_Arqu
 		@Numero,
 		@Des_ArqueoFisico,
 		@Obs_ArqueoFisico,
-		@Fecha,
+		CONVERT(datetime,@Fecha,121),
 		@Flag_Cerrado,
 		@Cod_Usuario,GETDATE(),NULL,NULL)
 	END
@@ -1829,7 +1829,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_ARQUEOFISICO WHERE  (id_ArqueoFisico = @id_Arqu
 			Numero = @Numero, 
 			Des_ArqueoFisico = @Des_ArqueoFisico, 
 			Obs_ArqueoFisico = @Obs_ArqueoFisico, 
-			Fecha = @Fecha, 
+			Fecha = CONVERT(datetime,@Fecha,121),
 			Flag_Cerrado = @Flag_Cerrado,
 			Cod_UsuarioAct = @Cod_Usuario, 
 			Fecha_Act = GETDATE()
@@ -1922,8 +1922,8 @@ CREATE PROCEDURE USP_PRI_LICITACIONES_I
 	@Des_Licitacion	varchar(512), 
 	@Cod_TipoLicitacion	varchar(5), 
 	@Nro_Licitacion	varchar(16), 
-	@Fecha_Inicio	datetime, 
-	@Fecha_Facturacion	datetime, 
+    @Fecha_Inicio	VARCHAR(32), 
+	@Fecha_Facturacion	varchar(32), 
 	@Flag_AlFinal	bit, 
 	@Cod_TipoComprobante	varchar(5),
 	@Cod_Usuario Varchar(32)
@@ -1939,8 +1939,8 @@ IF NOT EXISTS (SELECT * FROM PRI_LICITACIONES WHERE  (Id_ClienteProveedor = @Id_
 		@Des_Licitacion,
 		@Cod_TipoLicitacion,
 		@Nro_Licitacion,
-		@Fecha_Inicio,
-		@Fecha_Facturacion,
+		CONVERT(datetime,@Fecha_Inicio,121),
+		CONVERT(datetime,@Fecha_Facturacion,121),
 		@Flag_AlFinal,
 		@Cod_TipoComprobante,
 		@Cod_Usuario,GETDATE(),NULL,NULL)
@@ -2057,6 +2057,7 @@ IF NOT EXISTS (SELECT @Id_Concepto FROM CAJ_CONCEPTO WHERE  (Id_Concepto = @Id_C
 END
 go
 
+
 -- Guadar
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CAJ_CAJA_MOVIMIENTOS_I' AND type = 'P')
 	DROP PROCEDURE USP_CAJ_CAJA_MOVIMIENTOS_I
@@ -2071,7 +2072,7 @@ CREATE PROCEDURE USP_CAJ_CAJA_MOVIMIENTOS_I
 	@Cod_TipoComprobante	varchar(5), 
 	@Serie	varchar(4), 
 	@Numero	varchar(20), 
-	@Fecha	datetime, 
+	@Fecha	varchar(32), 
 	@Tipo_Cambio	numeric(10,4), 
 	@Ingreso	numeric(38,2), 
 	@Cod_MonedaIng	varchar(3), 
@@ -2079,7 +2080,7 @@ CREATE PROCEDURE USP_CAJ_CAJA_MOVIMIENTOS_I
 	@Cod_MonedaEgr	varchar(3), 
 	@Flag_Extornado	bit, 
 	@Cod_UsuarioAut	varchar(32), 
-	@Fecha_Aut	datetime, 
+	@Fecha_Aut	varchar(32), 
 	@Obs_Movimiento	xml, 
 	@Id_MovimientoRef	int,
 	@Cod_Usuario Varchar(32)
@@ -2102,7 +2103,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_CAJA_MOVIMIENTOS WHERE  (id_Movimiento = @id_Mo
 		@Cod_TipoComprobante,
 		@Serie,
 		@Numero,
-		@Fecha,
+		CONVERT(datetime,@Fecha,121),
 		@Tipo_Cambio,
 		@Ingreso,
 		@Cod_MonedaIng,
@@ -2110,7 +2111,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_CAJA_MOVIMIENTOS WHERE  (id_Movimiento = @id_Mo
 		@Cod_MonedaEgr,
 		@Flag_Extornado,
 		@Cod_UsuarioAut,
-		@Fecha_Aut,
+		CONVERT(datetime,@Fecha_Aut,121),
 		@Obs_Movimiento,
 		@Id_MovimientoRef,
 		@Cod_Usuario,GETDATE(),NULL,NULL)
@@ -2128,7 +2129,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_CAJA_MOVIMIENTOS WHERE  (id_Movimiento = @id_Mo
 			Cod_TipoComprobante = @Cod_TipoComprobante, 
 			Serie = @Serie, 
 			Numero = @Numero, 
-			Fecha = @Fecha, 
+			Fecha = CONVERT(datetime,@Fecha,121), 
 			Tipo_Cambio = @Tipo_Cambio, 
 			Ingreso = @Ingreso, 
 			Cod_MonedaIng = @Cod_MonedaIng, 
@@ -2136,7 +2137,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_CAJA_MOVIMIENTOS WHERE  (id_Movimiento = @id_Mo
 			Cod_MonedaEgr = @Cod_MonedaEgr, 
 			Flag_Extornado = @Flag_Extornado, 
 			Cod_UsuarioAut = @Cod_UsuarioAut, 
-			Fecha_Aut = @Fecha_Aut, 
+			Fecha_Aut = CONVERT(datetime,@Fecha_Aut,121),
 			Obs_Movimiento = @Obs_Movimiento, 
 			Id_MovimientoRef = @Id_MovimientoRef,
 			Cod_UsuarioAct = @Cod_Usuario, 
@@ -2145,6 +2146,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_CAJA_MOVIMIENTOS WHERE  (id_Movimiento = @id_Mo
 	END
 END
 go
+
 
 
 -- Guadar
@@ -2164,9 +2166,9 @@ CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_I
 	@Doc_Cliente	varchar(20), 
 	@Nom_Cliente	varchar(512), 
 	@Direccion_Cliente	varchar(512), 
-	@FechaEmision	datetime, 
-	@FechaVencimiento	datetime, 
-	@FechaCancelacion	datetime, 
+	@FechaEmision	VARCHAR(32), 
+	@FechaVencimiento	VARCHAR(32), 
+	@FechaCancelacion	VARCHAR(32), 
 	@Glosa	varchar(512), 
 	@TipoCambio	numeric(10,4), 
 	@Flag_Anulado	bit, 
@@ -2224,9 +2226,9 @@ IF NOT EXISTS (SELECT * FROM CAJ_COMPROBANTE_PAGO WHERE  (id_ComprobantePago = @
 		@Doc_Cliente,
 		@Nom_Cliente,
 		@Direccion_Cliente,
-		@FechaEmision,
-		@FechaVencimiento,
-		@FechaCancelacion,
+		CONVERT(datetime,@FechaEmision,121),
+		CONVERT(datetime,@FechaVencimiento,121),
+		CONVERT(datetime,@FechaCancelacion,121),
 		@Glosa,
 		@TipoCambio,
 		@Flag_Anulado,
@@ -2274,9 +2276,9 @@ IF NOT EXISTS (SELECT * FROM CAJ_COMPROBANTE_PAGO WHERE  (id_ComprobantePago = @
 			Doc_Cliente = @Doc_Cliente, 
 			Nom_Cliente = @Nom_Cliente, 
 			Direccion_Cliente = @Direccion_Cliente, 
-			FechaEmision = @FechaEmision, 
-			FechaVencimiento = @FechaVencimiento, 
-			FechaCancelacion = @FechaCancelacion, 
+			FechaEmision = CONVERT(datetime,@FechaEmision,121),
+			FechaVencimiento = CONVERT(datetime,@FechaVencimiento,121), 
+			FechaCancelacion = CONVERT(datetime,@FechaCancelacion,121),
 			Glosa = @Glosa, 
 			TipoCambio = @TipoCambio, 
 			Flag_Anulado = @Flag_Anulado, 
@@ -2431,7 +2433,7 @@ CREATE PROCEDURE USP_CAJ_SERIES_PAGO_I
 	@Doc_Cliente   varchar(32),
 	@id_Detalle	int, 
 	@Nro_Serie	varchar(512), 
-	@FechaVencimiento datetime,
+	@FechaVencimiento VARCHAR(32),
 	@Obs_Series	varchar(1024),
 	@Cod_Usuario Varchar(32)
 WITH ENCRYPTION
@@ -2447,7 +2449,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_SERIES WHERE  (Id_Tabla = @id_ComprobantePago) 
 		@id_ComprobantePago,
 		@id_Detalle,
 		@Nro_Serie,
-		@FechaVencimiento,
+		CONVERT(datetime,@FechaVencimiento,121),
 		@Obs_Series,
 		@Cod_Usuario,GETDATE(),NULL,NULL)
 		
@@ -2457,6 +2459,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_SERIES WHERE  (Id_Tabla = @id_ComprobantePago) 
 		UPDATE CAJ_SERIES
 		SET	
 			Serie=@Serie,
+			Fecha_Vencimiento = CONVERT(datetime,@FechaVencimiento,121),
 			Obs_Serie = @Obs_Series,
 			Cod_UsuarioAct = @Cod_Usuario, 
 			Fecha_Act = GETDATE()
@@ -2475,7 +2478,7 @@ CREATE PROCEDURE USP_CAJ_SERIES_MOVIMIENTO_I
 	@Numero  varchar(32),
 	@id_Detalle	int, 
 	@Nro_Serie	varchar(512), 
-	@FechaVencimiento datetime,
+	@FechaVencimiento VARCHAR(32),
 	@Obs_Series	varchar(1024),
 	@Cod_Usuario Varchar(32)
 WITH ENCRYPTION
@@ -2490,7 +2493,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_SERIES WHERE  (Id_Tabla = @id_ComprobantePago) 
 		@id_ComprobantePago,
 		@id_Detalle,
 		@Nro_Serie,
-		@FechaVencimiento,
+		CONVERT(datetime,@FechaVencimiento,121),
 		@Obs_Series,
 		@Cod_Usuario,GETDATE(),NULL,NULL)
 		
@@ -2500,6 +2503,7 @@ IF NOT EXISTS (SELECT * FROM CAJ_SERIES WHERE  (Id_Tabla = @id_ComprobantePago) 
 		UPDATE CAJ_SERIES
 		SET	
 			Serie=@Serie,
+			Fecha_Vencimiento = CONVERT(datetime,@FechaVencimiento,121),
 			Obs_Serie = @Obs_Series,
 			Cod_UsuarioAct = @Cod_Usuario, 
 			Fecha_Act = GETDATE()
@@ -2759,7 +2763,7 @@ CREATE PROCEDURE USP_BAN_CUENTA_M_I
 	@Nro_Operacion	varchar(32), 
 	@Des_Movimiento	varchar(512), 
 	@Cod_TipoOperacionBancaria	varchar(8), 
-	@Fecha	datetime, 
+	@Fecha	VARCHAR(32), 
 	@Monto	numeric(38,2), 
 	@TipoCambio	numeric(10,4), 
 	@Cod_Caja	varchar(32), 
@@ -2781,7 +2785,7 @@ IF NOT EXISTS (SELECT * FROM BAN_CUENTA_M WHERE  (Id_MovimientoCuenta = @Id_Movi
 		@Nro_Operacion,
 		@Des_Movimiento,
 		@Cod_TipoOperacionBancaria,
-		@Fecha,
+		CONVERT(datetime,@Fecha,121),
 		@Monto,
 		@TipoCambio,
 		@Cod_Caja,
@@ -2801,7 +2805,7 @@ IF NOT EXISTS (SELECT * FROM BAN_CUENTA_M WHERE  (Id_MovimientoCuenta = @Id_Movi
 			Nro_Operacion = @Nro_Operacion, 
 			Des_Movimiento = @Des_Movimiento, 
 			Cod_TipoOperacionBancaria = @Cod_TipoOperacionBancaria, 
-			Fecha = @Fecha, 
+			Fecha = CONVERT(datetime,@Fecha,121), 
 			Monto = @Monto, 
 			TipoCambio = @TipoCambio, 
 			Cod_Caja = @Cod_Caja, 
@@ -3012,7 +3016,7 @@ CREATE PROCEDURE USP_CAJ_FORMA_PAGO_I
 	@Cod_Turno	varchar(32), 
 	@Cod_Plantilla	varchar(32), 
 	@Obs_FormaPago	xml, 
-	@Fecha	datetime,
+	@Fecha	VARCHAR(32),
 	@Cod_Usuario Varchar(32)
 WITH ENCRYPTION
 AS
@@ -3035,7 +3039,7 @@ IF NOT EXISTS (SELECT @id_ComprobantePago, @Item FROM CAJ_FORMA_PAGO WHERE  (id_
 		@Cod_Turno,
 		@Cod_Plantilla,
 		@Obs_FormaPago,
-		@Fecha,
+		CONVERT(datetime,@Fecha,121),
 		@Cod_Usuario,GETDATE(),NULL,NULL)
 		
 	END
@@ -3054,7 +3058,7 @@ IF NOT EXISTS (SELECT @id_ComprobantePago, @Item FROM CAJ_FORMA_PAGO WHERE  (id_
 			Cod_Turno = @Cod_Turno, 
 			Cod_Plantilla = @Cod_Plantilla, 
 			Obs_FormaPago = @Obs_FormaPago, 
-			Fecha = @Fecha,
+			Fecha = CONVERT(datetime,@Fecha,121),
 			Cod_UsuarioAct = @Cod_Usuario, 
 			Fecha_Act = GETDATE()
 		WHERE (id_ComprobantePago = @id_ComprobantePago) AND (Item = @Item)	
@@ -3131,7 +3135,7 @@ CREATE PROCEDURE USP_PAR_FILA_I
     @Cadena nvarchar(max),
     @Numero numeric(38,8),
     @Entero float,
-    @FechaHora datetime,
+    @FechaHora VARCHAR(32),
     @Boleano bit,
     @Flag_Creacion bit,
     @Cod_Usuario varchar(32)
@@ -3150,7 +3154,7 @@ IF NOT EXISTS (SELECT * FROM dbo.PAR_FILA pf  WHERE  pf.Cod_Tabla=@Cod_Tabla AND
 	       @Cadena, -- Cadena - nvarchar
 	       @Numero, -- Numero - numeric
 	       @Entero, -- Entero - float
-	       @FechaHora, -- FechaHora - datetime
+	       CONVERT(datetime,@FechaHora,121), -- FechaHora - datetime
 	       @Boleano, -- Boleano - bit
 	       @Flag_Creacion, -- Flag_Creacion - bit
 	       @Cod_Usuario, -- Cod_UsuarioReg - varchar
@@ -3166,7 +3170,7 @@ IF NOT EXISTS (SELECT * FROM dbo.PAR_FILA pf  WHERE  pf.Cod_Tabla=@Cod_Tabla AND
 	       dbo.PAR_FILA.Cadena = @Cadena, -- nvarchar
 	       dbo.PAR_FILA.Numero = @Numero, -- numeric
 	       dbo.PAR_FILA.Entero = @Entero, -- float
-	       dbo.PAR_FILA.FechaHora = @FechaHora, -- datetime
+	       dbo.PAR_FILA.FechaHora = CONVERT(datetime,@FechaHora,121), -- datetime
 	       dbo.PAR_FILA.Boleano = @Boleano, -- bit
 	       dbo.PAR_FILA.Flag_Creacion = @Flag_Creacion, -- bit
 	       dbo.PAR_FILA.Cod_UsuarioReg = @Cod_Usuario, -- varchar
