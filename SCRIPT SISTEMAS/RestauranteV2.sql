@@ -1750,7 +1750,7 @@ IF EXISTS (
 	 AND type = 'P'
 )
   DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda
-GO
+-- GO
 
 CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda
 @IdComprobanteComanda int,

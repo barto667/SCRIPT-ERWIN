@@ -212,8 +212,9 @@ BEGIN
 				    OR @CodMoneda = ccp.Cod_Moneda)
 			    AND ccp.Id_Cliente=@IdCliente
 	   ) Res
-	   WHERE Res.Total - Res.TotalNotas > 0
-	   AND Res.FechaEmision >= @FechaInicio
+	   WHERE 
+	   --((Res.Total - Res.TotalNotas > 0 AND @CodLibro='14') OR (@CodLibro='08')) AND 
+	   Res.FechaEmision >= @FechaInicio
 	   AND Res.FechaEmision<DATEADD(day,1,@FechaFin)
 	   ORDER BY Res.FechaEmision
 
@@ -261,8 +262,9 @@ BEGIN
 					   OR @CodMoneda = ccp.Cod_Moneda)
 				   AND ccp.Id_Cliente=@IdCliente
 		  ) Res
-		  WHERE Res.Total - Res.TotalNotas > 0
-		  AND Res.FechaEmision >= @FechaInicio
+		  WHERE
+		  --((Res.Total - Res.TotalNotas > 0 AND @CodLibro='14') OR (@CodLibro='08')) AND 
+		  Res.FechaEmision >= @FechaInicio
 		  AND Res.FechaEmision<DATEADD(day,1,@FechaFin) 
 		  ORDER BY Res.FechaEmision
 
@@ -306,8 +308,8 @@ BEGIN
 					   OR @CodMoneda = ccp.Cod_Moneda)
 				   AND ccp.Id_Cliente=@IdCliente
 		  ) Res
-		  WHERE Res.Total - Res.TotalNotas > 0
-		  AND Res.FechaEmision >= @FechaInicio
+		  WHERE --((Res.Total - Res.TotalNotas > 0 AND @CodLibro='14') OR (@CodLibro='08')) AND 
+		  Res.FechaEmision >= @FechaInicio
 		  AND Res.FechaEmision<DATEADD(day,1,@FechaFin) 
 		  ORDER BY Res.FechaEmision
 	   END
@@ -428,6 +430,7 @@ BEGIN
     END
 END
 go
+
 
 
 
@@ -824,4 +827,73 @@ BEGIN
     END
 END
 GO
+
+--EXEC USP_CAJ_COMPROBANTE_PAGO_ObtenerSumatoriaNotasXIdComprobantePago 17784
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_ObtenerSumatoriaNotasXIdComprobantePago' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ObtenerSumatoriaNotasXIdComprobantePago
+GO
+
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ObtenerSumatoriaNotasXIdComprobantePago
+	@Id_Comprobante int
+WITH ENCRYPTION
+AS
+BEGIN
+    SELECT COUNT(ccp.id_ComprobantePago) Conteo,ISNULL(SUM(ABS(ISNULL(ccp.Total,0))),0) Sumatoria_Notas FROM dbo.CAJ_COMPROBANTE_PAGO ccp INNER JOIN dbo.CAJ_COMPROBANTE_RELACION ccr ON ccp.id_ComprobantePago = ccr.id_ComprobantePago
+    INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago 
+    WHERE ccr.Id_ComprobanteRelacion = @Id_Comprobante AND ccr.Cod_TipoRelacion='CRE'
+END
+GO
+
+--EXEC USP_CAJ_COMPROBANTE_PAGO_ObtenerNotasXIdComprobantePago 17784
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_ObtenerNotasXIdComprobantePago' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ObtenerNotasXIdComprobantePago
+GO
+
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ObtenerNotasXIdComprobantePago
+	@Id_Comprobante int
+WITH ENCRYPTION
+AS
+BEGIN
+    SELECT ccp.* FROM dbo.CAJ_COMPROBANTE_PAGO ccp INNER JOIN dbo.CAJ_COMPROBANTE_RELACION ccr ON ccp.id_ComprobantePago = ccr.id_ComprobantePago
+    INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+    WHERE ccr.Id_ComprobanteRelacion = @Id_Comprobante  AND ccr.Cod_TipoRelacion='CRE'
+END
+GO
+
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_ObtenerNotasRelacionadasXIdComprobanteCodLibro' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ObtenerNotasRelacionadasXIdComprobanteCodLibro
+GO
+
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ObtenerNotasRelacionadasXIdComprobanteCodLibro
+	@Id_ComprobantePago int,
+	@Cod_Libro varchar(5)
+WITH ENCRYPTION
+AS
+BEGIN
+    SELECT DISTINCT ccp.id_ComprobantePago,ccp.Cod_Libro,ccp.Cod_TipoComprobante,ccp.Serie,ccp.Numero,ccp.Id_Cliente, ccp.Cod_TipoDoc, ccp.Doc_Cliente, ccp.Nom_Cliente, ccp.Direccion_Cliente, ccp.FechaEmision, ccp.Total, ccp.Impuesto FROM dbo.CAJ_COMPROBANTE_RELACION ccr 
+    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccr.id_ComprobantePago = ccp.id_ComprobantePago
+    WHERE ccr.Cod_TipoRelacion IN ('CRE','DEB')
+    AND ccp.Flag_Anulado = 0
+    AND ((ccr.Cod_TipoRelacion <>'07' AND ccr.Cod_TipoRelacion='CRE') OR (ccr.Cod_TipoRelacion='DEB'))
+    AND ccr.Id_ComprobanteRelacion = @Id_ComprobantePago
+    AND ccp.Cod_Libro=@Cod_Libro
+END
+GO
+
 
