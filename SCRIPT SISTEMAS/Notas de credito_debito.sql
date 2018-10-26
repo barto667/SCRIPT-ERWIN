@@ -897,3 +897,148 @@ END
 GO
 
 
+
+--Temporal cajcomprobante
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_PRI_PRODUCTO_TAlmacenXCajaProducto' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_PRI_PRODUCTO_TAlmacenXCajaProducto
+GO
+
+CREATE PROCEDURE USP_PRI_PRODUCTO_TAlmacenXCajaProducto
+@CodCaja as varchar(32),
+@Id_Producto AS INT
+WITH ENCRYPTION
+AS
+BEGIN
+	SELECT DISTINCT PS.Cod_Almacen, A.Des_Almacen
+FROM     PRI_PRODUCTO_STOCK AS PS INNER JOIN
+                  ALM_ALMACEN AS A ON PS.Cod_Almacen = A.Cod_Almacen INNER JOIN
+                  CAJ_CAJA_ALMACEN AS CA ON A.Cod_Almacen = CA.Cod_Almacen
+WHERE  (PS.Id_Producto = @Id_Producto) and ca.Cod_Caja = @CodCaja
+END
+GO
+
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_PRI_PRODUCTO_STOCK_TraerUnidadesXIdProductoMonedaAlmacen' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_PRI_PRODUCTO_STOCK_TraerUnidadesXIdProductoMonedaAlmacen
+GO
+
+CREATE PROCEDURE USP_PRI_PRODUCTO_STOCK_TraerUnidadesXIdProductoMonedaAlmacen @IdProducto INT,
+                                                                              @CodAlmacen VARCHAR(32),
+                                                                              @CodMoneda  VARCHAR(32)
+WITH ENCRYPTION
+AS
+     BEGIN
+         SELECT DISTINCT
+                pps.Id_Producto,
+                pps.Cod_UnidadMedida,
+                pps.Cod_Almacen,
+                vudm.Nom_UnidadMedida,
+                vudm.Tipo
+         FROM dbo.PRI_PRODUCTO_STOCK pps
+              INNER JOIN dbo.VIS_UNIDADES_DE_MEDIDA vudm ON pps.Cod_UnidadMedida = vudm.Cod_UnidadMedida
+         WHERE pps.Id_Producto = @IdProducto
+               AND pps.Cod_Almacen = @CodAlmacen
+               AND pps.Cod_Moneda = @CodMoneda;
+     END;
+GO
+
+
+
+
+--EXEC dbo.USP_CAJ_COMPROBANTE_D_TraerHistorial
+--	@CodLibro = '14',
+--	@IdProducto = 16,
+--	@IdCliente = 2,
+--	@CodAlmacen = 'A101',
+--	@CodUnidadMedida = 'NIU',
+--	@CodMoneda = 'PEN',
+--	@NroFilas = 100
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_COMPROBANTE_D_TraerHistorial' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_COMPROBANTE_D_TraerHistorial
+GO
+
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_D_TraerHistorial
+ @CodLibro varchar(5),
+ @IdProducto int,
+ @IdCliente int,
+ @CodAlmacen varchar(32),
+ @CodUnidadMedida varchar(32),
+ @CodMoneda varchar(5),
+ @NroFilas int =100
+WITH ENCRYPTION
+AS
+BEGIN
+    DECLARE @Sentencia varchar(max) = 'SELECT DISTINCT TOP '+ CONVERT(varchar(32),@NroFilas)+ ' ccp.FechaEmision,ccp.id_ComprobantePago,ccp.Cod_TipoComprobante+'':''+ccp.Serie+''-''+ccp.Numero Comprobante,ROUND(ccd.Cantidad,2) Cantidad,
+    ROUND(ccd.PrecioUnitario,2) PrecioUnitario, pps.Precio_Venta Flete,ROUND(ccd.Cantidad,2)*ROUND(ccd.PrecioUnitario,2) Total
+    FROM dbo.CAJ_COMPROBANTE_PAGO ccp INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+    INNER JOIN dbo.PRI_PRODUCTO_STOCK pps  ON ccd.Id_Producto = pps.Id_Producto AND ccd.Cod_Almacen = pps.Cod_Almacen AND ccd.Cod_UnidadMedida = pps.Cod_UnidadMedida
+    WHERE ccp.Cod_Libro=''' +@CodLibro+''' AND ccd.Id_Producto='+CONVERT(varchar(32),@IdProducto)+' AND ccd.Cod_Almacen='''+@CodAlmacen+''' AND ccd.Cod_UnidadMedida='''+@CodUnidadMedida+'''
+    AND ccp.Cod_Moneda='''+@CodMoneda+''' AND ccp.Id_Cliente='+CONVERT(varchar(32),@IdCliente) +' AND  ccp.Cod_Caja IS NOT NULL AND RTRIM(LTRIM(ccp.Cod_Caja))!='''' AND ccp.Cod_Turno IS NOT NULL AND RTRIM(LTRIM(ccp.Cod_Turno))!=''''
+    AND ccp.Cod_TipoComprobante IN (''FE'',''BE'',''FA'',''BO'',''TKF'',''TKB'') AND ccp.Flag_Anulado=0
+    ORDER BY ccp.FechaEmision  ASC'
+   
+    EXECUTE(@Sentencia)
+END
+GO
+
+--Temporal almacenes
+--Recuepra poroductos activos de un almacen y un tipo de existencia
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_PRI_PRODUCTO_TraerProductosXCodExistenciaCodAlmacen' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_PRI_PRODUCTO_TraerProductosXCodExistenciaCodAlmacen
+GO
+
+CREATE PROCEDURE USP_PRI_PRODUCTO_TraerProductosXCodExistenciaCodAlmacen
+    @CodTipoExistencia varchar(32),
+    @CodAlmacen varchar(32)
+WITH ENCRYPTION
+AS
+BEGIN
+    SELECT DISTINCT
+       pp.Id_Producto,
+       pp.Cod_Producto,
+       pp.Cod_Categoria,
+       pp.Cod_Marca,
+       pp.Cod_TipoProducto,
+       pp.Nom_Producto,
+       pp.Des_CortaProducto,
+       pp.Des_LargaProducto,
+       pp.Caracteristicas,
+       pp.Porcentaje_Utilidad,
+       pp.Cuenta_Contable,
+       pp.Contra_Cuenta,
+       pp.Cod_Garantia,
+       pp.Cod_TipoOperatividad,
+       pp.Flag_Activo,
+       pp.Flag_Stock,
+       pp.Cod_Fabricante,
+       pp.Cod_UsuarioReg
+    FROM dbo.PRI_PRODUCTOS pp
+	    INNER JOIN dbo.PRI_PRODUCTO_STOCK pps ON pp.Id_Producto = pps.Id_Producto
+    WHERE pps.Cod_Almacen = @CodAlmacen
+		AND pp.Cod_TipoExistencia = @CodTipoExistencia
+		AND pp.Flag_Activo = 1;
+END
+GO
+
