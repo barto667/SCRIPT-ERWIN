@@ -998,7 +998,25 @@ BEGIN
 END
 GO
 
---Temporal almacenes
+
+--PRESTAMO Y DEVOLUCION DE ENVASES
+
+EXEC dbo.USP_CAJ_CONCEPTO_G
+	@Id_Concepto = 70001,
+	@Des_Concepto = 'GARANTIA PRESTAMO DE ENVASES',
+	@Cod_ClaseConcepto = '007',
+	@Flag_Activo = 1,
+	@Id_ConceptoPadre = 0,
+	@Cod_Usuario = 'MIGRACION'
+EXEC dbo.USP_CAJ_CONCEPTO_G
+	@Id_Concepto = 70002,
+	@Des_Concepto = 'GARANTIA DEVOLUCION DE ENVASES',
+	@Cod_ClaseConcepto = '006',
+	@Flag_Activo = 1,
+	@Id_ConceptoPadre = 0,
+	@Cod_Usuario = 'MIGRACION'
+GO
+
 --Recuepra poroductos activos de un almacen y un tipo de existencia
 IF EXISTS (
   SELECT * 
@@ -1042,3 +1060,129 @@ BEGIN
 END
 GO
 
+
+
+--Temporal de devolucion de prestamo de envases
+
+--EXEC dbo.USP_ALM_ALMACEN_MOV_ObtenerDiferenciaXId_ClienteCodTipoOperacion
+--	@Id_ClienteProveedor = 2,
+IF EXISTS
+(
+  SELECT *
+  FROM sysobjects
+  WHERE name=N'USP_ALM_ALMACEN_MOV_ObtenerDiferenciaXId_ClienteCodTipoOperacion'
+        AND type='P'
+)
+    DROP PROCEDURE USP_ALM_ALMACEN_MOV_ObtenerDiferenciaXId_ClienteCodTipoOperacion;
+GO
+
+CREATE PROCEDURE USP_ALM_ALMACEN_MOV_ObtenerDiferenciaXId_ClienteCodTipoOperacion
+  @Id_ClienteProveedor INT,
+  @Cod_tipoOperacionNS varchar(32) = '30',
+  @Cod_tipoOperacionNE varchar(32) = '29'
+WITH ENCRYPTION
+AS
+BEGIN
+SELECT DISTINCT
+       T1.Id_AlmacenMov,
+       T1.Id_ComprobantePago,
+       T1.SerieNumero,
+       T1.Id_Producto,
+       T1.Des_Producto,
+       T1.Cantidad-ISNULL( T2.Cantidad, 0 ) Cantidad
+FROM
+(
+  SELECT DISTINCT
+         aam.Id_AlmacenMov,
+         aam.Id_ComprobantePago,
+         aam.Cod_TipoComprobante+':'+aam.Serie+'-'+aam.Numero SerieNumero,
+         aamd.Id_Producto,
+         aamd.Des_Producto,
+         SUM( aamd.Cantidad )                                 Cantidad
+  FROM dbo.ALM_ALMACEN_MOV aam
+  INNER JOIN
+  dbo.ALM_ALMACEN_MOV_D aamd
+  ON aam.Id_AlmacenMov=aamd.Id_AlmacenMov
+      INNER JOIN
+      dbo.CAJ_COMPROBANTE_PAGO ccp
+      ON ccp.id_ComprobantePago=aam.Id_ComprobantePago
+  WHERE aam.Cod_TipoComprobante='NS'
+        AND ccp.Id_Cliente=@Id_ClienteProveedor
+        AND aam.Flag_Anulado=0
+        AND ccp.Flag_Anulado=0
+	   AND aam.Cod_TipoOperacion=@Cod_tipoOperacionNS
+  GROUP BY aam.Id_ComprobantePago,
+           aamd.Id_Producto,
+           aam.Id_AlmacenMov,
+           aam.Cod_TipoComprobante,
+           aam.Serie,
+           aam.Numero,
+           aamd.Des_Producto
+) T1
+LEFT JOIN
+(
+  SELECT DISTINCT
+         aam.Id_ComprobantePago,
+         aamd.Id_Producto,
+         SUM( aamd.Cantidad ) Cantidad
+  FROM dbo.ALM_ALMACEN_MOV aam
+  INNER JOIN
+  dbo.ALM_ALMACEN_MOV_D aamd
+  ON aam.Id_AlmacenMov=aamd.Id_AlmacenMov
+      INNER JOIN
+      dbo.CAJ_COMPROBANTE_PAGO ccp
+      ON ccp.id_ComprobantePago=aam.Id_ComprobantePago
+  WHERE aam.Cod_TipoComprobante='NE'
+        AND ccp.Id_Cliente=@Id_ClienteProveedor
+        AND aam.Flag_Anulado=0
+        AND ccp.Flag_Anulado=0
+	   AND aam.Cod_TipoOperacion=@Cod_tipoOperacionNE
+  GROUP BY aam.Id_ComprobantePago,
+           aamd.Id_Producto
+) T2
+ON T1.Id_ComprobantePago=T2.Id_ComprobantePago
+   AND T1.Id_Producto=T2.Id_Producto
+WHERE T1.Cantidad-ISNULL( T2.Cantidad, 0 )>0
+ORDER BY T1.SerieNumero
+END;
+
+GO
+--EXEC dbo.USP_CAJ_MOVIMIENTOS_ObtenerSumatoriaRIXIdClienteIdConcepto
+--	@Id_Cliente = 2,
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_MOVIMIENTOS_ObtenerSumatoriaRIXIdClienteIdConcepto' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_MOVIMIENTOS_ObtenerSumatoriaRIXIdClienteIdConcepto
+GO
+
+CREATE PROCEDURE USP_CAJ_MOVIMIENTOS_ObtenerSumatoriaRIXIdClienteIdConcepto
+ @Id_Cliente int,
+ @Id_ConceptoRI int = 70001,
+ @Id_ConceptoRE int = 70002,
+ @Cod_MonedaIngreso varchar(32)='PEN'
+ WITH ENCRYPTION
+AS
+BEGIN
+SELECT 'RI' TipoComprobante,(T1.SumIngreso- T2.SumEgreso) SumIngreso FROM (
+    SELECT DISTINCT 'RI' TipoComprobante, ISNULL(SUM(ISNULL(ccm.Ingreso,0)),0) SumIngreso,@Id_Cliente Id_ClienteProveedor
+    FROM dbo.CAJ_CAJA_MOVIMIENTOS ccm
+    WHERE ccm.Id_ClienteProveedor=@Id_Cliente
+    AND ccm.Cod_MonedaIng= @Cod_MonedaIngreso
+    AND ccm.Id_Concepto=@Id_ConceptoRI
+    AND ccm.Id_MovimientoRef <> 0 
+    AND ccm.Cod_TipoComprobante='RI' 
+    AND ccm.Flag_Extornado=0) T1
+    LEFT JOIN
+    (SELECT DISTINCT 'RE' TipoComprobante, ISNULL(SUM(ccm.Egreso),0) SumEgreso,@Id_Cliente Id_ClienteProveedor
+    FROM dbo.CAJ_CAJA_MOVIMIENTOS ccm
+    WHERE ccm.Id_ClienteProveedor=@Id_Cliente
+    AND ccm.Cod_MonedaEgr= @Cod_MonedaIngreso
+    AND ccm.Id_Concepto=@Id_ConceptoRE
+    AND ccm.Cod_TipoComprobante='RE' 
+    AND ccm.Flag_Extornado=0) T2
+    ON T1.Id_ClienteProveedor=T2.Id_ClienteProveedor
+END
+GO

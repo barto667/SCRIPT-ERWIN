@@ -1,22 +1,22 @@
--- Actualizaqr los campos de las unidades de medida
-ALTER TABLE PRI_PRODUCTO_PRECIO  
-DROP CONSTRAINT FK__PRI_PRODUCTO_PRE__34C8D9D1;
-GO
-UPDATE PRI_PRODUCTO_STOCK SET Cod_UnidadMedida = 'GLL', Cod_UnidadMedidaMin = 'GLL' WHERE Cod_UnidadMedida = 'GL'
-UPDATE PRI_PRODUCTO_PRECIO SET Cod_UnidadMedida = 'GLL' WHERE Cod_UnidadMedida = 'GL'
-UPDATE PRI_PRODUCTO_STOCK SET Cod_UnidadMedida = 'NIU', Cod_UnidadMedidaMin = 'NIU' WHERE Cod_UnidadMedida = 'UNI'
-UPDATE PRI_PRODUCTO_PRECIO SET Cod_UnidadMedida = 'NIU' WHERE Cod_UnidadMedida = 'UNI'
-UPDATE CAJ_COMPROBANTE_D SET Cod_UnidadMedida = 'GLL' WHERE Cod_UnidadMedida = 'GL'
-UPDATE ALM_ALMACEN_MOV_D SET Cod_UnidadMedida = 'GLL' WHERE Cod_UnidadMedida = 'GL'
-UPDATE PRI_LICITACIONES_D SET Cod_UnidadMedida = 'GLL' WHERE Cod_UnidadMedida = 'GL'
-UPDATE CAJ_COMPROBANTE_D SET Cod_UnidadMedida = 'NIU' WHERE Cod_UnidadMedida = 'UNI'
-UPDATE ALM_ALMACEN_MOV_D SET Cod_UnidadMedida = 'NIU' WHERE Cod_UnidadMedida = 'UNI'
-UPDATE PRI_LICITACIONES_D SET Cod_UnidadMedida = 'NIU' WHERE Cod_UnidadMedida = 'UNI'
-GO
-ALTER TABLE PRI_PRODUCTO_PRECIO
-ADD FOREIGN KEY (Id_Producto, Cod_UnidadMedida, Cod_Almacen)
-REFERENCES PRI_PRODUCTO_STOCK(Id_Producto, Cod_UnidadMedida, Cod_Almacen)
-GO
+-- -- Actualizaqr los campos de las unidades de medida
+-- ALTER TABLE PRI_PRODUCTO_PRECIO  
+-- DROP CONSTRAINT FK__PRI_PRODUCTO_PRE__34C8D9D1;
+-- GO
+-- UPDATE PRI_PRODUCTO_STOCK SET Cod_UnidadMedida = 'GLL', Cod_UnidadMedidaMin = 'GLL' WHERE Cod_UnidadMedida = 'GL'
+-- UPDATE PRI_PRODUCTO_PRECIO SET Cod_UnidadMedida = 'GLL' WHERE Cod_UnidadMedida = 'GL'
+-- UPDATE PRI_PRODUCTO_STOCK SET Cod_UnidadMedida = 'NIU', Cod_UnidadMedidaMin = 'NIU' WHERE Cod_UnidadMedida = 'UNI'
+-- UPDATE PRI_PRODUCTO_PRECIO SET Cod_UnidadMedida = 'NIU' WHERE Cod_UnidadMedida = 'UNI'
+-- UPDATE CAJ_COMPROBANTE_D SET Cod_UnidadMedida = 'GLL' WHERE Cod_UnidadMedida = 'GL'
+-- UPDATE ALM_ALMACEN_MOV_D SET Cod_UnidadMedida = 'GLL' WHERE Cod_UnidadMedida = 'GL'
+-- UPDATE PRI_LICITACIONES_D SET Cod_UnidadMedida = 'GLL' WHERE Cod_UnidadMedida = 'GL'
+-- UPDATE CAJ_COMPROBANTE_D SET Cod_UnidadMedida = 'NIU' WHERE Cod_UnidadMedida = 'UNI'
+-- UPDATE ALM_ALMACEN_MOV_D SET Cod_UnidadMedida = 'NIU' WHERE Cod_UnidadMedida = 'UNI'
+-- UPDATE PRI_LICITACIONES_D SET Cod_UnidadMedida = 'NIU' WHERE Cod_UnidadMedida = 'UNI'
+-- GO
+-- ALTER TABLE PRI_PRODUCTO_PRECIO
+-- ADD FOREIGN KEY (Id_Producto, Cod_UnidadMedida, Cod_Almacen)
+-- REFERENCES PRI_PRODUCTO_STOCK(Id_Producto, Cod_UnidadMedida, Cod_Almacen)
+-- GO
 
 
 -- SOLO PARA LAS EMPRESA
