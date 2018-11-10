@@ -899,7 +899,6 @@ GO
 
 
 --Temporal cajcomprobante
-
 IF EXISTS (
   SELECT * 
     FROM sysobjects 
@@ -1000,7 +999,6 @@ GO
 
 
 --PRESTAMO Y DEVOLUCION DE ENVASES
-
 EXEC dbo.USP_CAJ_CONCEPTO_G
 	@Id_Concepto = 70001,
 	@Des_Concepto = 'GARANTIA PRESTAMO DE ENVASES',

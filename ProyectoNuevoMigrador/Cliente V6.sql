@@ -9628,276 +9628,276 @@ BEGIN
 END
 GO
 
---CAL_DOCUMENTOS
-IF EXISTS (SELECT name
-	   FROM   sysobjects 
-	   WHERE  name = N'UTR_CAL_DOCUMENTOS_IUD'
-	   AND 	  type = 'TR')
-    DROP TRIGGER UTR_CAL_DOCUMENTOS_IUD
-GO
+-- --CAL_DOCUMENTOS
+-- IF EXISTS (SELECT name
+-- 	   FROM   sysobjects 
+-- 	   WHERE  name = N'UTR_CAL_DOCUMENTOS_IUD'
+-- 	   AND 	  type = 'TR')
+--     DROP TRIGGER UTR_CAL_DOCUMENTOS_IUD
+-- GO
 
-CREATE TRIGGER UTR_CAL_DOCUMENTOS_IUD
-ON dbo.CAL_DOCUMENTOS
-WITH ENCRYPTION
-AFTER INSERT,UPDATE,DELETE
-AS
-BEGIN
-	--Variables de tabla primarias
-	DECLARE @Id_Documentos int
-	DECLARE @Fecha_Reg datetime
-	DECLARE @Fecha_Act datetime
-	DECLARE @NombreTabla varchar(max)='CAL_DOCUMENTOS'
-	--Variables de tabla secundarias
-	DECLARE @Des_Documento varchar(1024)
-	DECLARE @Cod_Area varchar(32)
-	DECLARE @Tamaño int
-	DECLARE @Formato varchar(64)
-	DECLARE @Flag_Privado bit
-	DECLARE @Contraseña varchar(512)
-	DECLARE @Cod_UsuarioReg varchar(32)
-	DECLARE @Cod_UsuarioAct varchar(32)
-	--Variables Generales
-	DECLARE @Script varchar(max)
-	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
-	DECLARE @FechaReg datetime
-	DECLARE @Accion varchar(MAX)
-	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-   --Acciones
-	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='ACTUALIZAR'
-	END
+-- CREATE TRIGGER UTR_CAL_DOCUMENTOS_IUD
+-- ON dbo.CAL_DOCUMENTOS
+-- WITH ENCRYPTION
+-- AFTER INSERT,UPDATE,DELETE
+-- AS
+-- BEGIN
+-- 	--Variables de tabla primarias
+-- 	DECLARE @Id_Documentos int
+-- 	DECLARE @Fecha_Reg datetime
+-- 	DECLARE @Fecha_Act datetime
+-- 	DECLARE @NombreTabla varchar(max)='CAL_DOCUMENTOS'
+-- 	--Variables de tabla secundarias
+-- 	DECLARE @Des_Documento varchar(1024)
+-- 	DECLARE @Cod_Area varchar(32)
+-- 	DECLARE @Tamaño int
+-- 	DECLARE @Formato varchar(64)
+-- 	DECLARE @Flag_Privado bit
+-- 	DECLARE @Contraseña varchar(512)
+-- 	DECLARE @Cod_UsuarioReg varchar(32)
+-- 	DECLARE @Cod_UsuarioAct varchar(32)
+-- 	--Variables Generales
+-- 	DECLARE @Script varchar(max)
+-- 	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
+-- 	DECLARE @FechaReg datetime
+-- 	DECLARE @Accion varchar(MAX)
+-- 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+--    --Acciones
+-- 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
+-- 	BEGIN
+-- 		SET @Accion='ACTUALIZAR'
+-- 	END
 
-	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='INSERTAR'
-	END
+-- 	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
+-- 	BEGIN
+-- 		SET @Accion='INSERTAR'
+-- 	END
 
-	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='ELIMINAR'
-	END
+-- 	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
+-- 	BEGIN
+-- 		SET @Accion='ELIMINAR'
+-- 	END
 
-	----Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
-	--IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
-	--BEGIN
-	--    DECLARE cursorbd CURSOR LOCAL FOR
-	--	    SELECT
-	--	    i.Id_Documentos,
-	--	    i.Fecha_Reg,
-	--	    i.Fecha_Act
-	--	    FROM INSERTED i
-	--    OPEN cursorbd 
-	--    FETCH NEXT FROM cursorbd INTO
-	--	    @Id_Documentos,
-	--	    @Fecha_Reg,
-	--	    @Fecha_Act
-	--    WHILE @@FETCH_STATUS = 0
-	--    BEGIN
-	--		--Si esta habilitada la exportacion para almacenar en la tabla de
-	--		--exportaciones
-
-
+-- 	----Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
+-- 	--IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
+-- 	--BEGIN
+-- 	--    DECLARE cursorbd CURSOR LOCAL FOR
+-- 	--	    SELECT
+-- 	--	    i.Id_Documentos,
+-- 	--	    i.Fecha_Reg,
+-- 	--	    i.Fecha_Act
+-- 	--	    FROM INSERTED i
+-- 	--    OPEN cursorbd 
+-- 	--    FETCH NEXT FROM cursorbd INTO
+-- 	--	    @Id_Documentos,
+-- 	--	    @Fecha_Reg,
+-- 	--	    @Fecha_Act
+-- 	--    WHILE @@FETCH_STATUS = 0
+-- 	--    BEGIN
+-- 	--		--Si esta habilitada la exportacion para almacenar en la tabla de
+-- 	--		--exportaciones
 
 
 
-	--	   	SET @FechaReg= GETDATE()
-	--		INSERT dbo.TMP_REGISTRO_LOG
-	--		(
-	--		   --Id,
-	--		   Nombre_Tabla,
-	--		   Id_Fila,
-	--		   Accion,
-	--		   Script,
-	--		   Fecha_Reg
-	--	     )
-	--	    VALUES
-	--		(
-	--		   --NULL, -- Id - uniqueidentifier
-	--		   @NombreTabla, -- Nombre_Tabla - varchar
-	--		   CONCAT('',@Id_Documentos), -- Id_Fila - varchar
-	--		   @Accion, -- Accion - varchar
-	--		   @Script, -- Script - varchar
-	--		   @FechaReg -- Fecha_Reg - datetime
-	--	     )
-	--	  FETCH NEXT FROM cursorbd INTO
-	--	    @Id_Documentos,
-	--	    @Fecha_Reg,
-	--	    @Fecha_Act
-	--	END
-	--	CLOSE cursorbd;
- --   	DEALLOCATE cursorbd
- --   END
 
-    --Acciones de auditoria, especiales por tipo
-    --Insercion
-    IF @Accion='INSERTAR'
-	 BEGIN
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-			 i.Id_Documentos,
-			 i.Des_Documento,
-			 i.Cod_Area,
-			 i.Tamaño,
-			 i.Formato,
-			 i.Flag_Privado,
-			 i.Contraseña,
-			 i.Cod_UsuarioReg,
-			 i.Fecha_Reg,
-			 i.Cod_UsuarioAct,
-			 i.Fecha_Act
-		  FROM INSERTED i
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO 
-			 @Id_Documentos,
-			 @Des_Documento,
-			 @Cod_Area,
-			 @Tamaño,
-			 @Formato,
-			 @Flag_Privado,
-			 @Contraseña,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-		  --Acciones
-		  SET @Script = CONCAT(
-			 @Id_Documentos,'|' ,
-			 @Des_Documento,'|' ,
-			 @Cod_Area,'|' ,
-			 @Tamaño,'|' ,
-			 @Formato,'|' ,
-			 @Flag_Privado,'|' ,
-			 @Contraseña,'|' ,
-			 @Cod_UsuarioReg,'|' ,
-			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
-			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
-		  )
 
-		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
-		  (
-		      Nombre_BD,
-		      Nombre_Tabla,
-		      Id_Fila,
-		      Accion,
-		      Valor,
-		      Fecha_Reg
-		  )
-		  VALUES
-		  (
-		      @NombreBD, -- Nombre_BD - varchar
-		      @NombreTabla, -- Nombre_Tabla - varchar
-			  CONCAT('',@Id_Documentos), -- Id_Fila - varchar
-		      @Accion, -- Accion - varchar
-		      @Script, -- Valor - varchar
-		      GETDATE() -- Fecha_Reg - datetime
-		  )
+-- 	--	   	SET @FechaReg= GETDATE()
+-- 	--		INSERT dbo.TMP_REGISTRO_LOG
+-- 	--		(
+-- 	--		   --Id,
+-- 	--		   Nombre_Tabla,
+-- 	--		   Id_Fila,
+-- 	--		   Accion,
+-- 	--		   Script,
+-- 	--		   Fecha_Reg
+-- 	--	     )
+-- 	--	    VALUES
+-- 	--		(
+-- 	--		   --NULL, -- Id - uniqueidentifier
+-- 	--		   @NombreTabla, -- Nombre_Tabla - varchar
+-- 	--		   CONCAT('',@Id_Documentos), -- Id_Fila - varchar
+-- 	--		   @Accion, -- Accion - varchar
+-- 	--		   @Script, -- Script - varchar
+-- 	--		   @FechaReg -- Fecha_Reg - datetime
+-- 	--	     )
+-- 	--	  FETCH NEXT FROM cursorbd INTO
+-- 	--	    @Id_Documentos,
+-- 	--	    @Fecha_Reg,
+-- 	--	    @Fecha_Act
+-- 	--	END
+-- 	--	CLOSE cursorbd;
+--  --   	DEALLOCATE cursorbd
+--  --   END
 
-		  FETCH NEXT FROM cursorbd INTO
-			 @Id_Documentos,
-			 @Des_Documento,
-			 @Cod_Area,
-			 @Tamaño,
-			 @Formato,
-			 @Flag_Privado,
-			 @Contraseña,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
+--     --Acciones de auditoria, especiales por tipo
+--     --Insercion
+--     IF @Accion='INSERTAR'
+-- 	 BEGIN
+-- 	    DECLARE cursorbd CURSOR LOCAL FOR
+-- 		    SELECT
+-- 			 i.Id_Documentos,
+-- 			 i.Des_Documento,
+-- 			 i.Cod_Area,
+-- 			 i.Tamaño,
+-- 			 i.Formato,
+-- 			 i.Flag_Privado,
+-- 			 i.Contraseña,
+-- 			 i.Cod_UsuarioReg,
+-- 			 i.Fecha_Reg,
+-- 			 i.Cod_UsuarioAct,
+-- 			 i.Fecha_Act
+-- 		  FROM INSERTED i
+-- 	    OPEN cursorbd 
+-- 	    FETCH NEXT FROM cursorbd INTO 
+-- 			 @Id_Documentos,
+-- 			 @Des_Documento,
+-- 			 @Cod_Area,
+-- 			 @Tamaño,
+-- 			 @Formato,
+-- 			 @Flag_Privado,
+-- 			 @Contraseña,
+-- 			 @Cod_UsuarioReg,
+-- 			 @Fecha_Reg,
+-- 			 @Cod_UsuarioAct,
+-- 			 @Fecha_Act
+-- 	    WHILE @@FETCH_STATUS = 0
+-- 	    BEGIN
+-- 		  --Acciones
+-- 		  SET @Script = CONCAT(
+-- 			 @Id_Documentos,'|' ,
+-- 			 @Des_Documento,'|' ,
+-- 			 @Cod_Area,'|' ,
+-- 			 @Tamaño,'|' ,
+-- 			 @Formato,'|' ,
+-- 			 @Flag_Privado,'|' ,
+-- 			 @Contraseña,'|' ,
+-- 			 @Cod_UsuarioReg,'|' ,
+-- 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
+-- 			 @Cod_UsuarioAct,'|' ,
+-- 			 CONVERT(varchar,@Fecha_Act,121)
+-- 		  )
 
-    --Actualizacion y eliminacion
-    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
-	 BEGIN
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-			 d.Id_Documentos,
-			 d.Des_Documento,
-			 d.Cod_Area,
-			 d.Tamaño,
-			 d.Formato,
-			 d.Flag_Privado,
-			 d.Contraseña,
-			 d.Cod_UsuarioReg,
-			 d.Fecha_Reg,
-			 d.Cod_UsuarioAct,
-			 d.Fecha_Act
-		  FROM DELETED d
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO 
-			 @Id_Documentos,
-			 @Des_Documento,
-			 @Cod_Area,
-			 @Tamaño,
-			 @Formato,
-			 @Flag_Privado,
-			 @Contraseña,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-		  --Acciones
-		  SET @Script = CONCAT(
-			 @Id_Documentos,'|' ,
-			 @Des_Documento,'|' ,
-			 @Cod_Area,'|' ,
-			 @Tamaño,'|' ,
-			 @Formato,'|' ,
-			 @Flag_Privado,'|' ,
-			 @Contraseña,'|' ,
-			 @Cod_UsuarioReg,'|' ,
-			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
-			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
-		  )
+-- 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
+-- 		  (
+-- 		      Nombre_BD,
+-- 		      Nombre_Tabla,
+-- 		      Id_Fila,
+-- 		      Accion,
+-- 		      Valor,
+-- 		      Fecha_Reg
+-- 		  )
+-- 		  VALUES
+-- 		  (
+-- 		      @NombreBD, -- Nombre_BD - varchar
+-- 		      @NombreTabla, -- Nombre_Tabla - varchar
+-- 			  CONCAT('',@Id_Documentos), -- Id_Fila - varchar
+-- 		      @Accion, -- Accion - varchar
+-- 		      @Script, -- Valor - varchar
+-- 		      GETDATE() -- Fecha_Reg - datetime
+-- 		  )
 
-		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
-		  (
-		      Nombre_BD,
-		      Nombre_Tabla,
-		      Id_Fila,
-		      Accion,
-		      Valor,
-		      Fecha_Reg
-		  )
-		  VALUES
-		  (
-		      @NombreBD, -- Nombre_BD - varchar
-		      @NombreTabla, -- Nombre_Tabla - varchar
-			   CONCAT('',@Id_Documentos), -- Id_Fila - varchar
-		      @Accion, -- Accion - varchar
-		      @Script, -- Valor - varchar
-		      GETDATE() -- Fecha_Reg - datetime
-		  )
+-- 		  FETCH NEXT FROM cursorbd INTO
+-- 			 @Id_Documentos,
+-- 			 @Des_Documento,
+-- 			 @Cod_Area,
+-- 			 @Tamaño,
+-- 			 @Formato,
+-- 			 @Flag_Privado,
+-- 			 @Contraseña,
+-- 			 @Cod_UsuarioReg,
+-- 			 @Fecha_Reg,
+-- 			 @Cod_UsuarioAct,
+-- 			 @Fecha_Act
+-- 		END
+-- 		CLOSE cursorbd;
+--     	DEALLOCATE cursorbd
+--     END
 
-		  FETCH NEXT FROM cursorbd INTO
-			 @Id_Documentos,
-			 @Des_Documento,
-			 @Cod_Area,
-			 @Tamaño,
-			 @Formato,
-			 @Flag_Privado,
-			 @Contraseña,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
+--     --Actualizacion y eliminacion
+--     IF @Accion IN ('ACTUALIZAR','ELIMINAR')
+-- 	 BEGIN
+-- 	    DECLARE cursorbd CURSOR LOCAL FOR
+-- 		    SELECT
+-- 			 d.Id_Documentos,
+-- 			 d.Des_Documento,
+-- 			 d.Cod_Area,
+-- 			 d.Tamaño,
+-- 			 d.Formato,
+-- 			 d.Flag_Privado,
+-- 			 d.Contraseña,
+-- 			 d.Cod_UsuarioReg,
+-- 			 d.Fecha_Reg,
+-- 			 d.Cod_UsuarioAct,
+-- 			 d.Fecha_Act
+-- 		  FROM DELETED d
+-- 	    OPEN cursorbd 
+-- 	    FETCH NEXT FROM cursorbd INTO 
+-- 			 @Id_Documentos,
+-- 			 @Des_Documento,
+-- 			 @Cod_Area,
+-- 			 @Tamaño,
+-- 			 @Formato,
+-- 			 @Flag_Privado,
+-- 			 @Contraseña,
+-- 			 @Cod_UsuarioReg,
+-- 			 @Fecha_Reg,
+-- 			 @Cod_UsuarioAct,
+-- 			 @Fecha_Act
+-- 	    WHILE @@FETCH_STATUS = 0
+-- 	    BEGIN
+-- 		  --Acciones
+-- 		  SET @Script = CONCAT(
+-- 			 @Id_Documentos,'|' ,
+-- 			 @Des_Documento,'|' ,
+-- 			 @Cod_Area,'|' ,
+-- 			 @Tamaño,'|' ,
+-- 			 @Formato,'|' ,
+-- 			 @Flag_Privado,'|' ,
+-- 			 @Contraseña,'|' ,
+-- 			 @Cod_UsuarioReg,'|' ,
+-- 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
+-- 			 @Cod_UsuarioAct,'|' ,
+-- 			 CONVERT(varchar,@Fecha_Act,121)
+-- 		  )
 
-END
-GO
+-- 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
+-- 		  (
+-- 		      Nombre_BD,
+-- 		      Nombre_Tabla,
+-- 		      Id_Fila,
+-- 		      Accion,
+-- 		      Valor,
+-- 		      Fecha_Reg
+-- 		  )
+-- 		  VALUES
+-- 		  (
+-- 		      @NombreBD, -- Nombre_BD - varchar
+-- 		      @NombreTabla, -- Nombre_Tabla - varchar
+-- 			   CONCAT('',@Id_Documentos), -- Id_Fila - varchar
+-- 		      @Accion, -- Accion - varchar
+-- 		      @Script, -- Valor - varchar
+-- 		      GETDATE() -- Fecha_Reg - datetime
+-- 		  )
+
+-- 		  FETCH NEXT FROM cursorbd INTO
+-- 			 @Id_Documentos,
+-- 			 @Des_Documento,
+-- 			 @Cod_Area,
+-- 			 @Tamaño,
+-- 			 @Formato,
+-- 			 @Flag_Privado,
+-- 			 @Contraseña,
+-- 			 @Cod_UsuarioReg,
+-- 			 @Fecha_Reg,
+-- 			 @Cod_UsuarioAct,
+-- 			 @Fecha_Act
+-- 		END
+-- 		CLOSE cursorbd;
+--     	DEALLOCATE cursorbd
+--     END
+
+-- END
+-- GO
 
 
 --CON_ASIENTO
@@ -20142,8 +20142,6 @@ BEGIN
 	DECLARE @Cod_CondicionCliente varchar(3)
 	DECLARE @Cod_TipoCliente varchar(3)
 	DECLARE @RUC_Natural varchar(32)
-	DECLARE @Foto binary
-	DECLARE @Firma binary
 	DECLARE @Cod_TipoComprobante varchar(5)
 	DECLARE @Cod_Nacionalidad varchar(8)
 	DECLARE @Fecha_Nacimiento datetime
@@ -20280,8 +20278,6 @@ BEGIN
 			 i.Cod_CondicionCliente,
 			 i.Cod_TipoCliente,
 			 i.RUC_Natural,
-			 i.Foto,
-			 i.Firma,
 			 i.Cod_TipoComprobante,
 			 i.Cod_Nacionalidad,
 			 i.Fecha_Nacimiento,
@@ -20316,8 +20312,6 @@ BEGIN
 			 @Cod_CondicionCliente,
 			 @Cod_TipoCliente,
 			 @RUC_Natural,
-			 @Foto,
-			 @Firma,
 			 @Cod_TipoComprobante,
 			 @Cod_Nacionalidad,
 			 @Fecha_Nacimiento,
@@ -20353,8 +20347,6 @@ BEGIN
 			 @Cod_CondicionCliente,'|' ,
 			 @Cod_TipoCliente,'|' ,
 			 @RUC_Natural,'|' ,
-			 @Foto,'|',
-			 @Firma,'|',
 			 @Cod_TipoComprobante,'|' ,
 			 @Cod_Nacionalidad,'|' ,
 			 CONVERT(varchar,@Fecha_Nacimiento,121), '|' ,
@@ -20408,8 +20400,6 @@ BEGIN
 			 @Cod_CondicionCliente,
 			 @Cod_TipoCliente,
 			 @RUC_Natural,
-			 @Foto,
-			 @Firma,
 			 @Cod_TipoComprobante,
 			 @Cod_Nacionalidad,
 			 @Fecha_Nacimiento,
@@ -20451,8 +20441,6 @@ BEGIN
 			 d.Cod_CondicionCliente,
 			 d.Cod_TipoCliente,
 			 d.RUC_Natural,
-			 d.Foto,
-			 d.Firma,
 			 d.Cod_TipoComprobante,
 			 d.Cod_Nacionalidad,
 			 d.Fecha_Nacimiento,
@@ -20487,8 +20475,6 @@ BEGIN
 			 @Cod_CondicionCliente,
 			 @Cod_TipoCliente,
 			 @RUC_Natural,
-			 @Foto,
-			 @Firma,
 			 @Cod_TipoComprobante,
 			 @Cod_Nacionalidad,
 			 @Fecha_Nacimiento,
@@ -20524,8 +20510,6 @@ BEGIN
 			 @Cod_CondicionCliente,'|' ,
 			 @Cod_TipoCliente,'|' ,
 			 @RUC_Natural,'|' ,
-			 @Foto,'|',
-			 @Firma,'|',
 			 @Cod_TipoComprobante,'|' ,
 			 @Cod_Nacionalidad,'|' ,
 			 CONVERT(varchar,@Fecha_Nacimiento,121), '|' ,
@@ -20579,8 +20563,6 @@ BEGIN
 			 @Cod_CondicionCliente,
 			 @Cod_TipoCliente,
 			 @RUC_Natural,
-			 @Foto,
-			 @Firma,
 			 @Cod_TipoComprobante,
 			 @Cod_Nacionalidad,
 			 @Fecha_Nacimiento,
@@ -21921,8 +21903,6 @@ BEGIN
 	DECLARE @Direccion varchar(1024)
 	DECLARE @Telefonos varchar(512)
 	DECLARE @Web varchar(512)
-	DECLARE @Imagen_H binary
-	DECLARE @Imagen_V binary
 	DECLARE @Flag_ExoneradoImpuesto bit
 	DECLARE @Des_Impuesto varchar(16)
 	DECLARE @Por_Impuesto numeric(5,2)
@@ -22032,8 +22012,6 @@ BEGIN
 			 i.Direccion,
 			 i.Telefonos,
 			 i.Web,
-			 i.Imagen_H,
-			 i.Imagen_V,
 			 i.Flag_ExoneradoImpuesto,
 			 i.Des_Impuesto,
 			 i.Por_Impuesto,
@@ -22054,8 +22032,6 @@ BEGIN
 			 @Direccion,
 			 @Telefonos,
 			 @Web,
-			 @Imagen_H,
-			 @Imagen_V,
 			 @Flag_ExoneradoImpuesto,
 			 @Des_Impuesto,
 			 @Por_Impuesto,
@@ -22077,8 +22053,6 @@ BEGIN
 			 @Direccion,'|' ,
 			 @Telefonos,'|' ,
 			 @Web,'|' ,
-			 @Imagen_H,'|',
-			 @Imagen_V,'|',
 			 @Flag_ExoneradoImpuesto,'|' ,
 			 @Des_Impuesto,'|' ,
 			 @Por_Impuesto,'|' ,
@@ -22118,8 +22092,6 @@ BEGIN
 			 @Direccion,
 			 @Telefonos,
 			 @Web,
-			 @Imagen_H,
-			 @Imagen_V,
 			 @Flag_ExoneradoImpuesto,
 			 @Des_Impuesto,
 			 @Por_Impuesto,
@@ -22147,8 +22119,6 @@ BEGIN
 			 d.Direccion,
 			 d.Telefonos,
 			 d.Web,
-			 d.Imagen_H,
-			 d.Imagen_V,
 			 d.Flag_ExoneradoImpuesto,
 			 d.Des_Impuesto,
 			 d.Por_Impuesto,
@@ -22169,8 +22139,6 @@ BEGIN
 			 @Direccion,
 			 @Telefonos,
 			 @Web,
-			 @Imagen_H,
-			 @Imagen_V,
 			 @Flag_ExoneradoImpuesto,
 			 @Des_Impuesto,
 			 @Por_Impuesto,
@@ -22192,8 +22160,6 @@ BEGIN
 			 @Direccion,'|' ,
 			 @Telefonos,'|' ,
 			 @Web,'|' ,
-			 @Imagen_H,'|',
-			 @Imagen_V,'|',
 			 @Flag_ExoneradoImpuesto,'|' ,
 			 @Des_Impuesto,'|' ,
 			 @Por_Impuesto,'|' ,
@@ -22233,8 +22199,6 @@ BEGIN
 			 @Direccion,
 			 @Telefonos,
 			 @Web,
-			 @Imagen_H,
-			 @Imagen_V,
 			 @Flag_ExoneradoImpuesto,
 			 @Des_Impuesto,
 			 @Por_Impuesto,
@@ -25924,7 +25888,6 @@ BEGIN
 	DECLARE @Fecha_Act datetime
 	DECLARE @NombreTabla varchar(max)='PRI_PRODUCTO_IMAGEN'
 	--Variables de tabla secundarias
-	DECLARE @Imagen binary
 	DECLARE @Cod_TipoImagen varchar(5)
 	DECLARE @Cod_UsuarioReg varchar(32)
 	DECLARE @Cod_UsuarioAct varchar(32)
@@ -26012,7 +25975,6 @@ BEGIN
 		    SELECT
 			 i.Id_Producto,
 			 i.Item_Imagen,
-			 i.Imagen,
 			 i.Cod_TipoImagen,
 			 i.Cod_UsuarioReg,
 			 i.Fecha_Reg,
@@ -26023,7 +25985,6 @@ BEGIN
 	    FETCH NEXT FROM cursorbd INTO 
 			 @Id_Producto,
 			 @Item_Imagen,
-			 @Imagen,
 			 @Cod_TipoImagen,
 			 @Cod_UsuarioReg,
 			 @Fecha_Reg,
@@ -26035,7 +25996,6 @@ BEGIN
 		  SET @Script = CONCAT(
 			 @Id_Producto,'|' ,
 			 @Item_Imagen,'|' ,
-			 @Imagen,'|',
 			 @Cod_TipoImagen,'|' ,
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
@@ -26065,7 +26025,6 @@ BEGIN
 		  FETCH NEXT FROM cursorbd INTO
 			 @Id_Producto,
 			 @Item_Imagen,
-			 @Imagen,
 			 @Cod_TipoImagen,
 			 @Cod_UsuarioReg,
 			 @Fecha_Reg,
@@ -26083,7 +26042,6 @@ BEGIN
 		    SELECT
 			 d.Id_Producto,
 			 d.Item_Imagen,
-			 d.Imagen,
 			 d.Cod_TipoImagen,
 			 d.Cod_UsuarioReg,
 			 d.Fecha_Reg,
@@ -26094,7 +26052,6 @@ BEGIN
 	    FETCH NEXT FROM cursorbd INTO 
 			 @Id_Producto,
 			 @Item_Imagen,
-			 @Imagen,
 			 @Cod_TipoImagen,
 			 @Cod_UsuarioReg,
 			 @Fecha_Reg,
@@ -26106,7 +26063,6 @@ BEGIN
 		  SET @Script = CONCAT(
 			 @Id_Producto,'|' ,
 			 @Item_Imagen,'|' ,
-			 @Imagen,'|',
 			 @Cod_TipoImagen,'|' ,
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
@@ -26136,7 +26092,6 @@ BEGIN
 		  FETCH NEXT FROM cursorbd INTO
 			 @Id_Producto,
 			 @Item_Imagen,
-			 @Imagen,
 			 @Cod_TipoImagen,
 			 @Cod_UsuarioReg,
 			 @Fecha_Reg,
@@ -27767,7 +27722,6 @@ BEGIN
 	--Variables de tabla secundarias
 	DECLARE @Nick varchar(64)
 	DECLARE @Contrasena varchar(512)
-	DECLARE @Foto binary
 	DECLARE @Pregunta varchar(512)
 	DECLARE @Respuesta varchar(128)
 	DECLARE @Cod_Estado varchar(3)
@@ -27856,7 +27810,6 @@ BEGIN
 			 i.Cod_Usuarios,
 			 i.Nick,
 			 i.Contrasena,
-			 i.Foto,
 			 i.Pregunta,
 			 i.Respuesta,
 			 i.Cod_Estado,
@@ -27871,7 +27824,6 @@ BEGIN
 			 @Cod_Usuarios,
 			 @Nick,
 			 @Contrasena,
-			 @Foto,
 			 @Pregunta,
 			 @Respuesta,
 			 @Cod_Estado,
@@ -27887,7 +27839,6 @@ BEGIN
 			 @Cod_Usuarios,'|' ,
 			 @Nick,'|' ,
 			 @Contrasena,'|' ,
-			 @Foto,'|',
 			 @Pregunta,'|' ,
 			 @Respuesta,'|' ,
 			 @Cod_Estado,'|' ,
@@ -27921,7 +27872,6 @@ BEGIN
 			 @Cod_Usuarios,
 			 @Nick,
 			 @Contrasena,
-			 @Foto,
 			 @Pregunta,
 			 @Respuesta,
 			 @Cod_Estado,
@@ -27943,7 +27893,6 @@ BEGIN
 			 d.Cod_Usuarios,
 			 d.Nick,
 			 d.Contrasena,
-			 d.Foto,
 			 d.Pregunta,
 			 d.Respuesta,
 			 d.Cod_Estado,
@@ -27958,7 +27907,6 @@ BEGIN
 			 @Cod_Usuarios,
 			 @Nick,
 			 @Contrasena,
-			 @Foto,
 			 @Pregunta,
 			 @Respuesta,
 			 @Cod_Estado,
@@ -27974,7 +27922,6 @@ BEGIN
 			 @Cod_Usuarios,'|' ,
 			 @Nick,'|' ,
 			 @Contrasena,'|' ,
-			 @Foto,'|',
 			 @Pregunta,'|' ,
 			 @Respuesta,'|' ,
 			 @Cod_Estado,'|' ,
@@ -28008,7 +27955,6 @@ BEGIN
 			 @Cod_Usuarios,
 			 @Nick,
 			 @Contrasena,
-			 @Foto,
 			 @Pregunta,
 			 @Respuesta,
 			 @Cod_Estado,
@@ -29780,41 +29726,41 @@ GO
 --    Cod_UsuarioAct = 'MIGRACION', 
 --    Fecha_Act = GETDATE()
 --GO
-----UPDATE dbo.PRI_MODULO
-----SET
-----    Cod_UsuarioAct = 'MIGRACION', 
-----    Fecha_Act = GETDATE()
-----GO
-----UPDATE dbo.PRI_PERFIL
-----SET
-----    Cod_UsuarioAct = 'MIGRACION', 
-----    Fecha_Act = GETDATE()
-----GO
-----UPDATE dbo.PRI_PERFIL_D
-----SET
-----    Cod_UsuarioAct = 'MIGRACION', 
-----    Fecha_Act = GETDATE()
-----GO
+--UPDATE dbo.PRI_MODULO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PERFIL
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PERFIL_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
 --UPDATE dbo.PRI_USUARIO
 --SET
 --    Cod_UsuarioAct = 'MIGRACION', 
 --    Fecha_Act = GETDATE()
 --GO
----- UPDATE dbo.PAR_TABLA
----- SET
-----    Cod_UsuarioAct = 'MIGRACION', 
-----    Fecha_Act = GETDATE()
----- GO
----- UPDATE dbo.PAR_COLUMNA
----- SET
-----    Cod_UsuarioAct = 'MIGRACION', 
-----    Fecha_Act = GETDATE()
----- GO
----- UPDATE dbo.PAR_FILA
----- SET
-----    Cod_UsuarioAct = 'MIGRACION', 
-----    Fecha_Act = GETDATE()
----- GO
+--UPDATE dbo.PAR_TABLA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PAR_COLUMNA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PAR_FILA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
 --UPDATE dbo.CON_PLANTILLA
 --SET
 --    Cod_UsuarioAct = 'MIGRACION', 
