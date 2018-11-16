@@ -1063,7 +1063,7 @@ GO
 --Temporal de devolucion de prestamo de envases
 
 --EXEC dbo.USP_ALM_ALMACEN_MOV_ObtenerDiferenciaXId_ClienteCodTipoOperacion
---	@Id_ClienteProveedor = 2,
+--	@Id_ClienteProveedor = 2
 IF EXISTS
 (
   SELECT *
@@ -1084,6 +1084,7 @@ BEGIN
 SELECT DISTINCT
        T1.Id_AlmacenMov,
        T1.Id_ComprobantePago,
+	   T1.Fecha,
        T1.SerieNumero,
        T1.Id_Producto,
        T1.Des_Producto,
@@ -1093,6 +1094,7 @@ FROM
   SELECT DISTINCT
          aam.Id_AlmacenMov,
          aam.Id_ComprobantePago,
+		 aam.Fecha,
          aam.Cod_TipoComprobante+':'+aam.Serie+'-'+aam.Numero SerieNumero,
          aamd.Id_Producto,
          aamd.Des_Producto,
@@ -1113,6 +1115,7 @@ FROM
            aamd.Id_Producto,
            aam.Id_AlmacenMov,
            aam.Cod_TipoComprobante,
+		   aam.Fecha,
            aam.Serie,
            aam.Numero,
            aamd.Des_Producto
