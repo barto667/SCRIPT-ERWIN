@@ -98,6 +98,87 @@ BEGIN
 END
 go
 
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CrearTareaCopiaSeguridadTresCopias' AND type = 'P')
+DROP PROCEDURE USP_CrearTareaCopiaSeguridadTresCopias
+go
+CREATE PROCEDURE USP_CrearTareaCopiaSeguridadTresCopias
+@NombreTarea varchar(max)=N'COPIA DE SEGURIDAD',
+@NumeroIntentos int = 0,
+@IntervaloMinutos int = 0,
+@HoraPrimeraCopia int = 0,
+@HoraSegundaCopia int = 120000,
+@HoraTerceraCopia int = 200000
+WITH ENCRYPTION
+AS
+BEGIN
+	--Borramnos la tare si existia anteriormente
+	DECLARE @jobId binary(16) = (SELECT job_id FROM msdb.dbo.sysjobs WHERE (name = @NombreTarea))
+	IF (@jobId IS NOT NULL)
+	BEGIN
+		EXEC msdb.dbo.sp_delete_job @jobId
+	END
+
+	SET @jobId=null
+	--Agregamos la tarea
+	EXEC msdb.dbo.sp_add_job @job_name=@NombreTarea, @enabled=1, @owner_login_name=N'sa', @job_id = @jobId OUTPUT
+	--Agregamos el paso COPIA DE SEGURIDAD
+	DECLARE @BDActual varchar(512) =(SELECT DB_NAME() AS [Base de datos actual])
+	DECLARE @Comando varchar(MAX)= CONCAT('exec USP_Crear_CopiaSeguridad ',@BDActual,N',N''C:\APLICACIONES\TEMP''',',palerp')
+	EXEC msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'COPIA DE SEGURIDAD', 
+			@step_id=1, 
+			@retry_attempts=@NumeroIntentos, 
+			@retry_interval=@IntervaloMinutos, 
+			@os_run_priority=1, @subsystem=N'TSQL', 
+			@command=@Comando, 
+			@database_name=@BDActual, 
+			@output_file_name=N'C:\APLICACIONES\TEMP\log_mantenimiento.txt',
+			@flags=2
+
+	--Agregamos las frecuencias Diario a una hora predeterminada
+	DECLARE @FechaActual varchar(20) = CONCAT(YEAR(GETDATE()),FORMAT(MONTH(GETDATE()),'00'),FORMAT(DAY(GETDATE()),'00'))
+	EXEC  msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'PRIMERA COPIA', 
+			@enabled=1, 
+			@freq_type=4, 
+			@freq_interval=1, 
+			@freq_subday_type=1, 
+			@freq_subday_interval=0, 
+			@freq_relative_interval=0, 
+			@freq_recurrence_factor=0, 
+			@active_start_date=@FechaActual, 
+			@active_end_date=99991231, 
+			@active_start_time=@HoraPrimeraCopia,
+			@schedule_id=1
+
+	EXEC  msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'SEGUNDA COPIA', 
+			@enabled=1, 
+			@freq_type=4, 
+			@freq_interval=1, 
+			@freq_subday_type=1, 
+			@freq_subday_interval=0, 
+			@freq_relative_interval=0, 
+			@freq_recurrence_factor=0, 
+			@active_start_date=@FechaActual, 
+			@active_end_date=99991231, 
+			@active_start_time=@HoraSegundaCopia,
+			@schedule_id=1
+	
+	EXEC  msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'TERCERA COPIA', 
+			@enabled=1, 
+			@freq_type=4, 
+			@freq_interval=1, 
+			@freq_subday_type=1, 
+			@freq_subday_interval=0, 
+			@freq_relative_interval=0, 
+			@freq_recurrence_factor=0, 
+			@active_start_date=@FechaActual, 
+			@active_end_date=99991231, 
+			@active_start_time=@HoraTerceraCopia,
+			@schedule_id=1
+
+	--Agregamos el jobserver
+	EXEC msdb.dbo.sp_add_jobserver @job_id = @jobId
+END
+go
 
 
 --Procedimiento que elimina una tarea copia de seguridad
@@ -211,7 +292,8 @@ END
 go
 
 --Ejecutamos los procedimientos
-exec USP_CrearTareaCopiaSeguridad N'COPIA DE SEGURIDAD',2,60,080000,200000
+--exec USP_CrearTareaCopiaSeguridad N'COPIA DE SEGURIDAD',2,60,080000,200000 --Dos copias
+exec USP_CrearTareaCopiaSeguridadTresCopias N'COPIA DE SEGURIDAD',2,60,080000,120000,200000  --Tres Copias
 exec USP_CrearTareaEliminarCopiasSeguridad N'ELIMINAR COPIA DE SEGURIDAD',0,0,120000
 
 

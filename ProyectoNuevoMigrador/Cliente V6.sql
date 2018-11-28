@@ -29151,7 +29151,7 @@ BEGIN
 
 	IF @Id IS NOT NULL
 	BEGIN
-	   BEGIN TRY  
+	    BEGIN TRY  
 			 SET @Script=@LinkedServer+'.'+@NombreBD+'.dbo.'+@Script
 			 EXECUTE(@Script) ;
 			 BEGIN TRANSACTION;  
@@ -29178,11 +29178,11 @@ BEGIN
 			 COMMIT TRANSACTION;
 		  END TRY  
       
-		  BEGIN CATCH  
+		BEGIN CATCH  
 			 DECLARE @ErrorMessage NVARCHAR(4000);  
 			 SELECT  @ErrorMessage = CONCAT('Ocurrio un error en : ', @Nombre_Tabla,CHAR(13),CHAR(10) )  + ERROR_MESSAGE() 
 			 RAISERROR(@ErrorMessage,16,1)
-		  END CATCH;  
+		END CATCH;  
 	END
 END
 GO
@@ -30142,3 +30142,266 @@ GO
 --    Cod_UsuarioAct = 'MIGRACION', 
 --    Fecha_Act = GETDATE()
 --GO
+
+
+--Script de prueba para agregar la IP del servidor donde se ejecuta la accion
+----ALM_ALMACEN
+--IF EXISTS (SELECT name
+--	   FROM   sysobjects 
+--	   WHERE  name = N'UTR_ALM_ALMACEN_IUD'
+--	   AND 	  type = 'TR')
+--    DROP TRIGGER UTR_ALM_ALMACEN_IUD
+--GO
+
+--CREATE TRIGGER UTR_ALM_ALMACEN_IUD
+--ON dbo.ALM_ALMACEN
+--WITH ENCRYPTION
+--AFTER INSERT,UPDATE,DELETE
+--AS
+--BEGIN
+--	--Variables de tabla primarias
+--	DECLARE @Cod_Almacen varchar(32)
+--	DECLARE @Fecha_Reg datetime
+--	DECLARE @Fecha_Act datetime
+--	DECLARE @NombreTabla varchar(max)='ALM_ALMACEN'
+--	--Variables de tabla secundarias
+--	DECLARE @Des_Almacen varchar(512)
+--	DECLARE @Des_CortaAlmacen varchar(64)
+--	DECLARE @Cod_TipoAlmacen varchar(5)
+--	DECLARE @Flag_Principal bit
+--	DECLARE @Cod_UsuarioReg varchar(32)
+--	DECLARE @Cod_UsuarioAct varchar(32)
+--	--Variables Generales
+--	DECLARE @Script varchar(max)
+--	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
+--	DECLARE @Fecha datetime
+--	DECLARE @Accion varchar(MAX)
+--	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+--	DECLARE @InformacionConexion varchar(max)= (SELECT  CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) FROM sys.dm_exec_connections dec
+--		WHERE dec.session_id=@@SPID)
+--   --Acciones
+--	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
+--	BEGIN
+--		SET @Accion='ACTUALIZAR'
+--	END
+
+--	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
+--	BEGIN
+--		SET @Accion='INSERTAR'
+--	END
+
+--	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
+--	BEGIN
+--		SET @Accion='ELIMINAR'
+--	END
+
+--	--Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
+--	IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
+--	BEGIN
+--	    DECLARE cursorbd CURSOR LOCAL FOR
+--		    SELECT
+--		    i.Cod_Almacen,
+--		    i.Fecha_Reg,
+--		    i.Fecha_Act
+--		    FROM INSERTED i
+--	    OPEN cursorbd 
+--	    FETCH NEXT FROM cursorbd INTO
+--		    @Cod_Almacen,
+--		    @Fecha_Reg,
+--		    @Fecha_Act
+--	    WHILE @@FETCH_STATUS = 0
+--	    BEGIN
+--			--Si esta habilitada la exportacion para almacenar en la tabla de
+--			--exportaciones
+--			 SELECT @Script='USP_ALM_ALMACEN_I ' +
+--			 CASE WHEN aa.Cod_Almacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Cod_Almacen,'''','')+''','END+
+--			 CASE WHEN aa.Des_Almacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Des_Almacen,'''','')+''','END+
+--			 CASE WHEN aa.Des_CortaAlmacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Des_CortaAlmacen,'''','')+''','END+
+--			 CASE WHEN aa.Cod_TipoAlmacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Cod_TipoAlmacen,'''','')+''','END+
+--			 CONVERT(VARCHAR(MAX),aa.Flag_Principal)+','+
+--			 ''''+ REPLACE(COALESCE(Cod_UsuarioAct,Cod_UsuarioReg),'''','')+''';' 
+--			 FROM INSERTED aa WHERE @Cod_Almacen=aa.Cod_Almacen
+
+--		   	SET @Fecha= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+--			INSERT dbo.TMP_REGISTRO_LOG
+--			(
+--			   --Id,
+--			   Nombre_Tabla,
+--			   Id_Fila,
+--			   Accion,
+--			   Script,
+--			   Fecha_Reg
+--		     )
+--		    VALUES
+--			(
+--			   --NULL, -- Id - uniqueidentifier
+--			   @NombreTabla, -- Nombre_Tabla - varchar
+--			   CONCAT('',@Cod_Almacen), -- Id_Fila - varchar
+--			   @Accion, -- Accion - varchar
+--			   @Script, -- Script - varchar
+--			   @Fecha -- Fecha_Reg - datetime
+--		     )
+--		  FETCH NEXT FROM cursorbd INTO
+--		    @Cod_Almacen,
+--		    @Fecha_Reg,
+--		    @Fecha_Act
+--		END
+--		CLOSE cursorbd;
+--    	DEALLOCATE cursorbd
+--    END
+
+--    --Acciones de auditoria, especiales por tipo
+--    --Insercion
+--    IF @Accion='INSERTAR'
+--	 BEGIN
+--	    DECLARE cursorbd CURSOR LOCAL FOR
+--		    SELECT
+--			 i.Cod_Almacen,
+--			 i.Des_Almacen,
+--			 i.Des_CortaAlmacen,
+--			 i.Cod_TipoAlmacen,
+--			 i.Flag_Principal,
+--			 i.Cod_UsuarioReg,
+--			 i.Fecha_Reg,
+--			 i.Cod_UsuarioAct,
+--			 i.Fecha_Act
+--		  FROM INSERTED i
+--	    OPEN cursorbd 
+--	    FETCH NEXT FROM cursorbd INTO 
+--			 @Cod_Almacen,
+--			 @Des_Almacen,
+--			 @Des_CortaAlmacen,
+--			 @Cod_TipoAlmacen,
+--			 @Flag_Principal,
+--			 @Cod_UsuarioReg,
+--			 @Fecha_Reg,
+--			 @Cod_UsuarioAct,
+--			 @Fecha_Act
+--	    WHILE @@FETCH_STATUS = 0
+--	    BEGIN
+--		  --Acciones
+--		  SET @Script = CONCAT(
+--			 @Cod_Almacen,'|' ,
+--			 @Des_Almacen,'|' ,
+--			 @Des_CortaAlmacen,'|' ,
+--			 @Cod_TipoAlmacen,'|' ,
+--			 @Flag_Principal,'|' ,
+--			 @Cod_UsuarioReg,'|' ,
+--			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
+--			 @Cod_UsuarioAct,'|' ,
+--			 CONVERT(varchar,@Fecha_Act,121), '|' , 
+--			 @InformacionConexion
+--		  )
+
+--		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
+--		  (
+--		      Nombre_BD,
+--		      Nombre_Tabla,
+--		      Id_Fila,
+--		      Accion,
+--		      Valor,
+--		      Fecha_Reg
+--		  )
+--		  VALUES
+--		  (
+--		      @NombreBD, -- Nombre_BD - varchar
+--		      @NombreTabla, -- Nombre_Tabla - varchar
+--			  CONCAT('',@Cod_Almacen), -- Id_Fila - varchar
+--		      @Accion, -- Accion - varchar
+--		      @Script, -- Valor - varchar
+--		      GETDATE() -- Fecha_Reg - datetime
+--		  )
+
+--		  FETCH NEXT FROM cursorbd INTO
+--			 @Cod_Almacen,
+--			 @Des_Almacen,
+--			 @Des_CortaAlmacen,
+--			 @Cod_TipoAlmacen,
+--			 @Flag_Principal,
+--			 @Cod_UsuarioReg,
+--			 @Fecha_Reg,
+--			 @Cod_UsuarioAct,
+--			 @Fecha_Act
+--		END
+--		CLOSE cursorbd;
+--    	DEALLOCATE cursorbd
+--    END
+
+--    --Actualizacion y eliminacion
+--    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
+--	 BEGIN
+--	    DECLARE cursorbd CURSOR LOCAL FOR
+--		    SELECT
+--			 d.Cod_Almacen,
+--			 d.Des_Almacen,
+--			 d.Des_CortaAlmacen,
+--			 d.Cod_TipoAlmacen,
+--			 d.Flag_Principal,
+--			 d.Cod_UsuarioReg,
+--			 d.Fecha_Reg,
+--			 d.Cod_UsuarioAct,
+--			 d.Fecha_Act
+--		  FROM DELETED d
+--	    OPEN cursorbd 
+--	    FETCH NEXT FROM cursorbd INTO 
+--			 @Cod_Almacen,
+--			 @Des_Almacen,
+--			 @Des_CortaAlmacen,
+--			 @Cod_TipoAlmacen,
+--			 @Flag_Principal,
+--			 @Cod_UsuarioReg,
+--			 @Fecha_Reg,
+--			 @Cod_UsuarioAct,
+--			 @Fecha_Act
+--	    WHILE @@FETCH_STATUS = 0
+--	    BEGIN
+--		  --Acciones
+--		  SET @Script = CONCAT(
+--			 @Cod_Almacen,'|' ,
+--			 @Des_Almacen,'|' ,
+--			 @Des_CortaAlmacen,'|' ,
+--			 @Cod_TipoAlmacen,'|' ,
+--			 @Flag_Principal,'|' ,
+--			 @Cod_UsuarioReg,'|' ,
+--			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
+--			 @Cod_UsuarioAct,'|' ,
+--			 CONVERT(varchar,@Fecha_Act,121),  '|' , 
+--			 @InformacionConexion
+--		  )
+
+--		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
+--		  (
+--		      Nombre_BD,
+--		      Nombre_Tabla,
+--		      Id_Fila,
+--		      Accion,
+--		      Valor,
+--		      Fecha_Reg
+--		  )
+--		  VALUES
+--		  (
+--		      @NombreBD, -- Nombre_BD - varchar
+--		      @NombreTabla, -- Nombre_Tabla - varchar
+--			   CONCAT('',@Cod_Almacen), -- Id_Fila - varchar
+--		      @Accion, -- Accion - varchar
+--		      @Script, -- Valor - varchar
+--		      GETDATE() -- Fecha_Reg - datetime
+--		  )
+
+--		  FETCH NEXT FROM cursorbd INTO
+--			 @Cod_Almacen,
+--			 @Des_Almacen,
+--			 @Des_CortaAlmacen,
+--			 @Cod_TipoAlmacen,
+--			 @Flag_Principal,
+--			 @Cod_UsuarioReg,
+--			 @Fecha_Reg,
+--			 @Cod_UsuarioAct,
+--			 @Fecha_Act
+--		END
+--		CLOSE cursorbd;
+--    	DEALLOCATE cursorbd
+--    END
+
+--END
+--

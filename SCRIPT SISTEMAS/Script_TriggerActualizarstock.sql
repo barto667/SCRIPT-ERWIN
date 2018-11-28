@@ -179,8 +179,6 @@ BEGIN
 		END
 END
 GO
-
-
 --ALM_ALMACEN_MOV_D
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -269,7 +267,6 @@ BEGIN
 		CLOSE cursorbd;
     	DEALLOCATE cursorbd
     END
-
     --Eliminar
     IF @Accion = 'ELIMINAR'
 	 BEGIN
@@ -311,7 +308,6 @@ BEGIN
 		CLOSE cursorbd;
     	DEALLOCATE cursorbd
     END
-
 	--Actualizar
     IF @Accion = 'ACTUALIZAR'
 	 BEGIN
@@ -362,4 +358,3 @@ BEGIN
      END
 END
 GO
-
