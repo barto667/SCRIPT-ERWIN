@@ -217,6 +217,7 @@ BEGIN
 END
 GO
 
+
 --Creamos las tablas
 IF OBJECT_ID('CAJ_GUIA_REMISION_REMITENTE', 'U') IS  NULL
 BEGIN
@@ -226,42 +227,36 @@ BEGIN
 		Cod_Caja varchar(32) FOREIGN KEY REFERENCES dbo.CAJ_CAJAS(Cod_Caja),
 		Cod_Turno varchar(32) FOREIGN KEY REFERENCES dbo.CAJ_TURNO_ATENCION(Cod_Turno),
 		Cod_TipoComprobante varchar(5) NOT NULL,
-		Cod_TipoGuia varchar(2) NOT NULL, --Indica si la guia es para emitir o para registrar (similar a venta-compra)
+		Cod_Libro varchar(2) NOT NULL, --Indica si la guia es para emitir o para registrar (similar a venta-compra)
 		Serie varchar(5) NOT NULL,
 		Numero varchar(30) NOT NULL,
 		Fecha_Emision datetime NOT NULL,
-		Obs_GuiaRemisionRemitente varchar(max),
-		Id_GuiaRemisionRemitenteBaja int NULL,
-		Documentos_Relacionados varchar(max),
-		Id_ClienteDestinatario int FOREIGN KEY REFERENCES dbo.PRI_CLIENTE_PROVEEDOR(Id_ClienteProveedor),
-		Cod_TipoDocDestinatario varchar(2) NOT NULL,
-		Num_DocDestinatario varchar(20) NOT NULL,
-		Nom_Destinatario varchar(max) NOT NULL,
-		Cod_MotivoTraslado varchar(5) NOT NULL,
-		Flag_Transbordo bit,
-		Peso_Bruto numeric(16,6) NOT NULL,
-		Cod_UnidadMedida varchar(5) NOT NULL,
-		Nro_Bulltos int, --O pallets, numerico 12 segun sunat
-		Cod_ModalidadTraslado varchar(5),
 		Fecha_TrasladoBienes datetime NOT NULL,
 		Fecha_EntregaBienes datetime,
+		Cod_MotivoTraslado varchar(5) NOT NULL,
+		Cod_ModalidadTraslado varchar(5),
+		Cod_UnidadMedida varchar(5) NOT NULL,
+		Id_ClienteDestinatario int FOREIGN KEY REFERENCES dbo.PRI_CLIENTE_PROVEEDOR(Id_ClienteProveedor),
+		Cod_UbigeoPartida varchar(8) NOT NULL,
+		Direccion_Partida varchar(max) NOT NULL,
+		Cod_UbigeoLlegada varchar(8) NOT NULL,
+		Direccion_LLegada varchar(max) NOT NULL,
+		Documentos_Relacionados varchar(max),
+		Flag_Transbordo bit,
+		Peso_Bruto numeric(38,6) NOT NULL,
 		Id_ClienteTransportistaPublico int FOREIGN KEY REFERENCES dbo.PRI_CLIENTE_PROVEEDOR(Id_ClienteProveedor),
-		Cod_TipoDocTransportistaPublico varchar(2),
-		Num_DocTransportistaPublico varchar(20),
-		Nom_TransportistaPublico varchar(max),
 		Num_PlacaTransportePrivado varchar(max),
 		Conductor_TransportePrivado varchar(max),
 		Obs_Transportista varchar(max),
-		Cod_UbigeoLlegada varchar(8) NOT NULL,
-		Direccion_LLegada varchar(max) NOT NULL,
 		Nro_Contenedor varchar(64),
-		Cod_UbigeoPartida varchar(8) NOT NULL,
-		Direccion_Partida varchar(max) NOT NULL,
 		Cod_Puerto varchar(64),
+		Nro_Bulltos int, --O pallets, numerico 12 segun sunat
 		Certificado_Inscripcion varchar(max),
 		Certificado_Habilitacion varchar(max),
-		Flag_Anulado bit,
 		Cod_EstadoGuia varchar(8) NOT NULL,
+		Obs_GuiaRemisionRemitente varchar(max),
+		Id_GuiaRemisionRemitenteBaja int NULL,
+		Flag_Anulado bit,
 		Cod_UsuarioReg varchar(32) NOT NULL,
 		Fecha_Reg datetime NOT NULL,
 		Cod_UsuarioAct varchar(32),
@@ -282,42 +277,16 @@ BEGIN
 		Descripcion varchar(max) NOT NULL,
 		Peso numeric(38,6) NOT NULL,
 		Obs_Detalle varchar(max),
-		Cod_Item varchar(32),
 		Cod_ProductoSunat varchar(32),
 		Cod_UsuarioReg varchar(32) NOT NULL,
 		Fecha_Reg datetime NOT NULL,
 		Cod_UsuarioAct varchar(32),
 		Fecha_Act datetime
-	
 	)
 	ALTER TABLE CAJ_GUIA_REMISION_REMITENTE_D ADD CONSTRAINT PK_CAJ_GUIA_REMISION_REMITENTE_D PRIMARY KEY (Id_GuiaRemisionRemitente, Id_Detalle)
 END
 GO
-IF OBJECT_ID('CAJ_GUIA_REMISION_REMITENTE_RELACION', 'U') IS NULL
-BEGIN
-	CREATE TABLE CAJ_GUIA_REMISION_REMITENTE_RELACION
-	(
-		Id_GuiaRemisionRemitente int NOT NULL,
-		Id_Detalle int NOT NULL,
-		Item int NOT NULL,
-		Id_ComprobantePago int NOT NULL,
-		Cod_TipoRelacion varchar(32) NOT NULL,
-		Cantidad numeric(38,10) NOT NULL,
-		Peso numeric(38,6) NOT NULL,
-		Obs_Relacion varchar(max) NOT NULL,
-		Id_DetalleRelacion int NOT NULL,
-		Cod_UsuarioReg varchar(32) NOT NULL,
-		Fecha_Reg datetime NOT NULL,
-		Cod_UsuarioAct varchar(32),
-		Fecha_Act datetime,
-
-	)
-	ALTER TABLE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION ADD CONSTRAINT PK_CAJ_GUIA_REMISION_REMITENTE_RELACION PRIMARY KEY (Id_GuiaRemisionRemitente,Id_Detalle,Item)
-	ALTER TABLE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION ADD CONSTRAINT FK_CAJ_GUIA_REMISION_REMITENTE_RELACION FOREIGN KEY (Id_GuiaRemisionRemitente,Id_Detalle) REFERENCES dbo.CAJ_GUIA_REMISION_REMITENTE_D(Id_GuiaRemisionRemitente,Id_Detalle)
-END
-GO
-
---Metodos CRUD
+ 
 
 --Metodos CRUD
 IF EXISTS (
@@ -334,42 +303,36 @@ CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_G
 	@Cod_Caja varchar(32),
 	@Cod_Turno varchar(32),
 	@Cod_TipoComprobante varchar(5) ,
-	@Cod_TipoGuia varchar(2),
+	@Cod_Libro varchar(2),
 	@Serie varchar(5) ,
 	@Numero varchar(30) ,
 	@Fecha_Emision datetime ,
-	@Obs_GuiaRemisionRemitente varchar(max),
-	@Id_GuiaRemisionRemitenteBaja int,
-	@Documentos_Relacionados varchar(max),
-	@Id_ClienteDestinatario int,
-	@Cod_TipoDocDestinatario varchar(2),
-	@Num_DocDestinatario varchar(20),
-	@Nom_Destinatario varchar(max),
-	@Cod_MotivoTraslado varchar(5),
-	@Flag_Transbordo bit,
-	@Peso_Bruto numeric(16,6),
-	@Cod_UnidadMedida varchar(5),
-	@Nro_Bulltos int,
-	@Cod_ModalidadTraslado varchar(5),
 	@Fecha_TrasladoBienes datetime,
 	@Fecha_EntregaBienes datetime,
+	@Cod_MotivoTraslado varchar(5),
+	@Cod_ModalidadTraslado varchar(5),
+	@Cod_UnidadMedida varchar(5),
+	@Id_ClienteDestinatario int,
+	@Cod_UbigeoPartida varchar(8),
+	@Direccion_Partida varchar(max),
+	@Cod_UbigeoLlegada varchar(8),
+	@Direccion_LLegada varchar(max),
+	@Documentos_Relacionados varchar(max),
+	@Flag_Transbordo bit,
+	@Peso_Bruto numeric(16,6),
 	@Id_ClienteTransportistaPublico int,
-	@Cod_TipoDocTransportistaPublico varchar(2),
-	@Num_DocTransportistaPublico varchar(20),
-	@Nom_TransportistaPublico varchar(max),
 	@Num_PlacaTransportePrivado varchar(max),
 	@Conductor_TransportePrivado varchar(max),
 	@Obs_Transportista varchar(max),
-	@Cod_UbigeoLlegada varchar(8),
-	@Direccion_LLegada varchar(max),
 	@Nro_Contenedor varchar(64),
-	@Cod_UbigeoPartida varchar(8),
-	@Direccion_Partida varchar(max),
 	@Cod_Puerto varchar(64),
+	@Nro_Bulltos int,
 	@Certificado_Inscripcion varchar(max),
 	@Certificado_Habilitacion varchar(max),
-	@Flag_Anulado bit,
 	@Cod_EstadoGuia varchar(8),
+	@Obs_GuiaRemisionRemitente varchar(max),
+	@Id_GuiaRemisionRemitenteBaja int,
+	@Flag_Anulado bit,
 	@Cod_Usuario varchar(32)
 WITH ENCRYPTION
 AS
@@ -379,7 +342,7 @@ BEGIN
 	BEGIN
 		SET @Id_ClienteTransportistaPublico =NULL
 	END
-	IF (@Numero='' AND @Cod_TipoGuia='14')
+	IF (@Numero='' AND @Cod_Libro='14')
 	BEGIN
 		SET @Numero = (SELECT RIGHT('00000000'+CONVERT( varchar(38), ISNULL(CONVERT(BIGint,MAX(cgrr.Numero)),0)+1), 8) 
 		FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr 
@@ -392,45 +355,40 @@ BEGIN
 		INSERT dbo.CAJ_GUIA_REMISION_REMITENTE
 		VALUES
 		(
+		    -- Id_GuiaRemisionRemitente - int
 		    @Cod_Caja, -- Cod_Caja - varchar
 		    @Cod_Turno, -- Cod_Turno - varchar
 		    @Cod_TipoComprobante, -- Cod_TipoComprobante - varchar
-		    @Cod_TipoGuia, -- Cod_TipoGuia - varchar
+		    @Cod_Libro, -- Cod_Libro - varchar
 		    @Serie, -- Serie - varchar
 		    @Numero, -- Numero - varchar
 		    CONVERT(DATETIME, @Fecha_Emision,121), -- Fecha_Emision - datetime
-		    @Obs_GuiaRemisionRemitente, -- Obs_GuiaRemisionRemitente - varchar
-		    @Id_GuiaRemisionRemitenteBaja, -- Id_GuiaRemisionRemitenteBaja - int
-		    @Documentos_Relacionados, -- Documentos_Relacionados - varchar
-		    @Id_ClienteDestinatario, -- Id_ClienteDestinatario - int
-		    @Cod_TipoDocDestinatario, -- Cod_TipoDocDestinatario - varchar
-		    @Num_DocDestinatario, -- Num_DocDestinatario - varchar
-		    @Nom_Destinatario, -- Nom_Destinatario - varchar
-		    @Cod_MotivoTraslado, -- Cod_MotivoTraslado - varchar
-		    @Flag_Transbordo, -- Flag_Transbordo - bit
-		    @Peso_Bruto, -- Peso_Bruto - numeric
-		    @Cod_UnidadMedida, -- Cod_UnidadMedida - varchar
-		    @Nro_Bulltos, -- Nro_Bulltos - int
-		    @Cod_ModalidadTraslado, -- Cod_ModalidadTraslado - varchar
 		    CONVERT(DATETIME, @Fecha_TrasladoBienes,121), -- Fecha_TrasladoBienes - datetime
 		    CONVERT(DATETIME, @Fecha_EntregaBienes,121), -- Fecha_EntregaBienes - datetime
-		    @Id_ClienteTransportistaPublico, -- Id_ClienteTransportistaPublico - int
-		    @Cod_TipoDocTransportistaPublico, -- Cod_TipoDocTransportistaPublico - varchar
-		    @Num_DocTransportistaPublico, -- Num_DocTransportistaPublico - varchar
-		    @Nom_TransportistaPublico, -- Nom_TransportistaPublico - varchar
-		    @Num_PlacaTransportePrivado, -- Num_PlacaTransportePrivado - varchar
-		    @Conductor_TransportePrivado, -- Conductor_TransportePrivado - varchar
-			@Obs_Transportista,  -- Obs_Transportista - varchar
-		    @Cod_UbigeoLlegada, -- Cod_UbigeoLlegada - varchar
-		    @Direccion_LLegada, -- Direccion_LLegada - varchar
-		    @Nro_Contenedor, -- Nro_Contenedor - varchar
+		    @Cod_MotivoTraslado, -- Cod_MotivoTraslado - varchar
+		    @Cod_ModalidadTraslado, -- Cod_ModalidadTraslado - varchar
+		    @Cod_UnidadMedida, -- Cod_UnidadMedida - varchar
+		    @Id_ClienteDestinatario, -- Id_ClienteDestinatario - int
 		    @Cod_UbigeoPartida, -- Cod_UbigeoPartida - varchar
 		    @Direccion_Partida, -- Direccion_Partida - varchar
+		    @Cod_UbigeoLlegada, -- Cod_UbigeoLlegada - varchar
+		    @Direccion_LLegada, -- Direccion_LLegada - varchar
+		    @Documentos_Relacionados, -- Documentos_Relacionados - varchar
+		    @Flag_Transbordo, -- Flag_Transbordo - bit
+		    @Peso_Bruto, -- Peso_Bruto - numeric
+		    @Id_ClienteTransportistaPublico, -- Id_ClienteTransportistaPublico - int
+		    @Num_PlacaTransportePrivado, -- Num_PlacaTransportePrivado - varchar
+		    @Conductor_TransportePrivado, -- Conductor_TransportePrivado - varchar
+		    @Obs_Transportista, -- Obs_Transportista - varchar
+		    @Nro_Contenedor, -- Nro_Contenedor - varchar
 		    @Cod_Puerto, -- Cod_Puerto - varchar
+		    @Nro_Bulltos, -- Nro_Bulltos - int
 		    @Certificado_Inscripcion, -- Certificado_Inscripcion - varchar
 		    @Certificado_Habilitacion, -- Certificado_Habilitacion - varchar
-		    @Flag_Anulado, -- Flag_Anulado - bit
 		    @Cod_EstadoGuia, -- Cod_EstadoGuia - varchar
+		    @Obs_GuiaRemisionRemitente, -- Obs_GuiaRemisionRemitente - varchar
+		    @Id_GuiaRemisionRemitenteBaja, -- Id_GuiaRemisionRemitenteBaja - int
+		    @Flag_Anulado, -- Flag_Anulado - bit
 		    @Cod_Usuario, -- Cod_UsuarioReg - varchar
 		    GETDATE(), -- Fecha_Reg - datetime
 		    NULL, -- Cod_UsuarioAct - varchar
@@ -442,49 +400,43 @@ BEGIN
 	BEGIN
 		UPDATE dbo.CAJ_GUIA_REMISION_REMITENTE
 		SET
-		    --Id_GuiaRemisionRemitente - this column value is auto-generated
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Caja = @Cod_Caja, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Turno = @Cod_Turno, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoComprobante = @Cod_TipoComprobante, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoGuia = @Cod_TipoGuia, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Serie = @Serie, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Numero = @Numero, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Emision = CONVERT(DATETIME, @Fecha_Emision,121), -- datetime
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Obs_GuiaRemisionRemitente = @Obs_GuiaRemisionRemitente, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitenteBaja = @Id_GuiaRemisionRemitenteBaja, -- int
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Documentos_Relacionados = @Documentos_Relacionados, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Id_ClienteDestinatario = @Id_ClienteDestinatario, -- int
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoDocDestinatario = @Cod_TipoDocDestinatario, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Num_DocDestinatario = @Num_DocDestinatario, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Nom_Destinatario = @Nom_Destinatario, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_MotivoTraslado = @Cod_MotivoTraslado, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Transbordo = @Flag_Transbordo, -- bit
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Peso_Bruto = @Peso_Bruto, -- numeric
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UnidadMedida = @Cod_UnidadMedida, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Nro_Bulltos = @Nro_Bulltos, -- int
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_ModalidadTraslado = @Cod_ModalidadTraslado, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_TrasladoBienes = CONVERT(DATETIME, @Fecha_TrasladoBienes,121), -- datetime
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_EntregaBienes = CONVERT(DATETIME, @Fecha_EntregaBienes,121), -- datetime
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Id_ClienteTransportistaPublico = @Id_ClienteTransportistaPublico, -- int
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoDocTransportistaPublico = @Cod_TipoDocTransportistaPublico, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Num_DocTransportistaPublico = @Num_DocTransportistaPublico, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Nom_TransportistaPublico = @Nom_TransportistaPublico, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Num_PlacaTransportePrivado = @Num_PlacaTransportePrivado, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Conductor_TransportePrivado = @Conductor_TransportePrivado, -- varchar
-			dbo.CAJ_GUIA_REMISION_REMITENTE.Obs_Transportista  =@Obs_Transportista, --varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UbigeoLlegada = @Cod_UbigeoLlegada, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Direccion_LLegada = @Direccion_LLegada, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Nro_Contenedor = @Nro_Contenedor, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UbigeoPartida = @Cod_UbigeoPartida, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Direccion_Partida = @Direccion_Partida, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Puerto = @Cod_Puerto, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Certificado_Inscripcion = @Certificado_Inscripcion, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Certificado_Habilitacion = @Certificado_Habilitacion, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Anulado = @Flag_Anulado, -- bit
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_EstadoGuia = @Cod_EstadoGuia, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UsuarioAct = @Cod_Usuario, -- varchar
+			--Id_GuiaRemisionRemitente - this column value is auto-generated
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Caja = @Cod_Caja, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Turno = @Cod_Turno, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoComprobante = @Cod_TipoComprobante, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Libro = @Cod_Libro, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Serie = @Serie, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Numero = @Numero, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Emision = @Fecha_Emision, -- datetime
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_TrasladoBienes = @Fecha_TrasladoBienes, -- datetime
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_EntregaBienes = @Fecha_EntregaBienes, -- datetime
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_MotivoTraslado = @Cod_MotivoTraslado, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_ModalidadTraslado = @Cod_ModalidadTraslado, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UnidadMedida = @Cod_UnidadMedida, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Id_ClienteDestinatario = @Id_ClienteDestinatario, -- int
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UbigeoPartida = @Cod_UbigeoPartida, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Direccion_Partida = @Direccion_Partida, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UbigeoLlegada = @Cod_UbigeoLlegada, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Direccion_LLegada = @Direccion_LLegada, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Documentos_Relacionados = @Documentos_Relacionados, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Transbordo = @Flag_Transbordo, -- bit
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Peso_Bruto = @Peso_Bruto, -- numeric
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Id_ClienteTransportistaPublico = @Id_ClienteTransportistaPublico, -- int
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Num_PlacaTransportePrivado = @Num_PlacaTransportePrivado, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Conductor_TransportePrivado = @Conductor_TransportePrivado, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Obs_Transportista = @Obs_Transportista, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Nro_Contenedor = @Nro_Contenedor, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Puerto = @Cod_Puerto, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Nro_Bulltos = @Nro_Bulltos, -- int
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Certificado_Inscripcion = @Certificado_Inscripcion, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Certificado_Habilitacion = @Certificado_Habilitacion, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_EstadoGuia = @Cod_EstadoGuia, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Obs_GuiaRemisionRemitente = @Obs_GuiaRemisionRemitente, -- varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitenteBaja = @Id_GuiaRemisionRemitenteBaja, -- int
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Anulado = @Flag_Anulado, -- bit
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UsuarioAct = @Cod_Usuario, -- varchar
 		    dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Act = GETDATE() -- datetime
-			WHERE dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
+		WHERE dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
 	END
 END
 GO
@@ -510,16 +462,16 @@ BEGIN
 		BEGIN TRANSACTION;
 		--Verificar que no existan un iyem superior 
 		IF EXISTS(SELECT cgrr.* FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND cgrr.Cod_EstadoGuia NOT IN ('INI','EMI')
-			AND cgrr.Cod_TipoGuia='14')
+			AND cgrr.Cod_Libro='14')
 		BEGIN
 			RAISERROR('No se puede Eliminar Dicho comprombprobante porque ya fue notificado a SUNAT',16,1)
 		END
 		ELSE
 		BEGIN
-			IF EXISTS(SELECT cgrr.* FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Cod_TipoGuia='14' AND cgrr.Cod_TipoComprobante+cgrr.Serie=
+			IF EXISTS(SELECT cgrr.* FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Cod_Libro='14' AND cgrr.Cod_TipoComprobante+cgrr.Serie=
 			(SELECT cgrr2.Cod_TipoComprobante+cgrr2.Serie FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr2 WHERE cgrr2.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
-			AND cgrr2.Cod_TipoGuia='14') AND cgrr.Numero>(SELECT CONVERT(bigint,cgrr2.Numero) FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr2 WHERE cgrr2.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
-			AND cgrr2.Cod_TipoGuia='14'))
+			AND cgrr2.Cod_Libro='14') AND cgrr.Numero>(SELECT CONVERT(bigint,cgrr2.Numero) FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr2 WHERE cgrr2.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
+			AND cgrr2.Cod_Libro='14'))
 			BEGIN
 				RAISERROR('No se puede Eliminar Dicho Comprobante porque existe un Numero Superior que lo precede.',16,1)
 			END
@@ -529,8 +481,8 @@ BEGIN
 				DECLARE @Documento varchar(max)
 				DECLARE @Cliente varchar(max)
 				DECLARE @Fecha_Emision datetime
-				SELECT @Documento=cgrr.Cod_TipoGuia+'|'+cgrr.Cod_TipoComprobante+':'+ cgrr.Serie+'-'+cgrr.Numero+'|'+cgrr.Cod_UnidadMedida,
-					   @Cliente = CONVERT(varchar,cgrr.Id_ClienteDestinatario)+'|'+cgrr.Num_DocDestinatario+'|'+cgrr.Nom_Destinatario+'|'+cgrr.Cod_UbigeoPartida+'|'+cgrr.Cod_UbigeoLlegada,
+				SELECT @Documento=cgrr.Cod_Libro+'|'+cgrr.Cod_TipoComprobante+':'+ cgrr.Serie+'-'+cgrr.Numero+'|'+cgrr.Cod_UnidadMedida,
+					   @Cliente = CONVERT(varchar,cgrr.Id_ClienteDestinatario)+'|'+cgrr.Direccion_Partida+'|'+cgrr.Direccion_LLegada,
 					   @Fecha_Emision=cgrr.Fecha_Emision
 					   FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
 
@@ -540,9 +492,6 @@ BEGIN
 													   FOR
 														 XML PATH('')
 													   ), 1, 2, '') + ''
-				
-				--Eliminamos la relacion
-				DELETE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
 				--Eliminamos los detalles
 				DELETE dbo.CAJ_GUIA_REMISION_REMITENTE_D WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_D.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
 				--Eliminamnos la cabezera
@@ -601,7 +550,6 @@ CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_D_G
 	@Descripcion varchar(max),
 	@Peso numeric(38,6),
 	@Obs_Detalle varchar(max),
-	@Cod_Item varchar(32),
 	@Cod_ProductoSunat varchar(32),
 	@Cod_USuario varchar(32)
 WITH ENCRYPTION
@@ -631,7 +579,6 @@ BEGIN
 		    @Descripcion, -- Descripcion - varchar
 		    @Peso, -- Peso - numeric
 		    @Obs_Detalle, -- Obs_Detalle - varchar
-		    @Cod_Item, -- Cod_Item - varchar
 		    @Cod_ProductoSunat, -- Cod_ProductoSunat - varchar
 		    @Cod_USuario, -- Cod_UsuarioReg - varchar
 		    GETDATE(), -- Fecha_Reg - datetime
@@ -650,7 +597,6 @@ BEGIN
 		    dbo.CAJ_GUIA_REMISION_REMITENTE_D.Descripcion = @Descripcion, -- varchar
 		    dbo.CAJ_GUIA_REMISION_REMITENTE_D.Peso = @Peso, -- numeric
 		    dbo.CAJ_GUIA_REMISION_REMITENTE_D.Obs_Detalle = @Obs_Detalle, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE_D.Cod_Item = @Cod_Item, -- varchar
 		    dbo.CAJ_GUIA_REMISION_REMITENTE_D.Cod_ProductoSunat = @Cod_ProductoSunat, -- varchar
 		    dbo.CAJ_GUIA_REMISION_REMITENTE_D.Cod_UsuarioAct = @Cod_USuario, -- varchar
 		    dbo.CAJ_GUIA_REMISION_REMITENTE_D.Fecha_Act = GETDATE() -- datetime
@@ -674,100 +620,9 @@ CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_D_E
 WITH ENCRYPTION
 AS
 BEGIN
-	--Eliminamos primero las relaciones
-	DELETE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION 
-	WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Id_Detalle=@Id_Detalle
 	--Eliminamos el detalle
 	DELETE dbo.CAJ_GUIA_REMISION_REMITENTE_D 
 	WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_D.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND dbo.CAJ_GUIA_REMISION_REMITENTE_D.Id_Detalle=@Id_Detalle
-END
-GO
-
-IF EXISTS (
-  SELECT * 
-    FROM sysobjects 
-   WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_G' 
-	 AND type = 'P'
-)
-  DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_G
-GO
-
-CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_G
-	@Id_GuiaRemisionRemitente int,
-	@Id_Detalle int,
-	@Item int,
-	@Id_ComprobantePago int,
-	@Cod_TipoRelacion varchar(32),
-	@Cantidad numeric(38,10),
-	@Peso numeric(38,6),
-	@Obs_Relacion varchar(max),
-	@Id_DetalleRelacion int,
-	@Cod_Usuario varchar(32)
-WITH ENCRYPTION
-AS
-BEGIN
-	IF @Item=0
-	BEGIN
-		SET @Item=(SELECT ISNULL(MAX(cgrrr.Item),0) + 1 FROM dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION cgrrr WHERE cgrrr.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
-		AND cgrrr.Id_Detalle=@Id_Detalle)
-	END
-	IF NOT EXISTS(SELECT cgrrr.* FROM dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION cgrrr
-	WHERE cgrrr.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND cgrrr.Id_Detalle=@Id_Detalle AND cgrrr.Item=@Item)
-	BEGIN
-		INSERT dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION
-		VALUES
-		(
-		    @Id_GuiaRemisionRemitente, -- Id_GuiaRemisionRemitente - int
-		    @Id_Detalle, -- Id_Detalle - int
-		    @Item, -- Item - int
-		    @Id_ComprobantePago, -- Id_ComprobantePago - int
-		    @Cod_TipoRelacion, -- Cod_TipoRelacion - varchar
-			@Cantidad, -- Cantidad - numeric
-			@Peso, -- Peso - numeric
-		    @Obs_Relacion, -- Obs_Relacion - varchar
-		    @Id_DetalleRelacion, -- Id_DetalleRelacion - int
-		    @Cod_Usuario, -- Cod_UsuarioReg - varchar
-		    GETDATE(), -- Fecha_Reg - datetime
-		    NULL, -- Cod_UsuarioAct - varchar
-		    NULL -- Fecha_Act - datetime
-		)
-	END
-	ELSE
-	BEGIN
-		UPDATE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION
-		SET
-		    dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Id_ComprobantePago = @Id_ComprobantePago, -- int
-		    dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Cod_TipoRelacion = @Cod_TipoRelacion, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Cantidad = @Cantidad, -- numeric
-			dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Peso = @Peso, -- numeric
-		    dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Obs_Relacion = @Obs_Relacion, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Id_DetalleRelacion = @Id_DetalleRelacion, -- int
-		    dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Cod_UsuarioAct = @Cod_Usuario, -- varchar
-		    dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Fecha_Act = GETDATE() -- datetime
-		WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Id_Detalle=@Id_Detalle AND dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Item=@Item
-	END
-END
-GO
-
-IF EXISTS (
-  SELECT * 
-    FROM sysobjects 
-   WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_E' 
-	 AND type = 'P'
-)
-  DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_E
-GO
-
-CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_E
-	@Id_GuiaRemisionRemitente int,
-	@Id_Detalle int,
-	@Item int
-WITH ENCRYPTION
-AS
-BEGIN
-	DELETE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION 
-	WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND 
-	dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Id_Detalle=@Id_Detalle AND dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION.Item=@Item
 END
 GO
 
@@ -860,26 +715,6 @@ BEGIN
 END
 GO
 
-IF EXISTS (
-  SELECT * 
-    FROM sysobjects 
-   WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_TXPK' 
-	 AND type = 'P'
-)
-  DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_TXPK
-GO
-
-CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_TXPK
-	@Id_GuiaRemisionRemitente int,
-	@Id_Detalle int,
-	@Item int
-WITH ENCRYPTION
-AS
-BEGIN
-	SELECT cgrrr.* FROM dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION cgrrr
-	WHERE cgrrr.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND cgrrr.Id_Detalle=@Id_Detalle AND cgrrr.Item=@Item
-END
-GO
 
 IF EXISTS (
   SELECT * 
@@ -921,27 +756,6 @@ BEGIN
 END
 GO
 
-IF EXISTS (
-  SELECT * 
-    FROM sysobjects 
-   WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_AUDITORIA' 
-	 AND type = 'P'
-)
-  DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_AUDITORIA
-GO
-
-CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_AUDITORIA
-	@Id_GuiaRemisionRemitente int,
-	@Id_Detalle int,
-	@Item int
-WITH ENCRYPTION
-AS
-BEGIN
-	SELECT cgrrr.Cod_UsuarioReg, cgrrr.Fecha_Reg, cgrrr.Cod_UsuarioAct, cgrrr.Fecha_Act 
-	FROM dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION cgrrr
-	WHERE cgrrr.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND cgrrr.Id_Detalle=@Id_Detalle AND cgrrr.Item=@Item
-END
-GO
 
 IF EXISTS (
   SELECT * 
@@ -981,24 +795,6 @@ BEGIN
 END
 GO
 
-IF EXISTS (
-  SELECT * 
-    FROM sysobjects 
-   WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_TNF' 
-	 AND type = 'P'
-)
-  DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_TNF
-GO
-
-CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACION_TNF
-	@ScripWhere varchar(max)
-WITH ENCRYPTION
-AS
-BEGIN
-	EXECUTE('SELECT cgrrr.Cod_UsuarioReg, cgrrr.Fecha_Reg, cgrrr.Cod_UsuarioAct, cgrrr.Fecha_Act 
-	FROM dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION cgrrr '+@ScripWhere)
-END
-GO
 
 IF EXISTS (
   SELECT * 
@@ -1025,9 +821,6 @@ BEGIN
 	cgrr.Fecha_EntregaBienes,
 	cgrr.Direccion_Partida, 
 	cgrr.Direccion_LLegada,
-	cgrr.Cod_TipoDocDestinatario, 
-	cgrr.Num_DocDestinatario, 
-	cgrr.Nom_Destinatario,
 	cgrrd.Id_Detalle, 
 	cgrrd.Cod_Almacen, 
 	cgrrd.Cod_UnidadMedida, 
@@ -1036,7 +829,6 @@ BEGIN
 	cgrrd.Descripcion, 
 	cgrrd.Peso, 
 	cgrrd.Obs_Detalle, 
-	cgrrd.Cod_Item,
 	cgrr.Cod_MotivoTraslado,
 	CASE WHEN cgrr.Cod_MotivoTraslado = '01' THEN 'VENTA' 
 	 WHEN cgrr.Cod_MotivoTraslado = '14' THEN 'VENTA SUJETA A CONFIRMACION DEL COMPRADOR' 
@@ -1049,8 +841,6 @@ BEGIN
 	ELSE 'OTROS' END Nom_MotivoTraslado,
 	cgrr.Flag_Anulado,
 	cgrr.Id_ClienteTransportistaPublico,
-	cgrr.Num_DocTransportistaPublico,
-	cgrr.Nom_TransportistaPublico,
 	cgrr.Num_PlacaTransportePrivado
 	FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE_D cgrrd ON cgrr.Id_GuiaRemisionRemitente = cgrrd.Id_GuiaRemisionRemitente
 	INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON cgrr.Cod_TipoComprobante = vtc.Cod_TipoComprobante
@@ -1074,5 +864,3 @@ SET DATEFORMAT dmy;
 	WHERE cgrrr.Cod_TipoRelacion = 'GRR' AND cgrrr.Id_ComprobantePago = @id_ComprobantePago
 END
 GO
-
-

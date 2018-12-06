@@ -3,6 +3,19 @@
 
 --Base de datos de auditoria y tabla
 --Funciona siempre activandose despues de cada accion
+EXEC sp_configure 'show advanced options', 1
+GO
+RECONFIGURE
+GO
+EXEC sp_configure 'xp_cmdshell', 1
+GO
+RECONFIGURE
+GO
+EXEC sp_configure 'remote query timeout', 0 ;  
+GO
+RECONFIGURE
+GO
+
 IF NOT EXISTS (SELECT * 
 	   FROM   master..sysdatabases 
 	   WHERE  name = N'PALERP_Auditoria')
@@ -26,6 +39,68 @@ BEGIN
 END
 GO
 
+EXEC USP_PAR_TABLA_G '118','CORREOS','Almacena las configuracion de los correo electronicos.','001',1,'MIGRACION';
+EXEC USP_PAR_COLUMNA_G '118','001','Tipo_Correo','El tipo de Correo se refiere al proveedor: GMAIL, HOTMAIL, ...','CADENA',0,11,'',1,'MIGRACION';
+EXEC USP_PAR_COLUMNA_G '118','002','Correo','Correo del usuario','CADENA',0,32,'',0,'MIGRACION';
+EXEC USP_PAR_COLUMNA_G '118','003','Contraseña','Contraseña del usuario','CADENA',0,32,'',0,'MIGRACION';
+EXEC USP_PAR_COLUMNA_G '118','004','Tipo_Uso','Tipo de Uso: COMPROBANTE, ENVIO, ERROR, NOTIFICACION','CADENA',0,16,'',0,'MIGRACION';
+EXEC USP_PAR_COLUMNA_G '118','005','Estado','Estado','BOLEANO',0,1,'',0,'MIGRACION';
+EXEC USP_PAR_TABLA_GENERADOR_VISTAS '118';
+GO
+
+
+--Crea un linked server sql a sql con el proveedor SQLNCL11 por defecto
+--exec USP_CrearLinkedServerSQLtoSQL N'PALERPlink',N'97.74.237.236\PALEHOST',N'PALERPseminario',N'sa',N'paleC0nsult0res'
+--exec USP_CrearLinkedServerSQLtoSQL N'PALERPlink',N'petrourubamba.sytes.net',N'PALERPurubamba',N'sa',N'paleC0nsult0res'
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CrearLinkedServerSQLtoSQL' 
+	 AND type = 'P'
+)
+DROP PROCEDURE USP_CrearLinkedServerSQLtoSQL
+GO
+CREATE PROCEDURE USP_CrearLinkedServerSQLtoSQL
+	@Nombre nvarchar(4000),
+	@Servidor nvarchar(4000),
+	@BaseDatos nvarchar(4000),
+	@Usuario nvarchar(4000),
+	@Contraseña nvarchar(4000)
+AS 
+BEGIN
+	IF  exists(select * from sys.servers where name = @Nombre)
+	BEGIN
+		execute sp_dropserver @Nombre, 'droplogins';
+	END
+	-- Crear linked server
+	EXEC master.dbo.sp_addlinkedserver @server = @Nombre,
+	@srvproduct=N'SQL',
+	@provider=N'SQLNCLI11', 
+	@datasrc=@Servidor, 
+	@catalog=@BaseDatos
+	-- Usuario y contraseña
+	EXEC master.dbo.sp_addlinkedsrvlogin @rmtsrvname=@Nombre,
+	@useself=N'False',
+	@locallogin=NULL,
+	@rmtuser=@Usuario,
+	@rmtpassword=@Contraseña
+	-- Propiedades de conexion
+	EXEC MASTER.dbo.sp_serveroption @server = @Nombre
+	,@optname = 'data access'
+	,@optvalue = 'true'
+	EXEC MASTER.dbo.sp_serveroption @server = @Nombre
+	,@optname = 'use remote collation'
+	,@optvalue = 'true'
+	EXEC MASTER.dbo.sp_serveroption @server = @Nombre
+	,@optname = 'rpc'
+	,@optvalue = 'true'
+	EXEC MASTER.dbo.sp_serveroption @server = @Nombre
+	,@optname = 'rpc out'
+	,@optvalue = 'true'
+
+END
+GO
+
 --Creamos nuestra tabla para para alamacenar la informacion de la exportacion
 --SOlo puede existir una configuracion habilitada, si hay dos dara error
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_ExportarDatos' AND type = 'P')
@@ -46,7 +121,7 @@ EXEC USP_PAR_TABLA_GENERADOR_VISTAS '120';
 
 IF NOT EXISTS (SELECT vce.* FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
 BEGIN
-    EXEC USP_PAR_FILA_G '120','001',1,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+    EXEC USP_PAR_FILA_G '120','001',1,NULL,NULL,NULL,NULL,0,1,'MIGRACION';
     EXEC USP_PAR_FILA_G '120','002',1,@NombreEmpresa,NULL,NULL,NULL,NULL,1,'MIGRACION';
     EXEC USP_PAR_FILA_G '120','003',1,'PALERPlink',NULL,NULL,NULL,NULL,1,'MIGRACION';
     EXEC USP_PAR_FILA_G '120','004',1,@Nombre_BD,NULL,NULL,NULL,NULL,1,'MIGRACION';
@@ -267,6 +342,56 @@ BEGIN
 		CLOSE cursorbd;
     	DEALLOCATE cursorbd
     END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+		DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Almacen,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d 
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Almacen,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+
+			 SELECT @Script='USP_ALM_ALMACEN_D ' +
+			 CASE WHEN d.Cod_Almacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(d.Cod_Almacen,'''','')+''','END+
+			 ''''+'TRIGGER'+''',' +
+			 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			 FROM DELETED d WHERE @Cod_Almacen=d.Cod_Almacen
+
+		   	SET @Fecha= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_Almacen), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @Fecha -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Almacen,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+	END
 
     --Acciones de auditoria, especiales por tipo
     --Insercion
@@ -517,7 +642,61 @@ BEGIN
 			  CAJ_COMPROBANTE_PAGO P ON M.Id_ComprobantePago = P.id_ComprobantePago
 			  WHERE @Id_AlmacenMov=M.Id_AlmacenMov
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_AlmacenMov), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_AlmacenMov,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_AlmacenMov,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_AlmacenMov,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script='USP_ALM_ALMACEN_MOV_D '+ 
+			  CASE WHEN d.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(d.Cod_TipoComprobante,'''','') +''',' END +
+			  CASE WHEN d.Serie IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(d.Serie,'''','') +''',' END +
+			  CASE WHEN d.Numero IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(d.Numero,'''','') +''',' END +
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED d  LEFT JOIN
+			  CAJ_COMPROBANTE_PAGO P ON d.Id_ComprobantePago = P.id_ComprobantePago
+			  WHERE @Id_AlmacenMov=d.Id_AlmacenMov
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -826,22 +1005,80 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			  SELECT @Script= 'USP_ALM_ALMACEN_MOV_D_I '+ 
-			  CASE WHEN M.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Cod_TipoComprobante,'''','') +''',' END +
-			  CASE WHEN M.Serie IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Serie,'''','') +''',' END +
-			  CASE WHEN M.Numero IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Numero,'''','') +''',' END + 
-			  CONVERT(VARCHAR(MAX),D.Item)+','+ 
-			  CASE WHEN P.Cod_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Cod_Producto,'''','') +''',' END +
-			  CASE WHEN D.Des_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(D.Des_Producto,'''','') +''',' END +
-			  CASE WHEN D.Precio_Unitario IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Precio_Unitario)+','END+ 
-			  CASE WHEN D.Cantidad IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Cantidad)+','END+ 
-			  CASE WHEN D.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(D.Cod_UnidadMedida,'''','') +''',' END +
-			  CASE WHEN D.Obs_AlmacenMovD IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(D.Obs_AlmacenMovD,'''','') +''',' END +
-			  ''''+REPLACE(COALESCE(D.Cod_UsuarioAct,D.Cod_UsuarioReg),'''','')+ ''';'
-			  FROM INSERTED  D INNER JOIN
-				  ALM_ALMACEN_MOV  M ON D.Id_AlmacenMov = M.Id_AlmacenMov INNER JOIN
-				  PRI_PRODUCTOS  P ON D.Id_Producto = P.Id_Producto
-			 WHERE D.Id_AlmacenMov=@Id_AlmacenMov AND D.Item=@Item
+			SELECT @Script= 'USP_ALM_ALMACEN_MOV_D_I '+ 
+			CASE WHEN M.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Cod_TipoComprobante,'''','') +''',' END +
+			CASE WHEN M.Serie IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Serie,'''','') +''',' END +
+			CASE WHEN M.Numero IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Numero,'''','') +''',' END + 
+			CONVERT(VARCHAR(MAX),D.Item)+','+ 
+			CASE WHEN D.Id_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ISNULL((SELECT pp.Cod_Producto FROM dbo.PRI_PRODUCTOS pp WHERE pp.Id_Producto=D.Id_Producto),''),'''','') +''',' END +
+			CASE WHEN D.Des_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(D.Des_Producto,'''','') +''',' END +
+			CASE WHEN D.Precio_Unitario IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Precio_Unitario)+','END+ 
+			CASE WHEN D.Cantidad IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Cantidad)+','END+ 
+			CASE WHEN D.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(D.Cod_UnidadMedida,'''','') +''',' END +
+			CASE WHEN D.Obs_AlmacenMovD IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(D.Obs_AlmacenMovD,'''','') +''',' END +
+			''''+REPLACE(COALESCE(D.Cod_UsuarioAct,D.Cod_UsuarioReg),'''','')+ ''';'
+			FROM INSERTED   D INNER JOIN
+				ALM_ALMACEN_MOV  M ON D.Id_AlmacenMov = M.Id_AlmacenMov 
+			WHERE D.Id_AlmacenMov=@Id_AlmacenMov AND D.Item=@Item
+
+		   	SET @Fecha= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_AlmacenMov,'|',@Item), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @Fecha -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_AlmacenMov,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_AlmacenMov,
+		    d.Item,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_AlmacenMov,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			SELECT @Script= 'USP_ALM_ALMACEN_MOV_D_D '+ 
+			CASE WHEN M.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Cod_TipoComprobante,'''','') +''',' END +
+			CASE WHEN M.Serie IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Serie,'''','') +''',' END +
+			CASE WHEN M.Numero IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Numero,'''','') +''',' END + 
+			CONVERT(VARCHAR(MAX),D.Item)+','+ 
+			''''+'TRIGGER'+''',' +
+			 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			FROM INSERTED   D INNER JOIN
+				ALM_ALMACEN_MOV  M ON D.Id_AlmacenMov = M.Id_AlmacenMov 
+			WHERE D.Id_AlmacenMov=@Id_AlmacenMov AND D.Item=@Item
 
 		   	SET @Fecha= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
 			INSERT dbo.TMP_REGISTRO_LOG
@@ -1153,6 +1390,59 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Inventario,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Inventario,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT  @Script= 'USP_ALM_INVENTARIO_D ' + 
+ 			  CASE WHEN d.Cod_TipoInventario IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(d.Cod_TipoInventario,'''','')+''','END+
+			  CASE WHEN d.Cod_Almacen IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(d.Cod_Almacen,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED d 
+			  WHERE d.Id_Inventario=@Id_Inventario
+
+		   	SET @Fecha= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_Inventario), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @Fecha -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Inventario,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -1382,14 +1672,70 @@ BEGIN
 			  CASE WHEN I.Cod_TipoInventario IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(I.Cod_TipoInventario,'''','')+''','END+
 			  CASE WHEN ID.Cod_Almacen IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ID.Cod_Almacen,'''','')+''','END+
 			  CASE WHEN ID.Item IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ID.Item,'''','')+''','END+
-			  CASE WHEN P.Cod_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Cod_Producto,'''','')+''','END+
+			  CASE WHEN ID.Id_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ISNULL((SELECT pp.Cod_Producto FROM dbo.PRI_PRODUCTOS pp WHERE pp.Id_Producto=ID.Id_Producto),''),'''','') +''',' END +
 			  CASE WHEN ID.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ID.Cod_UnidadMedida,'''','')+''','END+
 			  CASE WHEN ID.Cantidad_Sistema IS NULL THEN 'NULL' ELSE  CONVERT(VARCHAR(MAX),ID.Cantidad_Sistema)+','END+
 			  CASE WHEN ID.Cantidad_Encontrada IS NULL THEN 'NULL' ELSE  CONVERT(VARCHAR(MAX),ID.Cantidad_Encontrada)+','END+
 			  CASE WHEN ID.Obs_InventarioD IS NULL THEN 'NULL'  ELSE ''''+ REPLACE(ID.Obs_InventarioD,'''','')+''','END+
 			  ''''+REPLACE(COALESCE(ID.Cod_UsuarioAct,ID.Cod_UsuarioReg),'''','')   +''';' 
-			  FROM INSERTED ID INNER JOIN PRI_PRODUCTOS P ON ID.Id_Producto=P.Id_Producto
-			  INNER JOIN ALM_INVENTARIO I ON I.Id_Inventario=ID.Id_Inventario
+			  FROM INSERTED ID INNER JOIN ALM_INVENTARIO I ON I.Id_Inventario=ID.Id_Inventario
+			  WHERE ID.Id_Inventario=@Id_Inventario AND ID.Item=@Item
+
+		   	SET @Fecha= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_Inventario,'|',@Item), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @Fecha -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Inventario,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+	
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Inventario,
+		    d.Item,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Inventario,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT  @Script= 'USP_ALM_INVENTARIO_D_D ' + 
+			  CASE WHEN I.Cod_TipoInventario IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(I.Cod_TipoInventario,'''','')+''','END+
+			  CASE WHEN ID.Cod_Almacen IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ID.Cod_Almacen,'''','')+''','END+
+			  CASE WHEN ID.Item IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ID.Item,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED  ID INNER JOIN ALM_INVENTARIO I ON I.Id_Inventario=ID.Id_Inventario
 			  WHERE ID.Id_Inventario=@Id_Inventario AND ID.Item=@Item
 
 		   	SET @Fecha= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
@@ -1711,6 +2057,58 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_CuentaBancaria,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_CuentaBancaria,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_BAN_CUENTA_BANCARIA_D '+
+			  ''''+REPLACE(bcb.Cod_CuentaBancaria,'''','')+ ''','+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM  DELETED  bcb WHERE
+			  bcb.Cod_CuentaBancaria=@Cod_CuentaBancaria
+
+		   	SET @Fecha= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   @Cod_CuentaBancaria, -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @Fecha -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_CuentaBancaria,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -1897,6 +2295,7 @@ BEGIN
 END
 GO
 
+
 --BAN_CUENTA_M
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -1991,7 +2390,58 @@ BEGIN
 			  ''''+ REPLACE(COALESCE(Cod_UsuarioAct,Cod_UsuarioReg),'''','')+ ''';' 
 			  FROM            INSERTED WHERE INSERTED.Id_MovimientoCuenta=@Id_MovimientoCuenta
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_MovimientoCuenta), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_MovimientoCuenta,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_MovimientoCuenta,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_MovimientoCuenta,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_BAN_CUENTA_M_D '+ 
+			  CASE WHEN d.Cod_CuentaBancaria IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(d.Cod_CuentaBancaria,'''','') +''',' END +
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM            DELETED d WHERE d.Id_MovimientoCuenta=@Id_MovimientoCuenta
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -2333,7 +2783,7 @@ BEGIN
 			  ''''+REPLACE(COALESCE(Cod_UsuarioAct,Cod_UsuarioReg),'''','') +''';' 
 			  FROM INSERTED  WHERE INSERTED.id_ArqueoFisico=@id_ArqueoFisico
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -2361,6 +2811,57 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.id_ArqueoFisico,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_ArqueoFisico,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_CAJ_ARQUEOFISICO_D ' + 
+			  CASE WHEN Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(Cod_Caja,'''','')+''','END+
+			  CASE WHEN Cod_Turno IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(Cod_Turno,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED d  WHERE d.id_ArqueoFisico=@id_ArqueoFisico
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@id_ArqueoFisico), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @id_ArqueoFisico,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -2615,7 +3116,7 @@ BEGIN
 									   CAJ_ARQUEOFISICO  AF ON AD.id_ArqueoFisico = AF.id_ArqueoFisico
 			  WHERE AD.id_ArqueoFisico=@id_ArqueoFisico AND AD.Cod_Billete=@Cod_Billete
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -2644,6 +3145,63 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.id_ArqueoFisico,
+		    d.Cod_Billete,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_ArqueoFisico,
+		    @Cod_Billete,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_CAJ_ARQUEOFISICO_D_D ' + 
+			  CASE WHEN AF.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(AF.Cod_Caja,'''','')+''','END+
+			  CASE WHEN AF.Cod_Turno IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(AF.Cod_Turno,'''','')+''','END+
+			  CASE WHEN AD.Cod_Billete IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(AD.Cod_Billete,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM            INSERTED  AD INNER JOIN
+									   CAJ_ARQUEOFISICO  AF ON AD.id_ArqueoFisico = AF.id_ArqueoFisico
+			  WHERE AD.id_ArqueoFisico=@id_ArqueoFisico AND AD.Cod_Billete=@Cod_Billete
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@id_ArqueoFisico,'|',@Cod_Billete), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @id_ArqueoFisico,
+		    @Cod_Billete,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -2778,7 +3336,6 @@ BEGIN
 		CLOSE cursorbd;
     	DEALLOCATE cursorbd
     END
-
 END
 GO
 
@@ -2862,7 +3419,69 @@ BEGIN
 									   CAJ_ARQUEOFISICO AF ON ASA.id_ArqueoFisico = AF.id_ArqueoFisico
 			  WHERE ASA.id_ArqueoFisico=@id_ArqueoFisico AND ASA.Cod_Moneda=@Cod_Moneda AND  ASA.Tipo=@Tipo
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@id_ArqueoFisico,'|',@Cod_Moneda,'|',@Tipo), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @id_ArqueoFisico,
+		    @Cod_Moneda,
+		    @Tipo,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.id_ArqueoFisico,
+		    d.Cod_Moneda,
+		    d.Tipo,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d 
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_ArqueoFisico,
+		    @Cod_Moneda,
+		    @Tipo,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_CAJ_ARQUEOFISICO_SALDO_D ' + 
+			  CASE WHEN AF.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(AF.Cod_Caja,'''','')+''','END+
+			  CASE WHEN AF.Cod_Turno IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(AF.Cod_Turno,'''','')+''','END+
+			  CASE WHEN ASA.Cod_Moneda IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ASA.Cod_Moneda,'''','')+''','END+
+			  CASE WHEN ASA.Tipo IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ASA.Tipo,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM            DELETED   ASA INNER JOIN
+									   CAJ_ARQUEOFISICO AF ON ASA.id_ArqueoFisico = AF.id_ArqueoFisico
+			  WHERE ASA.id_ArqueoFisico=@id_ArqueoFisico AND ASA.Cod_Moneda=@Cod_Moneda AND  ASA.Tipo=@Tipo
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -3112,7 +3731,7 @@ BEGIN
 			  FROM INSERTED  cca
 			  WHERE cca.Cod_Caja=@Cod_Caja AND cca.Cod_Almacen=@Cod_Almacen
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -3141,6 +3760,61 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Caja,
+		    d.Cod_Almacen,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d 
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Caja,
+		    @Cod_Almacen,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT  @Script= 'USP_CAJ_CAJA_ALMACEN_D ' + 
+			  CASE WHEN cca.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cca.Cod_Caja,'''','')+''',' END +
+			  CASE WHEN cca.Cod_Almacen IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cca.Cod_Almacen,'''','')+''',' END +
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED  cca
+			  WHERE cca.Cod_Caja=@Cod_Caja AND cca.Cod_Almacen=@Cod_Almacen
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Cod_Caja,'|',@Cod_Almacen), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Caja,
+		    @Cod_Almacen,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -3361,34 +4035,33 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-				 SELECT @Script= 'USP_CAJ_CAJA_MOVIMIENTOS_I ' +
-				 CASE WHEN CM.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_Caja,'''','')+''','END+
-				 CASE WHEN CM.Cod_Turno  IS NULL THEN 'NULL,' ELSE '''' +REPLACE(CM.Cod_Turno,'''','')+ ''',' END+ 
-				 CASE WHEN CM.Id_Concepto IS NULL THEN 'NULL,' ELSE	CONVERT(VARCHAR(MAX),CM.Id_Concepto)+',' END+ 
-				 CASE WHEN CP.Cod_TipoDocumento  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoDocumento,'''','')+''','END+
-				 CASE WHEN CP.Nro_Documento  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nro_Documento,'''','')+''','END+
-				 CASE WHEN CM.Des_Movimiento  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Des_Movimiento,'''','')+''','END+
-				 CASE WHEN CM.Cod_TipoComprobante  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_TipoComprobante,'''','')+''','END+
-				 CASE WHEN CM.Serie  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Serie,'''','')+''','END+
-				 CASE WHEN CM.Numero  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Numero,'''','')+''','END+
-				 CASE WHEN CM.Fecha IS NULL THEN 'NULL,' ELSE ''''+ CONVERT(VARCHAR(MAX),CM.Fecha,121)+''',' END+ 
-				 CASE WHEN CM.Tipo_Cambio IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CM.Tipo_Cambio)+',' END+ 
-				 CASE WHEN CM.Ingreso IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CM.Ingreso)+',' END+ 
-				 CASE WHEN CM.Cod_MonedaIng  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_MonedaIng,'''','')+''','END+
-				 CASE WHEN CM.Egreso IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CM.Egreso)+',' END+ 
-				 CASE WHEN CM.Cod_MonedaEgr  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_MonedaEgr,'''','')+''','END+
-				 CONVERT(VARCHAR(MAX),CM.Flag_Extornado)+','+
-				 CASE WHEN CM.Cod_UsuarioAut  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_UsuarioAut,'''','')+''','END+
-				 CASE WHEN CM.Fecha_Aut IS NULL THEN 'NULL,' ELSE ''''+ CONVERT(VARCHAR(MAX),CM.Fecha_Aut,121)+''','END+ 
-				 CASE WHEN CM.Obs_Movimiento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CONVERT(VARCHAR(MAX),CM.Obs_Movimiento),'''','')+''','END+ 
-				 CASE WHEN CM.Id_MovimientoRef IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CM.Id_MovimientoRef)+','END+ 
-				 ''''+REPLACE(COALESCE(CM.Cod_UsuarioAct,CM.Cod_UsuarioReg),'''','') + ''';' 
-					 FROM            INSERTED CM INNER JOIN
-											  PRI_CLIENTE_PROVEEDOR AS CP ON CM.Id_ClienteProveedor = CP.Id_ClienteProveedor LEFT OUTER JOIN
-											  CAJ_CAJA_MOVIMIENTOS AS CMR ON CM.Id_MovimientoRef = CMR.id_Movimiento
-				 WHERE CM.id_Movimiento=@id_Movimiento
+				SELECT @Script= 'USP_CAJ_CAJA_MOVIMIENTOS_I ' +
+				CASE WHEN CM.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_Caja,'''','')+''','END+
+				CASE WHEN CM.Cod_Turno  IS NULL THEN 'NULL,' ELSE '''' +REPLACE(CM.Cod_Turno,'''','')+ ''',' END+ 
+				CASE WHEN CM.Id_Concepto IS NULL THEN 'NULL,' ELSE	CONVERT(VARCHAR(MAX),CM.Id_Concepto)+',' END+ 
+				CASE WHEN CP.Cod_TipoDocumento  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoDocumento,'''','')+''','END+
+				CASE WHEN CP.Nro_Documento  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nro_Documento,'''','')+''','END+
+				CASE WHEN CM.Des_Movimiento  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Des_Movimiento,'''','')+''','END+
+				CASE WHEN CM.Cod_TipoComprobante  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_TipoComprobante,'''','')+''','END+
+				CASE WHEN CM.Serie  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Serie,'''','')+''','END+
+				CASE WHEN CM.Numero  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Numero,'''','')+''','END+
+				CASE WHEN CM.Fecha IS NULL THEN 'NULL,' ELSE ''''+ CONVERT(VARCHAR(MAX),CM.Fecha,121)+''',' END+ 
+				CASE WHEN CM.Tipo_Cambio IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CM.Tipo_Cambio)+',' END+ 
+				CASE WHEN CM.Ingreso IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CM.Ingreso)+',' END+ 
+				CASE WHEN CM.Cod_MonedaIng  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_MonedaIng,'''','')+''','END+
+				CASE WHEN CM.Egreso IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CM.Egreso)+',' END+ 
+				CASE WHEN CM.Cod_MonedaEgr  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_MonedaEgr,'''','')+''','END+
+				CONVERT(VARCHAR(MAX),CM.Flag_Extornado)+','+
+				CASE WHEN CM.Cod_UsuarioAut  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_UsuarioAut,'''','')+''','END+
+				CASE WHEN CM.Fecha_Aut IS NULL THEN 'NULL,' ELSE ''''+ CONVERT(VARCHAR(MAX),CM.Fecha_Aut,121)+''','END+ 
+				CASE WHEN CM.Obs_Movimiento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CONVERT(VARCHAR(MAX),CM.Obs_Movimiento),'''','')+''','END+ 
+				CASE WHEN CM.Id_MovimientoRef IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CM.Id_MovimientoRef)+','END+ 
+				''''+REPLACE(COALESCE(CM.Cod_UsuarioAct,CM.Cod_UsuarioReg),'''','') + ''';' 
+				FROM  INSERTED  CM LEFT JOIN 
+				PRI_CLIENTE_PROVEEDOR AS CP ON CM.Id_ClienteProveedor = CP.Id_ClienteProveedor 
+				WHERE CM.id_Movimiento=@id_Movimiento
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -3416,6 +4089,62 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.id_Movimiento,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_Movimiento,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+				SELECT @Script= 'USP_CAJ_CAJA_MOVIMIENTOS_D ' +
+				CASE WHEN CM.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_Caja,'''','')+''','END+
+				CASE WHEN CM.Cod_Turno  IS NULL THEN 'NULL,' ELSE '''' +REPLACE(CM.Cod_Turno,'''','')+ ''',' END+ 
+				CASE WHEN CM.Cod_TipoComprobante  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Cod_TipoComprobante,'''','')+''','END+
+				CASE WHEN CM.Serie  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Serie,'''','')+''','END+
+				CASE WHEN CM.Numero  IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CM.Numero,'''','')+''','END+
+				''''+'TRIGGER'+''',' +
+				''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+				FROM DELETED   CM LEFT JOIN 
+				PRI_CLIENTE_PROVEEDOR AS CP ON CM.Id_ClienteProveedor = CP.Id_ClienteProveedor 
+				WHERE CM.id_Movimiento=@id_Movimiento
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@id_Movimiento), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @id_Movimiento,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -3694,7 +4423,6 @@ BEGIN
 		CLOSE cursorbd;
     	DEALLOCATE cursorbd
     END
-
 END
 GO
 
@@ -3776,7 +4504,59 @@ BEGIN
 			  FROM INSERTED  cc
 			  WHERE cc.Cod_Caja=@Cod_Caja
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_Caja), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Caja,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Caja,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d 
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Caja,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT  @Script= 'USP_CAJ_CAJAS_D ' +
+			  CASE WHEN cc.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cc.Cod_Caja,'''','')+''','END +
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED cc
+			  WHERE cc.Cod_Caja=@Cod_Caja
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -4056,7 +4836,7 @@ BEGIN
 			  FROM INSERTED  ccd
 			  WHERE ccd.Cod_Caja=@Cod_Caja AND ccd.Item=@Item
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -4085,6 +4865,61 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Caja,
+		    d.Item,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Caja,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script=  'USP_CAJ_CAJAS_DOC_D ' + 
+			  CASE WHEN ccd.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ccd.Cod_Caja,'''','')+''','END+
+			  CASE WHEN ccd.Item IS NULL THEN 'NULL,' ELSE  CONVERT(varchar(max),ccd.Item)+','END+
+			  ''''+'TRIGGER'+''',' +
+				''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED ccd
+			  WHERE ccd.Cod_Caja=@Cod_Caja AND ccd.Item=@Item
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Cod_Caja,'|',@Item), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Caja,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -4373,42 +5208,41 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			  SELECT @Script='USP_CAJ_COMPROBANTE_D_I '+ 
-			  CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
-			  CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
-			  CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
-			  CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
-			  CASE WHEN P.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoDoc,'''','')+''',' END +
-			  CASE WHEN P.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Doc_Cliente,'''','')+''',' END +
-			  CONVERT(VARCHAR(MAX),D.id_Detalle)+','+ 
-			  CASE WHEN PP.Cod_Producto IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Cod_Producto,'''','')+''',' END +
-			  CASE WHEN D.Cod_Almacen IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_Almacen,'''','')+''',' END +
-			  CASE WHEN D.Cantidad IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Cantidad)+','END+
-			  CASE WHEN D.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_UnidadMedida,'''','')+''',' END +
-			  CASE WHEN D.Despachado IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Despachado)+','END+
-			  CASE WHEN D.Descripcion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Descripcion,'''','')+''',' END +
-			  CASE WHEN D.PrecioUnitario IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.PrecioUnitario)+','END+ 
-			  CASE WHEN D.Descuento IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Descuento)+','END+
-			  CASE WHEN D.Sub_Total IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Sub_Total)+','END+ 
-			  CASE WHEN D.Tipo IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Tipo,'''','')+''',' END +
-			  CASE WHEN D.Obs_ComprobanteD IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Obs_ComprobanteD,'''','')+''',' END +
-			  CASE WHEN D.Cod_Manguera IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_Manguera,'''','')+''',' END + 
-			  CONVERT(VARCHAR(MAX),D.Flag_AplicaImpuesto)+','+ 
-			  CASE WHEN D.Formalizado IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Formalizado)+','END+ 
-			  CASE WHEN D.Valor_NoOneroso IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Valor_NoOneroso)+','END+ 
-			  CASE WHEN D.Cod_TipoISC IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_TipoISC,'''','')+''',' END +
-			  CASE WHEN D.Porcentaje_ISC IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Porcentaje_ISC)+','END+ 
-			  CASE WHEN D.ISC IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.ISC)+','END+ 
-			  CASE WHEN D.Cod_TipoIGV IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_TipoIGV,'''','')+''',' END +
-			  CASE WHEN D.Porcentaje_IGV IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Porcentaje_IGV)+','END+ 
-			  CASE WHEN D.IGV IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.IGV)+','END+ 
-			  ''''+REPLACE(COALESCE(D.Cod_UsuarioAct,D.Cod_UsuarioReg),'''','')+''';' 
-			  FROM INSERTED D INNER JOIN
-				   CAJ_COMPROBANTE_PAGO AS P ON D.id_ComprobantePago = P.id_ComprobantePago INNER JOIN
-				   PRI_PRODUCTOS AS PP ON D.Id_Producto = PP.Id_Producto
-			  WHERE D.id_ComprobantePago=@id_ComprobantePago AND D.id_Detalle=@id_Detalle
+			SELECT @Script='USP_CAJ_COMPROBANTE_D_I '+ 
+			CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
+			CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
+			CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
+			CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
+			CASE WHEN P.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoDoc,'''','')+''',' END +
+			CASE WHEN P.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Doc_Cliente,'''','')+''',' END +
+			CONVERT(VARCHAR(MAX),D.id_Detalle)+','+ 
+			CASE WHEN D.Id_Producto IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT pp.Cod_Producto FROM dbo.PRI_PRODUCTOS pp WHERE pp.Id_Producto=D.Id_Producto),''),'''','')+''',' END +
+			CASE WHEN D.Cod_Almacen IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_Almacen,'''','')+''',' END +
+			CASE WHEN D.Cantidad IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Cantidad)+','END+
+			CASE WHEN D.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_UnidadMedida,'''','')+''',' END +
+			CASE WHEN D.Despachado IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Despachado)+','END+
+			CASE WHEN D.Descripcion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Descripcion,'''','')+''',' END +
+			CASE WHEN D.PrecioUnitario IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.PrecioUnitario)+','END+ 
+			CASE WHEN D.Descuento IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Descuento)+','END+
+			CASE WHEN D.Sub_Total IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Sub_Total)+','END+ 
+			CASE WHEN D.Tipo IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Tipo,'''','')+''',' END +
+			CASE WHEN D.Obs_ComprobanteD IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Obs_ComprobanteD,'''','')+''',' END +
+			CASE WHEN D.Cod_Manguera IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_Manguera,'''','')+''',' END + 
+			CONVERT(VARCHAR(MAX),D.Flag_AplicaImpuesto)+','+ 
+			CASE WHEN D.Formalizado IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Formalizado)+','END+ 
+			CASE WHEN D.Valor_NoOneroso IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Valor_NoOneroso)+','END+ 
+			CASE WHEN D.Cod_TipoISC IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_TipoISC,'''','')+''',' END +
+			CASE WHEN D.Porcentaje_ISC IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Porcentaje_ISC)+','END+ 
+			CASE WHEN D.ISC IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.ISC)+','END+ 
+			CASE WHEN D.Cod_TipoIGV IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_TipoIGV,'''','')+''',' END +
+			CASE WHEN D.Porcentaje_IGV IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Porcentaje_IGV)+','END+ 
+			CASE WHEN D.IGV IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.IGV)+','END+ 
+			''''+REPLACE(COALESCE(D.Cod_UsuarioAct,D.Cod_UsuarioReg),'''','')+''';' 
+			FROM INSERTED D INNER JOIN
+			   CAJ_COMPROBANTE_PAGO AS P ON D.id_ComprobantePago = P.id_ComprobantePago 
+			WHERE D.id_ComprobantePago=@id_ComprobantePago AND D.id_Detalle=@id_Detalle
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -4437,6 +5271,65 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.id_ComprobantePago,
+		    d.id_Detalle,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d 
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @id_Detalle,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			SELECT @Script='USP_CAJ_COMPROBANTE_D_D '+ 
+			CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
+			CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
+			CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
+			CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
+			CONVERT(VARCHAR(MAX),D.id_Detalle)+','+ 
+			''''+'TRIGGER'+''',' +
+			''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			FROM DELETED D INNER JOIN
+			   CAJ_COMPROBANTE_PAGO AS P ON D.id_ComprobantePago = P.id_ComprobantePago 
+			WHERE D.id_ComprobantePago=@id_ComprobantePago AND D.id_Detalle=@id_Detalle
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@id_ComprobantePago,'|',@id_Detalle), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @id_Detalle,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -4816,7 +5709,66 @@ BEGIN
 				 ON ccp.id_ComprobantePago=ccl.id_ComprobantePago
 				 WHERE ccl.id_ComprobantePago=@id_ComprobantePago AND ccl.Item=@Item
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@id_ComprobantePago,'|',@Item), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.id_ComprobantePago,
+		    d.Item,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+				 SELECT @Script= 'USP_CAJ_COMPROBANTE_LOG_D ' +
+				 CASE WHEN ccp.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ccp.Cod_TipoComprobante,'''','')+''','END +
+				 CASE WHEN ccp.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ccp.Serie,'''','')+''','END +
+				 CASE WHEN ccp.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ccp.Numero,'''','')+''','END +
+				 CONVERT(varchar(max),ccl.Item)+','+
+				 ''''+'TRIGGER'+''',' +
+				 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+				 FROM DELETED ccl INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp 
+				 ON ccp.id_ComprobantePago=ccl.id_ComprobantePago
+				 WHERE ccl.id_ComprobantePago=@id_ComprobantePago AND ccl.Item=@Item
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -5087,7 +6039,13 @@ BEGIN
 	END
 
 	--Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
-	IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
+	IF ((@Exportacion=1 AND @Accion='INSERTAR') 
+	OR (@Exportacion=1 AND @Accion='ACTUALIZAR' AND 
+	NOT UPDATE(Valor_Resumen) AND
+	NOT UPDATE(Valor_Firma) AND
+	NOT UPDATE(Cod_EstadoComprobante) AND
+    NOT UPDATE(Id_Cliente)
+	))
 	BEGIN
 	    DECLARE cursorbd CURSOR LOCAL FOR
 		    SELECT
@@ -5102,8 +6060,6 @@ BEGIN
 		    @Fecha_Act
 	    WHILE @@FETCH_STATUS = 0
 	    BEGIN
-			 IF @Accion ='INSERTAR'
-			 BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
 			SELECT @Script= 'USP_CAJ_COMPROBANTE_PAGO_I '+ 
@@ -5136,13 +6092,13 @@ BEGIN
 			  CASE WHEN CP.GuiaRemision IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.GuiaRemision,'''','')+''','END+
 
 			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
-			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE (SELECT TOP 1 ccp.Cod_Libro FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef) END )),'''','')+''',' END+
+			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE ISNULL((SELECT TOP 1 ccp.Cod_Libro FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef),'') END )),'''','')+''',' END+
 			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
-			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE (SELECT TOP 1 ccp.Cod_TipoComprobante FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef) END )),'''','')+''',' END+
+			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE ISNULL((SELECT TOP 1 ccp.Cod_TipoComprobante FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef),'') END )),'''','')+''',' END+
 			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
-			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE (SELECT TOP 1 ccp.Serie FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef) END )),'''','')+''',' END+
+			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE ISNULL((SELECT TOP 1 ccp.Serie FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef),'') END )),'''','')+''',' END+
 			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
-			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE (SELECT TOP 1 ccp.Numero FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef) END )),'''','')+''',' END+
+			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE ISNULL((SELECT TOP 1 ccp.Numero FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef),'') END )),'''','')+''',' END+
 
 			  CASE WHEN CP.Cod_Plantilla IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Plantilla,'''','')+''',' END +
 			  CASE WHEN CP.Nro_Ticketera IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nro_Ticketera,'''','')+''',' END +
@@ -5152,18 +6108,18 @@ BEGIN
 			  CASE WHEN CP.Placa_Vehiculo IS NULL THEN 'NULL,' ELSE ''''+REPLACE( CP.Placa_Vehiculo,'''','')+''',' END +
 			  CASE WHEN CP.Cod_TipoDocReferencia IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoDocReferencia,'''','')+''',' END +
 			  CASE WHEN CP.Nro_DocReferencia IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nro_DocReferencia,'''','')+''',' END +
-			  CASE WHEN CP.Valor_Resumen IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Valor_Resumen,'''','')+''',' END +
-			  CASE WHEN CP.Valor_Firma IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Valor_Firma,'''','')+''',' END +
+			  'NULL,'+
+			  'NULL,'+
 			  CASE WHEN CP.Cod_EstadoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_EstadoComprobante,'''','')+''',' END +
 			  CASE WHEN CP.MotivoAnulacion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.MotivoAnulacion,'''','')+''',' END +
 			  CASE WHEN CP.Otros_Cargos IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Otros_Cargos)+','END+
 			  CASE WHEN CP.Otros_Tributos IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Otros_Tributos)+','END+
 			  ''''+REPLACE(COALESCE(CP.Cod_UsuarioAct,CP.Cod_UsuarioReg),'''','')+ ''';' 	 
-			  FROM            CAJ_COMPROBANTE_PAGO CP LEFT JOIN
-									   CAJ_COMPROBANTE_PAGO AS CPR ON CP.id_ComprobantePago = CPR.id_ComprobantePago
+			  FROM            INSERTED   CP 
 			  WHERE CP.id_ComprobantePago=@id_ComprobantePago
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -5182,89 +6138,6 @@ BEGIN
 			   @Script, -- Script - varchar
 			   @FechaReg -- Fecha_Reg - datetime
 		     )
-			END
-
-			IF @Accion ='ACTUALIZAR' AND (NOT UPDATE(Valor_Resumen) AND NOT UPDATE(Valor_Firma))
-			 BEGIN
-			--Si esta habilitada la exportacion para almacenar en la tabla de
-			--exportaciones
-			SELECT @Script= 'USP_CAJ_COMPROBANTE_PAGO_I '+ 
-			  CASE WHEN CP.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Libro,'''','')+''',' END +
-			  CASE WHEN CP.Cod_Periodo IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Periodo,'''','')+''',' END +
-			  CASE WHEN CP.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Caja,'''','')+''',' END +
-			  CASE WHEN CP.Cod_Turno IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Turno,'''','')+''',' END +
-			  CASE WHEN CP.Cod_TipoOperacion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoOperacion,'''','')+''',' END +
-			  CASE WHEN CP.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoComprobante,'''','')+''',' END +
-			  CASE WHEN CP.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Serie,'''','')+''',' END +
-			  CASE WHEN CP.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Numero,'''','')+''',' END +	
-			  CASE WHEN CP.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoDoc,'''','')+''',' END +
-			  CASE WHEN CP.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Doc_Cliente,'''','')+''',' END +
-			  CASE WHEN CP.Nom_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nom_Cliente,'''','')+''',' END +
-			  CASE WHEN CP.Direccion_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Direccion_Cliente,'''','')+''',' END +
-			  CASE WHEN CP.FechaEmision IS NULL THEN 'NULL,' ELSE ''''+ CONVERT(VARCHAR(MAX),CP.FechaEmision,121)+''','END+ 
-			  CASE WHEN CP.FechaVencimiento IS NULL THEN 'NULL,' ELSE ''''+ CONVERT(VARCHAR(MAX),CP.FechaVencimiento,121)+''','END+ 
-			  CASE WHEN CP.FechaCancelacion IS NULL THEN 'NULL,' ELSE ''''+ CONVERT(VARCHAR(MAX),CP.FechaCancelacion,121)+''','END+ 
-			  CASE WHEN CP.Glosa IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Glosa,'''','')+''',' END +
-			  CASE WHEN CP.TipoCambio IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.TipoCambio)+','END+
-			  CONVERT(VARCHAR(MAX),CP.Flag_Anulado)+','+ 
-			  CONVERT(VARCHAR(MAX),CP.Flag_Despachado)+','+ 
-			  CASE WHEN CP.Cod_FormaPago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_FormaPago,'''','')+''',' END +
-			  CASE WHEN CP.Descuento_Total IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Descuento_Total)+','END+
-			  CASE WHEN CP.Cod_Moneda IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Moneda,'''','')+''',' END +
-			  CASE WHEN CP.Impuesto IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Impuesto)+','END+
-			  CASE WHEN CP.Total IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Total)+','END+
-			  CASE WHEN CP.Obs_Comprobante IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CONVERT(VARCHAR(MAX),CP.Obs_Comprobante),'''','')+''','END+
-			  CASE WHEN CP.Id_GuiaRemision IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Id_GuiaRemision)+','END+
-			  CASE WHEN CP.GuiaRemision IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.GuiaRemision,'''','')+''','END+
-
-			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
-			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE (SELECT TOP 1 ccp.Cod_Libro FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef) END )),'''','')+''',' END+
-			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
-			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE (SELECT TOP 1 ccp.Cod_TipoComprobante FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef) END )),'''','')+''',' END+
-			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
-			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE (SELECT TOP 1 ccp.Serie FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef) END )),'''','')+''',' END+
-			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
-			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE (SELECT TOP 1 ccp.Numero FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef) END )),'''','')+''',' END+
-
-			  CASE WHEN CP.Cod_Plantilla IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Plantilla,'''','')+''',' END +
-			  CASE WHEN CP.Nro_Ticketera IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nro_Ticketera,'''','')+''',' END +
-			  CASE WHEN CP.Cod_UsuarioVendedor IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_UsuarioVendedor,'''','')+''',' END +
-			  CASE WHEN CP.Cod_RegimenPercepcion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_RegimenPercepcion,'''','')+''',' END +
-			  CASE WHEN CP.Tasa_Percepcion IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Tasa_Percepcion)+','END+
-			  CASE WHEN CP.Placa_Vehiculo IS NULL THEN 'NULL,' ELSE ''''+REPLACE( CP.Placa_Vehiculo,'''','')+''',' END +
-			  CASE WHEN CP.Cod_TipoDocReferencia IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoDocReferencia,'''','')+''',' END +
-			  CASE WHEN CP.Nro_DocReferencia IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nro_DocReferencia,'''','')+''',' END +
-			  CASE WHEN CP.Valor_Resumen IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Valor_Resumen,'''','')+''',' END +
-			  CASE WHEN CP.Valor_Firma IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Valor_Firma,'''','')+''',' END +
-			  CASE WHEN CP.Cod_EstadoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_EstadoComprobante,'''','')+''',' END +
-			  CASE WHEN CP.MotivoAnulacion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.MotivoAnulacion,'''','')+''',' END +
-			  CASE WHEN CP.Otros_Cargos IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Otros_Cargos)+','END+
-			  CASE WHEN CP.Otros_Tributos IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Otros_Tributos)+','END+
-			  ''''+REPLACE(COALESCE(CP.Cod_UsuarioAct,CP.Cod_UsuarioReg),'''','')+ ''';' 	 
-			  FROM            CAJ_COMPROBANTE_PAGO CP LEFT JOIN
-									   CAJ_COMPROBANTE_PAGO AS CPR ON CP.id_ComprobantePago = CPR.id_ComprobantePago
-			  WHERE CP.id_ComprobantePago=@id_ComprobantePago
-
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
-			INSERT dbo.TMP_REGISTRO_LOG
-			(
-			   --Id,
-			   Nombre_Tabla,
-			   Id_Fila,
-			   Accion,
-			   Script,
-			   Fecha_Reg
-		     )
-		    VALUES
-			(
-			   --NULL, -- Id - uniqueidentifier
-			   @NombreTabla, -- Nombre_Tabla - varchar
-			   CONCAT('',@id_ComprobantePago), -- Id_Fila - varchar
-			   @Accion, -- Accion - varchar
-			   @Script, -- Script - varchar
-			   @FechaReg -- Fecha_Reg - datetime
-		     )
-			END
 		  FETCH NEXT FROM cursorbd INTO
 		    @id_ComprobantePago,
 		    @Fecha_Reg,
@@ -5272,6 +6145,61 @@ BEGIN
 		END
 		CLOSE cursorbd;
     	DEALLOCATE cursorbd
+    END 
+
+    IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.id_ComprobantePago,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d 
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			 SELECT @Script= 'USP_CAJ_COMPROBANTE_PAGO_D '+ 
+			 CASE WHEN CP.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Libro,'''','')+''',' END +
+			 CASE WHEN CP.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoComprobante,'''','')+''',' END +
+			 CASE WHEN CP.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Serie,'''','')+''',' END +
+			 CASE WHEN CP.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Numero,'''','')+''',' END +	
+			 ''''+'TRIGGER'+''',' +
+			 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 	 
+			 FROM            DELETED  CP 
+			 WHERE CP.id_ComprobantePago=@id_ComprobantePago
+
+		   	    SET @FechaReg= GETDATE()
+			    INSERT dbo.TMP_REGISTRO_LOG
+			    (
+				  --Id,
+				  Nombre_Tabla,
+				  Id_Fila,
+				  Accion,
+				  Script,
+				  Fecha_Reg
+			    )
+			   VALUES
+			    (
+				  --NULL, -- Id - uniqueidentifier
+				  @NombreTabla, -- Nombre_Tabla - varchar
+				  CONCAT('',@id_ComprobantePago), -- Id_Fila - varchar
+				  @Accion, -- Accion - varchar
+				  @Script, -- Script - varchar
+				  @FechaReg -- Fecha_Reg - datetime
+			    )
+			 FETCH NEXT FROM cursorbd INTO
+			   @id_ComprobantePago,
+			   @Fecha_Reg,
+			   @Fecha_Act
+		    END
+		    CLOSE cursorbd;
+    		DEALLOCATE cursorbd
     END
 
     --Acciones de auditoria, especiales por tipo
@@ -5839,7 +6767,7 @@ BEGIN
 			 WHERE 
 				R.id_ComprobantePago=@id_ComprobantePago AND R.id_Detalle=@id_Detalle AND R.Item=@Item
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -5869,6 +6797,71 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.id_ComprobantePago,
+		    d.id_Detalle,
+		    d.Item,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @id_Detalle,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script='USP_CAJ_COMPROBANTE_RELACION_D'+ 
+			  CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
+			  CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
+			  CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
+			  CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
+			  CONVERT(VARCHAR(MAX),R.id_Detalle)+','+ 
+			  CONVERT(VARCHAR(MAX),R.Item) +','+ 
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED  R INNER JOIN
+				   CAJ_COMPROBANTE_PAGO AS P ON R.id_ComprobantePago = P.id_ComprobantePago INNER JOIN
+				   CAJ_COMPROBANTE_PAGO AS PP ON R.Id_ComprobanteRelacion = PP.id_ComprobantePago
+			 WHERE 
+				R.id_ComprobantePago=@id_ComprobantePago AND R.id_Detalle=@id_Detalle AND R.Item=@Item
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@id_ComprobantePago,'|',@id_Detalle,'|',@Item), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @id_Detalle,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -6123,7 +7116,59 @@ BEGIN
 			  FROM            INSERTED
 			  WHERE INSERTED.Id_Concepto=@Id_Concepto
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_Concepto), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Concepto,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Concepto,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d 
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Concepto,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_CAJ_CONCEPTO_D ' + 
+			  CONVERT(VARCHAR(MAX),d.Id_Concepto)+','+  
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED d
+			  WHERE d.Id_Concepto=@Id_Concepto
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -6407,7 +7452,67 @@ BEGIN
 				    CAJ_COMPROBANTE_PAGO AS P ON F.id_ComprobantePago = P.id_ComprobantePago
 				 WHERE F.id_ComprobantePago=@id_ComprobantePago AND F.Item=@Item
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@id_ComprobantePago,'|',@Item), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.id_ComprobantePago,
+		    d.Item,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @Item,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+				 SELECT @Script= 'USP_CAJ_FORMA_PAGO_D '+ 
+				 CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
+				 CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
+				 CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
+				 CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
+				 CONVERT(VARCHAR(MAX),F.Item)+','+ 
+				 ''''+'TRIGGER'+''',' +
+				 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+				 FROM  DELETED  F INNER JOIN
+				    CAJ_COMPROBANTE_PAGO AS P ON F.id_ComprobantePago = P.id_ComprobantePago
+				 WHERE F.id_ComprobantePago=@id_ComprobantePago AND F.Item=@Item
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -6662,1003 +7767,6 @@ BEGIN
 END
 GO
 
-----CAJ_GUIA_REMISION
---IF EXISTS (SELECT name
---	   FROM   sysobjects 
---	   WHERE  name = N'UTR_CAJ_GUIA_REMISION_IUD'
---	   AND 	  type = 'TR')
---    DROP TRIGGER UTR_CAJ_GUIA_REMISION_IUD
---GO
-
---CREATE TRIGGER UTR_CAJ_GUIA_REMISION_IUD
---ON dbo.CAJ_GUIA_REMISION
---WITH ENCRYPTION
---AFTER INSERT,UPDATE,DELETE
---AS
---BEGIN
---	--Variables de tabla primarias
---	DECLARE @Id_GuiaRemision int
---	DECLARE @Fecha_Reg datetime
---	DECLARE @Fecha_Act datetime
---	DECLARE @NombreTabla varchar(max)='CAJ_GUIA_REMISION'
---	--Variables de tabla secundarias
---	DECLARE @Cod_Caja varchar(32)
---	DECLARE @Cod_Turno varchar(32)
---	DECLARE @Cod_TipoComprobante varchar(5)
---	DECLARE @Serie varchar(5)
---	DECLARE @Numero varchar(32)
---	DECLARE @Punto_Partida varchar(512)
---	DECLARE @Origen varchar(512)
---	DECLARE @Nro_Partida varchar(64)
---	DECLARE @Fecha_Traslado datetime
---	DECLARE @Certificado_Inscripcion varchar(512)
---	DECLARE @Certificado_Habilitacion varchar(512)
---	DECLARE @Num_Placa varchar(32)
---	DECLARE @Licencia_Conductor varchar(32)
---	DECLARE @Punto_Llegada varchar(512)
---	DECLARE @Destino varchar(512)
---	DECLARE @Nro_Llegada varchar(64)
---	DECLARE @Id_ClienteProveedor int
---	DECLARE @Id_Transportista int
---	DECLARE @Cod_MotivoTraslado varchar(5)
---	DECLARE @Motivo_Traslado varchar(512)
---	DECLARE @Obs_GuiaRemision varchar(1024)
---	DECLARE @Flag_Anulado bit
---	DECLARE @Cod_EstadoGuia varchar(3)
---	DECLARE @Cod_UsuarioReg varchar(32)
---	DECLARE @Cod_UsuarioAct varchar(32)
---	--Variables Generales
---	DECLARE @Script varchar(max)
---	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
---	DECLARE @FechaReg datetime
---	DECLARE @Accion varchar(MAX)
---	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
---     --Acciones
---	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='ACTUALIZAR'
---	END
-
---	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='INSERTAR'
---	END
-
---	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='ELIMINAR'
---	END
-
---	--Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
---	-- IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
---	-- BEGIN
---	--     DECLARE cursorbd CURSOR LOCAL FOR
---	-- 	    SELECT
---	-- 	    i.Id_GuiaRemision,
---	-- 	    i.Fecha_Reg,
---	-- 	    i.Fecha_Act
---	-- 	    FROM INSERTED i
---	--     OPEN cursorbd 
---	--     FETCH NEXT FROM cursorbd INTO
---	-- 	    @Id_GuiaRemision,
---	-- 	    @Fecha_Reg,
---	-- 	    @Fecha_Act
---	--     WHILE @@FETCH_STATUS = 0
---	--     BEGIN
---	-- 		--Si esta habilitada la exportacion para almacenar en la tabla de
---	-- 		--exportaciones
---	-- 		  SELECT @Script= 'CAJ_GUIA_REMISION_I '+ 
---	-- 	       CASE WHEN cgr.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+cgr.Cod_Caja+''',' END +
---	-- 		  CASE WHEN cgr.Cod_Turno IS NULL THEN 'NULL,' ELSE ''''+cgr.Cod_Turno+''',' END +
---	-- 		  CASE WHEN cgr.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+cgr.Cod_TipoComprobante+''',' END +
---	-- 		  CASE WHEN cgr.Serie IS NULL THEN 'NULL,' ELSE ''''+cgr.Serie+''',' END +	
---	-- 		  CASE WHEN cgr.Numero IS NULL THEN 'NULL,' ELSE ''''+cgr.Numero+''',' END +
---	-- 		  CASE WHEN cgr.Punto_Partida IS NULL THEN 'NULL,' ELSE ''''+cgr.Punto_Partida+''',' END +
---	-- 		  CASE WHEN cgr.Origen IS NULL THEN 'NULL,' ELSE ''''+cgr.Origen+''',' END +
---	-- 		  CASE WHEN cgr.Nro_Partida IS NULL THEN 'NULL,' ELSE ''''+cgr.Nro_Partida+''',' END +
---	-- 		  CASE WHEN cgr.Nro_Partida IS NULL THEN 'NULL,' ELSE ''''+cgr.Nro_Partida+''',' END +
---	-- 		  CASE WHEN cgr.Fecha_Traslado IS NULL THEN 'NULL,' ELSE '''' +CONVERT(VARCHAR(MAX),cgr.Fecha_Traslado)+''','END+ 
---	-- 		  CASE WHEN cgr.Certificado_Inscripcion IS NULL THEN 'NULL,' ELSE ''''+cgr.Certificado_Inscripcion+''',' END +
---	-- 		  CASE WHEN cgr.Certificado_Habilitacion IS NULL THEN 'NULL,' ELSE ''''+cgr.Certificado_Habilitacion+''',' END +
---	-- 		  CASE WHEN cgr.Num_Placa IS NULL THEN 'NULL,' ELSE ''''+cgr.Num_Placa+''',' END +
---	-- 		  CASE WHEN cgr.Licencia_Conductor IS NULL THEN 'NULL,' ELSE ''''+cgr.Licencia_Conductor+''',' END +
---	-- 		  CASE WHEN cgr.Punto_Llegada IS NULL THEN 'NULL,' ELSE ''''+cgr.Punto_Llegada+''',' END +
---	-- 		  CASE WHEN cgr.Destino IS NULL THEN 'NULL,' ELSE ''''+cgr.Destino+''',' END +
---	-- 		  CASE WHEN cgr.Nro_Llegada IS NULL THEN 'NULL,' ELSE ''''+cgr.Nro_Llegada+''',' END +
---	-- 		  CASE WHEN cgr.Id_ClienteProveedor IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),cgr.Id_ClienteProveedor)+','END+ 
---	-- 		  CASE WHEN cgr.Id_Transportista IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),cgr.Id_Transportista)+','END+ 
---	-- 		  CASE WHEN cgr.Cod_MotivoTraslado IS NULL THEN 'NULL,' ELSE ''''+cgr.Cod_MotivoTraslado+''',' END +
---	-- 		  CASE WHEN cgr.Motivo_Traslado IS NULL THEN 'NULL,' ELSE ''''+cgr.Motivo_Traslado+''',' END +
---	-- 		  CASE WHEN cgr.Obs_GuiaRemision IS NULL THEN 'NULL,' ELSE ''''+cgr.Obs_GuiaRemision+''',' END +
---	-- 		  CONVERT(VARCHAR(MAX),cgr.Flag_Anulado)+','+ 
---	-- 		  CASE WHEN cgr.Cod_EstadoGuia IS NULL THEN 'NULL,' ELSE ''''+cgr.Cod_EstadoGuia+''',' END + 
---	-- 		  ''''+COALESCE(cgr.Cod_UsuarioAct,cgr.Cod_UsuarioReg)+ ''';' 
---	-- 		  FROM  INSERTED cgr
---	-- 		  WHERE cgr.Id_GuiaRemision=@Id_GuiaRemision
-
---	-- 	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
---	-- 		INSERT dbo.TMP_REGISTRO_LOG
---	-- 		(
---	-- 		   --Id,
---	-- 		   Nombre_Tabla,
---	-- 		   Id_Fila,
---	-- 		   Accion,
---	-- 		   Script,
---	-- 		   Fecha_Reg
---	-- 	     )
---	-- 	    VALUES
---	-- 		(
---	-- 		   --NULL, -- Id - uniqueidentifier
---	-- 		   @NombreTabla, -- Nombre_Tabla - varchar
---	-- 		   CONCAT('',@Id_GuiaRemision), -- Id_Fila - varchar
---	-- 		   @Accion, -- Accion - varchar
---	-- 		   @Script, -- Script - varchar
---	-- 		   @FechaReg -- Fecha_Reg - datetime
---	-- 	     )
---	-- 	  FETCH NEXT FROM cursorbd INTO
---	-- 	    @Id_GuiaRemision,
---	-- 	    @Fecha_Reg,
---	-- 	    @Fecha_Act
---	-- 	END
---	-- 	CLOSE cursorbd;
---    -- 	DEALLOCATE cursorbd
---    -- END
-
---    --Acciones de auditoria, especiales por tipo
---    --Insercion
---    IF @Accion='INSERTAR'
---	 BEGIN
---	    DECLARE cursorbd CURSOR LOCAL FOR
---		    SELECT
---			 i.Id_GuiaRemision,
---			 i.Cod_Caja,
---			 i.Cod_Turno,
---			 i.Cod_TipoComprobante,
---			 i.Serie,
---			 i.Numero,
---			 i.Punto_Partida,
---			 i.Origen,
---			 i.Nro_Partida,
---			 i.Fecha_Traslado,
---			 i.Certificado_Inscripcion,
---			 i.Certificado_Habilitacion,
---			 i.Num_Placa,
---			 i.Licencia_Conductor,
---			 i.Punto_Llegada,
---			 i.Destino,
---			 i.Nro_Llegada,
---			 i.Id_ClienteProveedor,
---			 i.Id_Transportista,
---			 i.Cod_MotivoTraslado,
---			 i.Motivo_Traslado,
---			 i.Obs_GuiaRemision,
---			 i.Flag_Anulado,
---			 i.Cod_EstadoGuia,
---			 i.Cod_UsuarioReg,
---			 i.Fecha_Reg,
---			 i.Cod_UsuarioAct,
---			 i.Fecha_Act
---		  FROM INSERTED i
---	    OPEN cursorbd 
---	    FETCH NEXT FROM cursorbd INTO 
---			 @Id_GuiaRemision,
---			 @Cod_Caja,
---			 @Cod_Turno,
---			 @Cod_TipoComprobante,
---			 @Serie,
---			 @Numero,
---			 @Punto_Partida,
---			 @Origen,
---			 @Nro_Partida,
---			 @Fecha_Traslado,
---			 @Certificado_Inscripcion,
---			 @Certificado_Habilitacion,
---			 @Num_Placa,
---			 @Licencia_Conductor,
---			 @Punto_Llegada,
---			 @Destino,
---			 @Nro_Llegada,
---			 @Id_ClienteProveedor,
---			 @Id_Transportista,
---			 @Cod_MotivoTraslado,
---			 @Motivo_Traslado,
---			 @Obs_GuiaRemision,
---			 @Flag_Anulado,
---			 @Cod_EstadoGuia,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---	    WHILE @@FETCH_STATUS = 0
---	    BEGIN
---		  --Acciones
---		  SET @Script = CONCAT(
---			 @Id_GuiaRemision,'|' ,
---			 @Cod_Caja,'|' ,
---			 @Cod_Turno,'|' ,
---			 @Cod_TipoComprobante,'|' ,
---			 @Serie,'|' ,
---			 @Numero,'|' ,
---			 @Punto_Partida,'|' ,
---			 @Origen,'|' ,
---			 @Nro_Partida,'|' ,
---			 CONVERT(varchar,@Fecha_Traslado,121), '|' ,
---			 @Certificado_Inscripcion,'|' ,
---			 @Certificado_Habilitacion,'|' ,
---			 @Num_Placa,'|' ,
---			 @Licencia_Conductor,'|' ,
---			 @Punto_Llegada,'|' ,
---			 @Destino,'|' ,
---			 @Nro_Llegada,'|' ,
---			 @Id_ClienteProveedor,'|' ,
---			 @Id_Transportista,'|' ,
---			 @Cod_MotivoTraslado,'|' ,
---			 @Motivo_Traslado,'|' ,
---			 @Obs_GuiaRemision,'|' ,
---			 @Flag_Anulado,'|' ,
---			 @Cod_EstadoGuia,'|' ,
---			 @Cod_UsuarioReg,'|' ,
---			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
---			 @Cod_UsuarioAct,'|' ,
---			 CONVERT(varchar,@Fecha_Act,121)
---		  )
-
---		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
---		  (
---		      Nombre_BD,
---		      Nombre_Tabla,
---		      Id_Fila,
---		      Accion,
---		      Valor,
---		      Fecha_Reg
---		  )
---		  VALUES
---		  (
---		      @NombreBD, -- Nombre_BD - varchar
---		      @NombreTabla, -- Nombre_Tabla - varchar
---			  CONCAT('',@Id_GuiaRemision), -- Id_Fila - varchar
---		      @Accion, -- Accion - varchar
---		      @Script, -- Valor - varchar
---		      GETDATE() -- Fecha_Reg - datetime
---		  )
-
---		  FETCH NEXT FROM cursorbd INTO
---			 @Id_GuiaRemision,
---			 @Cod_Caja,
---			 @Cod_Turno,
---			 @Cod_TipoComprobante,
---			 @Serie,
---			 @Numero,
---			 @Punto_Partida,
---			 @Origen,
---			 @Nro_Partida,
---			 @Fecha_Traslado,
---			 @Certificado_Inscripcion,
---			 @Certificado_Habilitacion,
---			 @Num_Placa,
---			 @Licencia_Conductor,
---			 @Punto_Llegada,
---			 @Destino,
---			 @Nro_Llegada,
---			 @Id_ClienteProveedor,
---			 @Id_Transportista,
---			 @Cod_MotivoTraslado,
---			 @Motivo_Traslado,
---			 @Obs_GuiaRemision,
---			 @Flag_Anulado,
---			 @Cod_EstadoGuia,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---		END
---		CLOSE cursorbd;
---    	DEALLOCATE cursorbd
---    END
-
---    --Actualizacion y eliminacion
---    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
---	 BEGIN
---	    DECLARE cursorbd CURSOR LOCAL FOR
---		    SELECT
---			 d.Id_GuiaRemision,
---			 d.Cod_Caja,
---			 d.Cod_Turno,
---			 d.Cod_TipoComprobante,
---			 d.Serie,
---			 d.Numero,
---			 d.Punto_Partida,
---			 d.Origen,
---			 d.Nro_Partida,
---			 d.Fecha_Traslado,
---			 d.Certificado_Inscripcion,
---			 d.Certificado_Habilitacion,
---			 d.Num_Placa,
---			 d.Licencia_Conductor,
---			 d.Punto_Llegada,
---			 d.Destino,
---			 d.Nro_Llegada,
---			 d.Id_ClienteProveedor,
---			 d.Id_Transportista,
---			 d.Cod_MotivoTraslado,
---			 d.Motivo_Traslado,
---			 d.Obs_GuiaRemision,
---			 d.Flag_Anulado,
---			 d.Cod_EstadoGuia,
---			 d.Cod_UsuarioReg,
---			 d.Fecha_Reg,
---			 d.Cod_UsuarioAct,
---			 d.Fecha_Act
---		  FROM DELETED d
---	    OPEN cursorbd 
---	    FETCH NEXT FROM cursorbd INTO 
---			 @Id_GuiaRemision,
---			 @Cod_Caja,
---			 @Cod_Turno,
---			 @Cod_TipoComprobante,
---			 @Serie,
---			 @Numero,
---			 @Punto_Partida,
---			 @Origen,
---			 @Nro_Partida,
---			 @Fecha_Traslado,
---			 @Certificado_Inscripcion,
---			 @Certificado_Habilitacion,
---			 @Num_Placa,
---			 @Licencia_Conductor,
---			 @Punto_Llegada,
---			 @Destino,
---			 @Nro_Llegada,
---			 @Id_ClienteProveedor,
---			 @Id_Transportista,
---			 @Cod_MotivoTraslado,
---			 @Motivo_Traslado,
---			 @Obs_GuiaRemision,
---			 @Flag_Anulado,
---			 @Cod_EstadoGuia,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---	    WHILE @@FETCH_STATUS = 0
---	    BEGIN
---		  --Acciones
---		  SET @Script = CONCAT(
---			 @Id_GuiaRemision,'|' ,
---			 @Cod_Caja,'|' ,
---			 @Cod_Turno,'|' ,
---			 @Cod_TipoComprobante,'|' ,
---			 @Serie,'|' ,
---			 @Numero,'|' ,
---			 @Punto_Partida,'|' ,
---			 @Origen,'|' ,
---			 @Nro_Partida,'|' ,
---			 CONVERT(varchar,@Fecha_Traslado,121), '|' ,
---			 @Certificado_Inscripcion,'|' ,
---			 @Certificado_Habilitacion,'|' ,
---			 @Num_Placa,'|' ,
---			 @Licencia_Conductor,'|' ,
---			 @Punto_Llegada,'|' ,
---			 @Destino,'|' ,
---			 @Nro_Llegada,'|' ,
---			 @Id_ClienteProveedor,'|' ,
---			 @Id_Transportista,'|' ,
---			 @Cod_MotivoTraslado,'|' ,
---			 @Motivo_Traslado,'|' ,
---			 @Obs_GuiaRemision,'|' ,
---			 @Flag_Anulado,'|' ,
---			 @Cod_EstadoGuia,'|' ,
---			 @Cod_UsuarioReg,'|' ,
---			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
---			 @Cod_UsuarioAct,'|' ,
---			 CONVERT(varchar,@Fecha_Act,121)
---		  )
-
---		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
---		  (
---		      Nombre_BD,
---		      Nombre_Tabla,
---		      Id_Fila,
---		      Accion,
---		      Valor,
---		      Fecha_Reg
---		  )
---		  VALUES
---		  (
---		      @NombreBD, -- Nombre_BD - varchar
---		      @NombreTabla, -- Nombre_Tabla - varchar
---			   CONCAT('',@Id_GuiaRemision), -- Id_Fila - varchar
---		      @Accion, -- Accion - varchar
---		      @Script, -- Valor - varchar
---		      GETDATE() -- Fecha_Reg - datetime
---		  )
-
---		  FETCH NEXT FROM cursorbd INTO
---			 @Id_GuiaRemision,
---			 @Cod_Caja,
---			 @Cod_Turno,
---			 @Cod_TipoComprobante,
---			 @Serie,
---			 @Numero,
---			 @Punto_Partida,
---			 @Origen,
---			 @Nro_Partida,
---			 @Fecha_Traslado,
---			 @Certificado_Inscripcion,
---			 @Certificado_Habilitacion,
---			 @Num_Placa,
---			 @Licencia_Conductor,
---			 @Punto_Llegada,
---			 @Destino,
---			 @Nro_Llegada,
---			 @Id_ClienteProveedor,
---			 @Id_Transportista,
---			 @Cod_MotivoTraslado,
---			 @Motivo_Traslado,
---			 @Obs_GuiaRemision,
---			 @Flag_Anulado,
---			 @Cod_EstadoGuia,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---		END
---		CLOSE cursorbd;
---    	DEALLOCATE cursorbd
---    END
-
---END
---GO
-
-----CAJ_GUIA_REMISION_D
---IF EXISTS (SELECT name
---	   FROM   sysobjects 
---	   WHERE  name = N'UTR_CAJ_GUIA_REMISION_D_IUD'
---	   AND 	  type = 'TR')
---    DROP TRIGGER UTR_CAJ_GUIA_REMISION_D_IUD
---GO
-
---CREATE TRIGGER UTR_CAJ_GUIA_REMISION_D_IUD
---ON dbo.CAJ_GUIA_REMISION_D
---WITH ENCRYPTION
---AFTER INSERT,UPDATE,DELETE
---AS
---BEGIN
---	--Variables de tabla primarias
---	DECLARE @Id_GuiaRemision int
---	DECLARE @Item int
---	DECLARE @Fecha_Reg datetime
---	DECLARE @Fecha_Act datetime
---	DECLARE @NombreTabla varchar(max)='CAJ_GUIA_REMISION_D'
---	--Variables de tabla secundarias
---	DECLARE @Cod_Almacen varchar(32)
---	DECLARE @Cod_UnidadMedida varchar(5)
---	DECLARE @Id_Producto int
---	DECLARE @Cantidad numeric(38,2)
---	DECLARE @Descripcion varchar(512)
---	DECLARE @PesoTotal numeric(32,2)
---	DECLARE @Obs_Detalle varchar(1024)
---	DECLARE @Cod_UsuarioReg varchar(32)
---	DECLARE @Cod_UsuarioAct varchar(32)
---	--Variables Generales
---	DECLARE @Script varchar(max)
---	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
---	DECLARE @FechaReg datetime
---	DECLARE @Accion varchar(MAX)
---	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
---   --Acciones
---	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='ACTUALIZAR'
---	END
-
---	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='INSERTAR'
---	END
-
---	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='ELIMINAR'
---	END
-
---	----Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
---	--IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
---	--BEGIN
---	--    DECLARE cursorbd CURSOR LOCAL FOR
---	--	    SELECT
---	--	    i.Id_GuiaRemision,
---	--	    i.Item,
---	--	    i.Fecha_Reg,
---	--	    i.Fecha_Act
---	--	    FROM INSERTED i
---	--    OPEN cursorbd 
---	--    FETCH NEXT FROM cursorbd INTO
---	--	    @Id_GuiaRemision,
---	--	    @Item,
---	--	    @Fecha_Reg,
---	--	    @Fecha_Act
---	--    WHILE @@FETCH_STATUS = 0
---	--    BEGIN
---	--		--Si esta habilitada la exportacion para almacenar en la tabla de
---	--		--exportaciones
-
-
-
-
-
---	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
---	--		INSERT dbo.TMP_REGISTRO_LOG
---	--		(
---	--		   --Id,
---	--		   Nombre_Tabla,
---	--		   Id_Fila,
---	--		   Accion,
---	--		   Script,
---	--		   Fecha_Reg
---	--	     )
---	--	    VALUES
---	--		(
---	--		   --NULL, -- Id - uniqueidentifier
---	--		   @NombreTabla, -- Nombre_Tabla - varchar
---	--		   CONCAT('',@Id_GuiaRemision,'|',@Item,'|',), -- Id_Fila - varchar
---	--		   @Accion, -- Accion - varchar
---	--		   @Script, -- Script - varchar
---	--		   @FechaReg -- Fecha_Reg - datetime
---	--	     )
---	--	  FETCH NEXT FROM cursorbd INTO
---	--	    @Id_GuiaRemision,
---	--	    @Item,
---	--	    @Fecha_Reg,
---	--	    @Fecha_Act
---	--	END
---	--	CLOSE cursorbd;
--- --   	DEALLOCATE cursorbd
--- --   END
-
---    --Acciones de auditoria, especiales por tipo
---    --Insercion
---    IF @Accion='INSERTAR'
---	 BEGIN
---	    DECLARE cursorbd CURSOR LOCAL FOR
---		    SELECT
---			 i.Id_GuiaRemision,
---			 i.Item,
---			 i.Cod_Almacen,
---			 i.Cod_UnidadMedida,
---			 i.Id_Producto,
---			 i.Cantidad,
---			 i.Descripcion,
---			 i.PesoTotal,
---			 i.Obs_Detalle,
---			 i.Cod_UsuarioReg,
---			 i.Fecha_Reg,
---			 i.Cod_UsuarioAct,
---			 i.Fecha_Act
---		  FROM INSERTED i
---	    OPEN cursorbd 
---	    FETCH NEXT FROM cursorbd INTO 
---			 @Id_GuiaRemision,
---			 @Item,
---			 @Cod_Almacen,
---			 @Cod_UnidadMedida,
---			 @Id_Producto,
---			 @Cantidad,
---			 @Descripcion,
---			 @PesoTotal,
---			 @Obs_Detalle,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---	    WHILE @@FETCH_STATUS = 0
---	    BEGIN
---		  --Acciones
---		  SET @Script = CONCAT(
---			 @Id_GuiaRemision,'|' ,
---			 @Item,'|' ,
---			 @Cod_Almacen,'|' ,
---			 @Cod_UnidadMedida,'|' ,
---			 @Id_Producto,'|' ,
---			 @Cantidad,'|' ,
---			 @Descripcion,'|' ,
---			 @PesoTotal,'|' ,
---			 @Obs_Detalle,'|' ,
---			 @Cod_UsuarioReg,'|' ,
---			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
---			 @Cod_UsuarioAct,'|' ,
---			 CONVERT(varchar,@Fecha_Act,121)
---		  )
-
---		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
---		  (
---		      Nombre_BD,
---		      Nombre_Tabla,
---		      Id_Fila,
---		      Accion,
---		      Valor,
---		      Fecha_Reg
---		  )
---		  VALUES
---		  (
---		      @NombreBD, -- Nombre_BD - varchar
---		      @NombreTabla, -- Nombre_Tabla - varchar
---			  CONCAT(@Id_GuiaRemision,'|',@Item), -- Id_Fila - varchar
---		      @Accion, -- Accion - varchar
---		      @Script, -- Valor - varchar
---		      GETDATE() -- Fecha_Reg - datetime
---		  )
-
---		  FETCH NEXT FROM cursorbd INTO
---			 @Id_GuiaRemision,
---			 @Item,
---			 @Cod_Almacen,
---			 @Cod_UnidadMedida,
---			 @Id_Producto,
---			 @Cantidad,
---			 @Descripcion,
---			 @PesoTotal,
---			 @Obs_Detalle,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---		END
---		CLOSE cursorbd;
---    	DEALLOCATE cursorbd
---    END
-
---    --Actualizacion y eliminacion
---    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
---	 BEGIN
---	    DECLARE cursorbd CURSOR LOCAL FOR
---		    SELECT
---			 d.Id_GuiaRemision,
---			 d.Item,
---			 d.Cod_Almacen,
---			 d.Cod_UnidadMedida,
---			 d.Id_Producto,
---			 d.Cantidad,
---			 d.Descripcion,
---			 d.PesoTotal,
---			 d.Obs_Detalle,
---			 d.Cod_UsuarioReg,
---			 d.Fecha_Reg,
---			 d.Cod_UsuarioAct,
---			 d.Fecha_Act
---		  FROM DELETED d
---	    OPEN cursorbd 
---	    FETCH NEXT FROM cursorbd INTO 
---			 @Id_GuiaRemision,
---			 @Item,
---			 @Cod_Almacen,
---			 @Cod_UnidadMedida,
---			 @Id_Producto,
---			 @Cantidad,
---			 @Descripcion,
---			 @PesoTotal,
---			 @Obs_Detalle,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---	    WHILE @@FETCH_STATUS = 0
---	    BEGIN
---		  --Acciones
---		  SET @Script = CONCAT(
---			 @Id_GuiaRemision,'|' ,
---			 @Item,'|' ,
---			 @Cod_Almacen,'|' ,
---			 @Cod_UnidadMedida,'|' ,
---			 @Id_Producto,'|' ,
---			 @Cantidad,'|' ,
---			 @Descripcion,'|' ,
---			 @PesoTotal,'|' ,
---			 @Obs_Detalle,'|' ,
---			 @Cod_UsuarioReg,'|' ,
---			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
---			 @Cod_UsuarioAct,'|' ,
---			 CONVERT(varchar,@Fecha_Act,121)
---		  )
-
---		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
---		  (
---		      Nombre_BD,
---		      Nombre_Tabla,
---		      Id_Fila,
---		      Accion,
---		      Valor,
---		      Fecha_Reg
---		  )
---		  VALUES
---		  (
---		      @NombreBD, -- Nombre_BD - varchar
---		      @NombreTabla, -- Nombre_Tabla - varchar
---			   CONCAT(@Id_GuiaRemision,'|',@Item), -- Id_Fila - varchar
---		      @Accion, -- Accion - varchar
---		      @Script, -- Valor - varchar
---		      GETDATE() -- Fecha_Reg - datetime
---		  )
-
---		  FETCH NEXT FROM cursorbd INTO
---			 @Id_GuiaRemision,
---			 @Item,
---			 @Cod_Almacen,
---			 @Cod_UnidadMedida,
---			 @Id_Producto,
---			 @Cantidad,
---			 @Descripcion,
---			 @PesoTotal,
---			 @Obs_Detalle,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---		END
---		CLOSE cursorbd;
---    	DEALLOCATE cursorbd
---    END
-
---END
---GO
-
-----CAJ_IMPUESTOS
---IF EXISTS (SELECT name
---	   FROM   sysobjects 
---	   WHERE  name = N'UTR_CAJ_IMPUESTOS_IUD'
---	   AND 	  type = 'TR')
---    DROP TRIGGER UTR_CAJ_IMPUESTOS_IUD
---GO
-
---CREATE TRIGGER UTR_CAJ_IMPUESTOS_IUD
---ON dbo.CAJ_IMPUESTOS
---WITH ENCRYPTION
---AFTER INSERT,UPDATE,DELETE
---AS
---BEGIN
---	--Variables de tabla primarias
---	DECLARE @id_ComprobantePago int
---	DECLARE @Cod_Impuesto varchar(32)
---	DECLARE @Fecha_Reg datetime
---	DECLARE @Fecha_Act datetime
---	DECLARE @NombreTabla varchar(max)='CAJ_IMPUESTOS'
---	--Variables de tabla secundarias
---	DECLARE @Porcentaje numeric(5,2)
---	DECLARE @Monto numeric(38,2)
---	DECLARE @Obs_Impuesto varchar(1024)
---	DECLARE @Cod_UsuarioReg varchar(32)
---	DECLARE @Cod_UsuarioAct varchar(32)
---	--Variables Generales
---	DECLARE @Script varchar(max)
---	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
---	DECLARE @FechaReg datetime
---	DECLARE @Accion varchar(MAX)
---	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
---   --Acciones
---	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='ACTUALIZAR'
---	END
-
---	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='INSERTAR'
---	END
-
---	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='ELIMINAR'
---	END
-
---	----Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
---	--IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
---	--BEGIN
---	--    DECLARE cursorbd CURSOR LOCAL FOR
---	--	    SELECT
---	--	    i.id_ComprobantePago,
---	--	    i.Cod_Impuesto,
---	--	    i.Fecha_Reg,
---	--	    i.Fecha_Act
---	--	    FROM INSERTED i
---	--    OPEN cursorbd 
---	--    FETCH NEXT FROM cursorbd INTO
---	--	    @id_ComprobantePago,
---	--	    @Cod_Impuesto,
---	--	    @Fecha_Reg,
---	--	    @Fecha_Act
---	--    WHILE @@FETCH_STATUS = 0
---	--    BEGIN
---	--		--Si esta habilitada la exportacion para almacenar en la tabla de
---	--		--exportaciones
-
-
-
-
-
---	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
---	--		INSERT dbo.TMP_REGISTRO_LOG
---	--		(
---	--		   --Id,
---	--		   Nombre_Tabla,
---	--		   Id_Fila,
---	--		   Accion,
---	--		   Script,
---	--		   Fecha_Reg
---	--	     )
---	--	    VALUES
---	--		(
---	--		   --NULL, -- Id - uniqueidentifier
---	--		   @NombreTabla, -- Nombre_Tabla - varchar
---	--		   CONCAT('',@id_ComprobantePago,'|',@Cod_Impuesto,'|',), -- Id_Fila - varchar
---	--		   @Accion, -- Accion - varchar
---	--		   @Script, -- Script - varchar
---	--		   @FechaReg -- Fecha_Reg - datetime
---	--	     )
---	--	  FETCH NEXT FROM cursorbd INTO
---	--	    @id_ComprobantePago,
---	--	    @Cod_Impuesto,
---	--	    @Fecha_Reg,
---	--	    @Fecha_Act
---	--	END
---	--	CLOSE cursorbd;
--- --   	DEALLOCATE cursorbd
--- --   END
-
---    --Acciones de auditoria, especiales por tipo
---    --Insercion
---    IF @Accion='INSERTAR'
---	 BEGIN
---	    DECLARE cursorbd CURSOR LOCAL FOR
---		    SELECT
---			 i.id_ComprobantePago,
---			 i.Cod_Impuesto,
---			 i.Porcentaje,
---			 i.Monto,
---			 i.Obs_Impuesto,
---			 i.Cod_UsuarioReg,
---			 i.Fecha_Reg,
---			 i.Cod_UsuarioAct,
---			 i.Fecha_Act
---		  FROM INSERTED i
---	    OPEN cursorbd 
---	    FETCH NEXT FROM cursorbd INTO 
---			 @id_ComprobantePago,
---			 @Cod_Impuesto,
---			 @Porcentaje,
---			 @Monto,
---			 @Obs_Impuesto,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---	    WHILE @@FETCH_STATUS = 0
---	    BEGIN
---		  --Acciones
---		  SET @Script = CONCAT(
---			 @id_ComprobantePago,'|' ,
---			 @Cod_Impuesto,'|' ,
---			 @Porcentaje,'|' ,
---			 @Monto,'|' ,
---			 @Obs_Impuesto,'|' ,
---			 @Cod_UsuarioReg,'|' ,
---			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
---			 @Cod_UsuarioAct,'|' ,
---			 CONVERT(varchar,@Fecha_Act,121)
---		  )
-
---		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
---		  (
---		      Nombre_BD,
---		      Nombre_Tabla,
---		      Id_Fila,
---		      Accion,
---		      Valor,
---		      Fecha_Reg
---		  )
---		  VALUES
---		  (
---		      @NombreBD, -- Nombre_BD - varchar
---		      @NombreTabla, -- Nombre_Tabla - varchar
---			  CONCAT(@id_ComprobantePago,'|',@Cod_Impuesto), -- Id_Fila - varchar
---		      @Accion, -- Accion - varchar
---		      @Script, -- Valor - varchar
---		      GETDATE() -- Fecha_Reg - datetime
---		  )
-
---		  FETCH NEXT FROM cursorbd INTO
---			 @id_ComprobantePago,
---			 @Cod_Impuesto,
---			 @Porcentaje,
---			 @Monto,
---			 @Obs_Impuesto,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---		END
---		CLOSE cursorbd;
---    	DEALLOCATE cursorbd
---    END
-
---    --Actualizacion y eliminacion
---    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
---	 BEGIN
---	    DECLARE cursorbd CURSOR LOCAL FOR
---		    SELECT
---			 d.id_ComprobantePago,
---			 d.Cod_Impuesto,
---			 d.Porcentaje,
---			 d.Monto,
---			 d.Obs_Impuesto,
---			 d.Cod_UsuarioReg,
---			 d.Fecha_Reg,
---			 d.Cod_UsuarioAct,
---			 d.Fecha_Act
---		  FROM DELETED d
---	    OPEN cursorbd 
---	    FETCH NEXT FROM cursorbd INTO 
---			 @id_ComprobantePago,
---			 @Cod_Impuesto,
---			 @Porcentaje,
---			 @Monto,
---			 @Obs_Impuesto,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---	    WHILE @@FETCH_STATUS = 0
---	    BEGIN
---		  --Acciones
---		  SET @Script = CONCAT(
---			 @id_ComprobantePago,'|' ,
---			 @Cod_Impuesto,'|' ,
---			 @Porcentaje,'|' ,
---			 @Monto,'|' ,
---			 @Obs_Impuesto,'|' ,
---			 @Cod_UsuarioReg,'|' ,
---			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
---			 @Cod_UsuarioAct,'|' ,
---			 CONVERT(varchar,@Fecha_Act,121)
---		  )
-
---		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
---		  (
---		      Nombre_BD,
---		      Nombre_Tabla,
---		      Id_Fila,
---		      Accion,
---		      Valor,
---		      Fecha_Reg
---		  )
---		  VALUES
---		  (
---		      @NombreBD, -- Nombre_BD - varchar
---		      @NombreTabla, -- Nombre_Tabla - varchar
---			   CONCAT(@id_ComprobantePago,'|',@Cod_Impuesto), -- Id_Fila - varchar
---		      @Accion, -- Accion - varchar
---		      @Script, -- Valor - varchar
---		      GETDATE() -- Fecha_Reg - datetime
---		  )
-
---		  FETCH NEXT FROM cursorbd INTO
---			 @id_ComprobantePago,
---			 @Cod_Impuesto,
---			 @Porcentaje,
---			 @Monto,
---			 @Obs_Impuesto,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---		END
---		CLOSE cursorbd;
---    	DEALLOCATE cursorbd
---    END
-
---END
---GO
-
-
 --CAJ_MEDICION_VC
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -7740,7 +7848,7 @@ BEGIN
 			  FROM INSERTED 
 			  WHERE @Id_Medicion=Id_Medicion
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -7768,6 +7876,59 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Medicion,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Medicion,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT  @Script= 'USP_CAJ_MEDICION_VC_D ' + 
+			  CASE WHEN Cod_AMedir IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(Cod_AMedir,'''','')+''','END+
+ 			  CASE WHEN Medio_AMedir IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(Medio_AMedir,'''','')+''','END+
+			  CASE WHEN Cod_Turno  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(Cod_Turno,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED  
+			  WHERE @Id_Medicion=Id_Medicion
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_Medicion), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Medicion,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -8024,7 +8185,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -8296,7 +8457,7 @@ BEGIN
 			  FROM INSERTED  ct
 			  WHERE ct.Id_TipoCambio=@Id_TipoCambio
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -8324,6 +8485,58 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_TipoCambio,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_TipoCambio,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_CAJ_TIPOCAMBIO_D ' +
+			  CASE WHEN ct.FechaHora IS NULL THEN 'NULL,' ELSE ''''+CONVERT(varchar(max),ct.FechaHora,121)+''','END +
+			  CASE WHEN ct.Cod_Moneda IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ct.Cod_Moneda,'''','')+''','END +
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED  ct
+			  WHERE ct.Id_TipoCambio=@Id_TipoCambio
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_TipoCambio), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_TipoCambio,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -8584,7 +8797,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -8996,7 +9209,7 @@ BEGIN
 			  WHERE 
 			  Cod_Turno=@Cod_Turno
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -9024,6 +9237,58 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Turno,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Turno,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @script='USP_CAJ_TURNO_ATENCION_D ' + 
+			  ''''+REPLACE(Cod_Turno,'''','')+''','+ 
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED 	
+			  WHERE 
+			  Cod_Turno=@Cod_Turno
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_Turno), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Turno,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -9257,7 +9522,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -9503,278 +9768,6 @@ BEGIN
 END
 GO
 
---CAL_DOCUMENTOS
-IF EXISTS (SELECT name
-	   FROM   sysobjects 
-	   WHERE  name = N'UTR_CAL_DOCUMENTOS_IUD'
-	   AND 	  type = 'TR')
-    DROP TRIGGER UTR_CAL_DOCUMENTOS_IUD
-GO
-
-CREATE TRIGGER UTR_CAL_DOCUMENTOS_IUD
-ON dbo.CAL_DOCUMENTOS
-WITH ENCRYPTION
-AFTER INSERT,UPDATE,DELETE
-AS
-BEGIN
-	--Variables de tabla primarias
-	DECLARE @Id_Documentos int
-	DECLARE @Fecha_Reg datetime
-	DECLARE @Fecha_Act datetime
-	DECLARE @NombreTabla varchar(max)='CAL_DOCUMENTOS'
-	--Variables de tabla secundarias
-	DECLARE @Des_Documento varchar(1024)
-	DECLARE @Cod_Area varchar(32)
-	DECLARE @Tamaño int
-	DECLARE @Formato varchar(64)
-	DECLARE @Flag_Privado bit
-	DECLARE @Contraseña varchar(512)
-	DECLARE @Cod_UsuarioReg varchar(32)
-	DECLARE @Cod_UsuarioAct varchar(32)
-	--Variables Generales
-	DECLARE @Script varchar(max)
-	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
-	DECLARE @FechaReg datetime
-	DECLARE @Accion varchar(MAX)
-	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-   --Acciones
-	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='ACTUALIZAR'
-	END
-
-	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='INSERTAR'
-	END
-
-	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='ELIMINAR'
-	END
-
-	----Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
-	--IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
-	--BEGIN
-	--    DECLARE cursorbd CURSOR LOCAL FOR
-	--	    SELECT
-	--	    i.Id_Documentos,
-	--	    i.Fecha_Reg,
-	--	    i.Fecha_Act
-	--	    FROM INSERTED i
-	--    OPEN cursorbd 
-	--    FETCH NEXT FROM cursorbd INTO
-	--	    @Id_Documentos,
-	--	    @Fecha_Reg,
-	--	    @Fecha_Act
-	--    WHILE @@FETCH_STATUS = 0
-	--    BEGIN
-	--		--Si esta habilitada la exportacion para almacenar en la tabla de
-	--		--exportaciones
-
-
-
-
-
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
-	--		INSERT dbo.TMP_REGISTRO_LOG
-	--		(
-	--		   --Id,
-	--		   Nombre_Tabla,
-	--		   Id_Fila,
-	--		   Accion,
-	--		   Script,
-	--		   Fecha_Reg
-	--	     )
-	--	    VALUES
-	--		(
-	--		   --NULL, -- Id - uniqueidentifier
-	--		   @NombreTabla, -- Nombre_Tabla - varchar
-	--		   CONCAT('',@Id_Documentos), -- Id_Fila - varchar
-	--		   @Accion, -- Accion - varchar
-	--		   @Script, -- Script - varchar
-	--		   @FechaReg -- Fecha_Reg - datetime
-	--	     )
-	--	  FETCH NEXT FROM cursorbd INTO
-	--	    @Id_Documentos,
-	--	    @Fecha_Reg,
-	--	    @Fecha_Act
-	--	END
-	--	CLOSE cursorbd;
- --   	DEALLOCATE cursorbd
- --   END
-
-    --Acciones de auditoria, especiales por tipo
-    --Insercion
-    IF @Accion='INSERTAR'
-	 BEGIN
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-			 i.Id_Documentos,
-			 i.Des_Documento,
-			 i.Cod_Area,
-			 i.Tamaño,
-			 i.Formato,
-			 i.Flag_Privado,
-			 i.Contraseña,
-			 i.Cod_UsuarioReg,
-			 i.Fecha_Reg,
-			 i.Cod_UsuarioAct,
-			 i.Fecha_Act
-		  FROM INSERTED i
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO 
-			 @Id_Documentos,
-			 @Des_Documento,
-			 @Cod_Area,
-			 @Tamaño,
-			 @Formato,
-			 @Flag_Privado,
-			 @Contraseña,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-		  --Acciones
-		  SET @Script = CONCAT(
-			 @Id_Documentos,'|' ,
-			 @Des_Documento,'|' ,
-			 @Cod_Area,'|' ,
-			 @Tamaño,'|' ,
-			 @Formato,'|' ,
-			 @Flag_Privado,'|' ,
-			 @Contraseña,'|' ,
-			 @Cod_UsuarioReg,'|' ,
-			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
-			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
-		  )
-
-		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
-		  (
-		      Nombre_BD,
-		      Nombre_Tabla,
-		      Id_Fila,
-		      Accion,
-		      Valor,
-		      Fecha_Reg
-		  )
-		  VALUES
-		  (
-		      @NombreBD, -- Nombre_BD - varchar
-		      @NombreTabla, -- Nombre_Tabla - varchar
-			  CONCAT('',@Id_Documentos), -- Id_Fila - varchar
-		      @Accion, -- Accion - varchar
-		      @Script, -- Valor - varchar
-		      GETDATE() -- Fecha_Reg - datetime
-		  )
-
-		  FETCH NEXT FROM cursorbd INTO
-			 @Id_Documentos,
-			 @Des_Documento,
-			 @Cod_Area,
-			 @Tamaño,
-			 @Formato,
-			 @Flag_Privado,
-			 @Contraseña,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
-
-    --Actualizacion y eliminacion
-    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
-	 BEGIN
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-			 d.Id_Documentos,
-			 d.Des_Documento,
-			 d.Cod_Area,
-			 d.Tamaño,
-			 d.Formato,
-			 d.Flag_Privado,
-			 d.Contraseña,
-			 d.Cod_UsuarioReg,
-			 d.Fecha_Reg,
-			 d.Cod_UsuarioAct,
-			 d.Fecha_Act
-		  FROM DELETED d
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO 
-			 @Id_Documentos,
-			 @Des_Documento,
-			 @Cod_Area,
-			 @Tamaño,
-			 @Formato,
-			 @Flag_Privado,
-			 @Contraseña,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-		  --Acciones
-		  SET @Script = CONCAT(
-			 @Id_Documentos,'|' ,
-			 @Des_Documento,'|' ,
-			 @Cod_Area,'|' ,
-			 @Tamaño,'|' ,
-			 @Formato,'|' ,
-			 @Flag_Privado,'|' ,
-			 @Contraseña,'|' ,
-			 @Cod_UsuarioReg,'|' ,
-			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
-			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
-		  )
-
-		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
-		  (
-		      Nombre_BD,
-		      Nombre_Tabla,
-		      Id_Fila,
-		      Accion,
-		      Valor,
-		      Fecha_Reg
-		  )
-		  VALUES
-		  (
-		      @NombreBD, -- Nombre_BD - varchar
-		      @NombreTabla, -- Nombre_Tabla - varchar
-			   CONCAT('',@Id_Documentos), -- Id_Fila - varchar
-		      @Accion, -- Accion - varchar
-		      @Script, -- Valor - varchar
-		      GETDATE() -- Fecha_Reg - datetime
-		  )
-
-		  FETCH NEXT FROM cursorbd INTO
-			 @Id_Documentos,
-			 @Des_Documento,
-			 @Cod_Area,
-			 @Tamaño,
-			 @Formato,
-			 @Flag_Privado,
-			 @Contraseña,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
-
-END
-GO
-
-
 --CON_ASIENTO
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -9867,7 +9860,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -10187,7 +10180,6 @@ BEGIN
 END
 GO
 
-
 --CON_ASIENTO_D
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -10273,7 +10265,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -10522,7 +10514,6 @@ BEGIN
 END
 GO
 
-
 --CON_PLANTILLA
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -10599,7 +10590,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -10893,7 +10884,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -11139,7 +11130,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -11435,7 +11426,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -11756,7 +11747,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -12034,7 +12025,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -12354,7 +12345,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -12646,7 +12637,7 @@ BEGIN
 			  FROM INSERTED 
 			  WHERE Cod_Tabla=@Cod_Tabla AND Cod_Columna=@Cod_Columna
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -12675,6 +12666,61 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Tabla,
+		    d.Cod_Columna,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+		OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Tabla,
+		    @Cod_Columna,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script='USP_PAR_COLUMNA_D ' +
+			  CASE WHEN  Cod_Tabla IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(Cod_Tabla,'''','')+''','END+
+			  CASE WHEN  Cod_Columna IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(Cod_Columna,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED  
+			  WHERE Cod_Tabla=@Cod_Tabla AND Cod_Columna=@Cod_Columna
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Cod_Tabla,'|',@Cod_Columna), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Tabla,
+		    @Cod_Columna,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -12949,7 +12995,7 @@ BEGIN
 			FROM INSERTED i 
 			WHERE i.Cod_Tabla=@Cod_Tabla AND i.Cod_Columna=@Cod_Columna AND i.Cod_Fila=@Cod_Fila
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -12979,6 +13025,65 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Tabla,
+		    d.Cod_Columna,
+		    d.Cod_Fila,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d 
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Tabla,
+		    @Cod_Columna,
+		    @Cod_Fila,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			SELECT @Script='USP_PAR_FILA_D ' +
+				CASE WHEN i.Cod_Tabla IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_Tabla,'''','')+''',' END +
+			    CASE WHEN i.Cod_Columna IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(i.Cod_Columna,'''','')+''',' END +
+			    CASE WHEN i.Cod_Fila IS NULL THEN 'NULL,' ELSE CONVERT(varchar(max), i.Cod_Fila) +',' END +
+				''''+'TRIGGER'+''',' +
+				''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			FROM DELETED i 
+			WHERE i.Cod_Tabla=@Cod_Tabla AND i.Cod_Columna=@Cod_Columna AND i.Cod_Fila=@Cod_Fila
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Cod_Tabla,'|',@Cod_Columna,'|',@Cod_Fila), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Tabla,
+		    @Cod_Columna,
+		    @Cod_Fila,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -13240,7 +13345,7 @@ BEGIN
 			    ''''+REPLACE(COALESCE(Cod_UsuarioAct,Cod_UsuarioReg),'''','')  +''';'  
 			FROM INSERTED i
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -13268,6 +13373,55 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Tabla,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+		OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Tabla,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			SELECT  @Script='USP_PAR_TABLA_D ' +
+			    CASE WHEN  d.Cod_Tabla IS NULL THEN 'NULL,' ELSE ''''+REPLACE(d.Cod_tabla,'''','')+''',' END +
+			    ''''+'TRIGGER'+''',' +
+				''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';'
+			FROM DELETED d
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_Tabla), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Tabla,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -13507,7 +13661,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -13874,7 +14028,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -14049,7 +14203,6 @@ BEGIN
 END
 GO
 
-
 --PAT_BIENES_MOVIMIENTO
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -14128,7 +14281,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -14425,7 +14578,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -14696,7 +14849,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -14947,7 +15100,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -15225,7 +15378,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -15545,7 +15698,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -15807,7 +15960,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -16095,7 +16248,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -16421,7 +16574,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -16729,7 +16882,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -17024,7 +17177,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -17292,7 +17445,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -17594,7 +17747,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -17852,7 +18005,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -18123,7 +18276,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -18290,7 +18443,6 @@ BEGIN
 END
 GO
 
-
 --PRI_ACTIVIDADES_ECONOMICAS
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -18373,7 +18525,7 @@ BEGIN
 			  ON pae.Id_ClienteProveedor=pcp.Id_ClienteProveedor
 			  WHERE pae.Cod_ActividadEconomica=@Cod_ActividadEconomica AND pae.Id_ClienteProveedor=@Id_ClienteProveedor
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -18402,6 +18554,63 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_ActividadEconomica,
+		    d.Id_ClienteProveedor,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_ActividadEconomica,
+		    @Id_ClienteProveedor,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script='USP_PRI_ACTIVIDADES_ECONOMICAS_D ' +
+			  ''''+pae.Cod_ActividadEconomica+''','+
+			  CASE WHEN  pcp.Cod_TipoDocumento IS NULL  THEN 'NULL,'    ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','')+''','END+
+			  CASE WHEN  pcp.Nro_Documento IS NULL  THEN 'NULL,'    ELSE ''''+REPLACE(pcp.Nro_Documento,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED pae INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp 
+			  ON pae.Id_ClienteProveedor=pcp.Id_ClienteProveedor
+			  WHERE pae.Cod_ActividadEconomica=@Cod_ActividadEconomica AND pae.Id_ClienteProveedor=@Id_ClienteProveedor
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Cod_ActividadEconomica,'|',@Id_ClienteProveedor), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_ActividadEconomica,
+		    @Id_ClienteProveedor,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -18564,7 +18773,6 @@ BEGIN
 END
 GO
 
-
 --PRI_AREAS
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -18641,7 +18849,7 @@ BEGIN
 			  FROM INSERTED  pa 
 			  WHERE pa.Cod_Area=@Cod_Area
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -18669,6 +18877,57 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Area,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Area,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_PRI_AREAS_D ' +
+			  ''''+REPLACE(pa.Cod_Area,'''','')+''','+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED  pa 
+			  WHERE pa.Cod_Area=@Cod_Area
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_Area), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Area,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -18896,7 +19155,7 @@ BEGIN
 			  FROM INSERTED  pc 
 			  WHERE pc.Cod_Categoria=@Cod_Categoria
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -18924,6 +19183,57 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Categoria,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Categoria,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script='USP_PRI_CATEGORIA_D ' +
+			  ''''+REPLACE(pc.Cod_Categoria,'''','')+''','+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED  pc 
+			  WHERE pc.Cod_Categoria=@Cod_Categoria
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_Categoria), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Categoria,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -19062,7 +19372,6 @@ BEGIN
 END
 GO
 
-
 --PRI_CLIENTE_CONTACTO
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -19163,7 +19472,67 @@ BEGIN
 			  INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp2 ON pcc.Id_ClienteContacto=pcp2.Id_ClienteProveedor
 			  WHERE pcc.Id_ClienteProveedor=@Id_ClienteProveedor AND pcc.Id_ClienteContacto=@Id_ClienteContacto
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_ClienteProveedor,'|',@Id_ClienteContacto), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Id_ClienteContacto,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_ClienteProveedor,
+		    d.Id_ClienteContacto,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Id_ClienteContacto,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_PRI_CLIENTE_CONTACTO_D ' +
+			  CASE WHEN pcp.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','') +''','END+
+			  CASE WHEN pcp.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Nro_Documento,'''','') +''','END+
+			  CASE WHEN pcp2.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp2.Cod_TipoDocumento,'''','''') +''','END+
+			  CASE WHEN pcp2.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp2.Nro_Documento,'''','') +''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED pcc INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp 
+			  ON pcc.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+			  INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp2 ON pcc.Id_ClienteContacto=pcp2.Id_ClienteProveedor
+			  WHERE pcc.Id_ClienteProveedor=@Id_ClienteProveedor AND pcc.Id_ClienteContacto=@Id_ClienteContacto
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -19512,7 +19881,7 @@ BEGIN
 			  ON pccc.Id_ClienteProveedor = pccp.Id_ClienteProveedor
 			  WHERE pccc.Id_ClienteProveedor=@Id_ClienteProveedor AND pccc.NroCuenta_Bancaria=@NroCuenta_Bancaria
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -19541,6 +19910,63 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_ClienteProveedor,
+		    d.NroCuenta_Bancaria,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+		OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @NroCuenta_Bancaria,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_PRI_CLIENTE_CUENTABANCARIA_D ' +
+			  CASE WHEN  pccp.Cod_TipoDocumento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pccp.Cod_TipoDocumento,'''','')+''','END+
+			  CASE WHEN  pccp.Nro_Documento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pccp.Nro_Documento,'''','')+''','END+
+			  CASE WHEN  pccc.NroCuenta_Bancaria IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pccc.NroCuenta_Bancaria,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED pccc INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pccp 
+			  ON pccc.Id_ClienteProveedor = pccp.Id_ClienteProveedor
+			  WHERE pccc.Id_ClienteProveedor=@Id_ClienteProveedor AND pccc.NroCuenta_Bancaria=@NroCuenta_Bancaria
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_ClienteProveedor,'|',@NroCuenta_Bancaria), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @NroCuenta_Bancaria,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -19719,7 +20145,6 @@ BEGIN
 END
 GO
 
-
 --PRI_CLIENTE_PRODUCTO
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -19801,7 +20226,7 @@ BEGIN
 									   PRI_CLIENTE_PROVEEDOR AS CP ON C.Id_ClienteProveedor = CP.Id_ClienteProveedor
 			  WHERE C.Id_ClienteProveedor=@Id_ClienteProveedor AND C.Id_Producto=@Id_Producto
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -19830,6 +20255,64 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_ClienteProveedor,
+		    d.Id_Producto,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Id_Producto,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script='USP_PRI_CLIENTE_PRODUCTO_D '+
+				  CASE WHEN CP.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Cod_TipoDocumento,'''','')+''','END+
+				  CASE WHEN CP.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Nro_Documento,'''','')+''','END+ 
+				  CASE WHEN P.Cod_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Cod_Producto,'''','')+''','END+ 
+				  ''''+'TRIGGER'+''',' +
+				  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM            DELETED   AS C INNER JOIN
+									   PRI_PRODUCTOS AS P ON C.Id_Producto = P.Id_Producto INNER JOIN
+									   PRI_CLIENTE_PROVEEDOR AS CP ON C.Id_ClienteProveedor = CP.Id_ClienteProveedor
+			  WHERE C.Id_ClienteProveedor=@Id_ClienteProveedor AND C.Id_Producto=@Id_Producto
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_ClienteProveedor,'|',@Id_Producto), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Id_Producto,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -19984,7 +20467,6 @@ BEGIN
 END
 GO
 
-
 --PRI_CLIENTE_PROVEEDOR
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -20017,8 +20499,6 @@ BEGIN
 	DECLARE @Cod_CondicionCliente varchar(3)
 	DECLARE @Cod_TipoCliente varchar(3)
 	DECLARE @RUC_Natural varchar(32)
-	DECLARE @Foto binary
-	DECLARE @Firma binary
 	DECLARE @Cod_TipoComprobante varchar(5)
 	DECLARE @Cod_Nacionalidad varchar(8)
 	DECLARE @Fecha_Nacimiento datetime
@@ -20109,7 +20589,7 @@ BEGIN
 			  FROM INSERTED 
 			  WHERE Id_ClienteProveedor=@Id_ClienteProveedor
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -20137,6 +20617,58 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_ClienteProveedor,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script='USP_PRI_CLIENTE_PROVEEDOR_D ' + 
+			  CASE WHEN Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(Cod_TipoDocumento,'''','')+''','END+
+			  CASE WHEN Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(Nro_Documento,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED  
+			  WHERE Id_ClienteProveedor=@Id_ClienteProveedor
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_ClienteProveedor), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		   @Id_ClienteProveedor,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -20155,8 +20687,6 @@ BEGIN
 			 i.Cod_CondicionCliente,
 			 i.Cod_TipoCliente,
 			 i.RUC_Natural,
-			 i.Foto,
-			 i.Firma,
 			 i.Cod_TipoComprobante,
 			 i.Cod_Nacionalidad,
 			 i.Fecha_Nacimiento,
@@ -20191,8 +20721,6 @@ BEGIN
 			 @Cod_CondicionCliente,
 			 @Cod_TipoCliente,
 			 @RUC_Natural,
-			 @Foto,
-			 @Firma,
 			 @Cod_TipoComprobante,
 			 @Cod_Nacionalidad,
 			 @Fecha_Nacimiento,
@@ -20228,8 +20756,6 @@ BEGIN
 			 @Cod_CondicionCliente,'|' ,
 			 @Cod_TipoCliente,'|' ,
 			 @RUC_Natural,'|' ,
-			 @Foto,'|',
-			 @Firma,'|',
 			 @Cod_TipoComprobante,'|' ,
 			 @Cod_Nacionalidad,'|' ,
 			 CONVERT(varchar,@Fecha_Nacimiento,121), '|' ,
@@ -20283,8 +20809,6 @@ BEGIN
 			 @Cod_CondicionCliente,
 			 @Cod_TipoCliente,
 			 @RUC_Natural,
-			 @Foto,
-			 @Firma,
 			 @Cod_TipoComprobante,
 			 @Cod_Nacionalidad,
 			 @Fecha_Nacimiento,
@@ -20326,8 +20850,6 @@ BEGIN
 			 d.Cod_CondicionCliente,
 			 d.Cod_TipoCliente,
 			 d.RUC_Natural,
-			 d.Foto,
-			 d.Firma,
 			 d.Cod_TipoComprobante,
 			 d.Cod_Nacionalidad,
 			 d.Fecha_Nacimiento,
@@ -20362,8 +20884,6 @@ BEGIN
 			 @Cod_CondicionCliente,
 			 @Cod_TipoCliente,
 			 @RUC_Natural,
-			 @Foto,
-			 @Firma,
 			 @Cod_TipoComprobante,
 			 @Cod_Nacionalidad,
 			 @Fecha_Nacimiento,
@@ -20399,8 +20919,6 @@ BEGIN
 			 @Cod_CondicionCliente,'|' ,
 			 @Cod_TipoCliente,'|' ,
 			 @RUC_Natural,'|' ,
-			 @Foto,'|',
-			 @Firma,'|',
 			 @Cod_TipoComprobante,'|' ,
 			 @Cod_Nacionalidad,'|' ,
 			 CONVERT(varchar,@Fecha_Nacimiento,121), '|' ,
@@ -20454,8 +20972,6 @@ BEGIN
 			 @Cod_CondicionCliente,
 			 @Cod_TipoCliente,
 			 @RUC_Natural,
-			 @Foto,
-			 @Firma,
 			 @Cod_TipoComprobante,
 			 @Cod_Nacionalidad,
 			 @Fecha_Nacimiento,
@@ -20479,10 +20995,8 @@ BEGIN
 		CLOSE cursorbd;
     	DEALLOCATE cursorbd
     END
-
 END
 GO
-
 
 --PRI_CLIENTE_VEHICULOS
 IF EXISTS (SELECT name
@@ -20558,7 +21072,7 @@ BEGIN
 			  SELECT @Script= 'USP_PRI_CLIENTE_VEHICULOS_I '+
 			  CASE WHEN P.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Cod_TipoDocumento,'''','') +''',' END +
 			  CASE WHEN P.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Nro_Documento,'''','') +''',' END +
-			  ''''+REPLACE(V.Cod_Placa,'''','')+''', '''+
+			  ''''+REPLACE(V.Cod_Placa,'''','')+''','+
 			  CASE WHEN V.Color IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(V.Color,'''','') +''',' END +
 			  CASE WHEN V.Marca IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(V.Marca,'''','') +''',' END +
 			  CASE WHEN V.Modelo IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(V.Modelo,'''','') +''',' END +
@@ -20570,7 +21084,65 @@ BEGIN
 				   PRI_CLIENTE_PROVEEDOR AS P ON V.Id_ClienteProveedor = P.Id_ClienteProveedor
 			  WHERE V.Id_ClienteProveedor=@Id_ClienteProveedor AND V.Cod_Placa=@Cod_Placa
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_ClienteProveedor,'|',@Cod_Placa), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Cod_Placa,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_ClienteProveedor,
+		    d.Cod_Placa,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Cod_Placa,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_PRI_CLIENTE_VEHICULOS_D '+
+				  CASE WHEN P.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Cod_TipoDocumento,'''','') +''',' END +
+				  CASE WHEN P.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Nro_Documento,'''','') +''',' END +
+				  ''''+REPLACE(V.Cod_Placa,'''','')+''','+
+				  ''''+'TRIGGER'+''',' +
+				  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED AS V INNER JOIN
+				   PRI_CLIENTE_PROVEEDOR AS P ON V.Id_ClienteProveedor = P.Id_ClienteProveedor
+			  WHERE V.Id_ClienteProveedor=@Id_ClienteProveedor AND V.Cod_Placa=@Cod_Placa
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -20777,7 +21349,6 @@ BEGIN
 END
 GO
 
-
 --PRI_CLIENTE_VISITAS
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -20851,11 +21422,11 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			  SELECT @Script= 'USP_PRI_CLIENTE_VISITAS_I ' +
+			SELECT @Script= 'USP_PRI_CLIENTE_VISITAS_I ' +
 			  ''''+REPLACE(pcv.Cod_ClienteVisita,'''','') +''','+
 			  CASE WHEN  pcv.Cod_UsuarioVendedor IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcv.Cod_UsuarioVendedor,'''','')+''','END+
-			  CASE WHEN  pcp.Cod_TipoDocumento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcp.Cod_TipoDocumento,'''','')+''','END+
-			  CASE WHEN  pcp.Nro_Documento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcp.Nro_Documento,'''','')+''','END+
+			  CASE WHEN  pcv.Id_ClienteProveedor IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Cod_TipoDocumento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=pcv.Id_ClienteProveedor),''),'''','')+''','END+
+			  CASE WHEN  pcv.Id_ClienteProveedor IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Nro_Documento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=pcv.Id_ClienteProveedor),''),'''','')+''','END+
 			  CASE WHEN  pcv.Ruta IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcv.Ruta,'''','')+''','END+
 			  CASE WHEN  pcv.Cod_TipoVisita IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcv.Cod_TipoVisita,'''','')+''','END+
 			  CASE WHEN  pcv.Cod_Resultado IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcv.Cod_Resultado,'''','')+''','END+
@@ -20866,11 +21437,10 @@ BEGIN
 			  CASE WHEN  pcv.Cod_UsuarioResponsable IS NULL  THEN 'NULL,'    ELSE ''''+  REPLACE(pcv.Cod_UsuarioResponsable,'''','')+''','END+
 			  CASE WHEN  pcv.Des_Compromiso IS NULL  THEN 'NULL,'    ELSE ''''+  REPLACE(pcv.Des_Compromiso,'''','')+''','END+
 			  ''''+REPLACE(COALESCE(pcv.Cod_UsuarioAct,pcv.Cod_UsuarioReg),'''','')   +''';' 
-			  FROM INSERTED  pcv INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp 
-			  ON pcv.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+			  FROM INSERTED  pcv 
 			  WHERE pcv.Cod_ClienteVisita=@Cod_ClienteVisita
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -20898,6 +21468,57 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_ClienteVisita,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_ClienteVisita,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			SELECT @Script= 'USP_PRI_CLIENTE_VISITAS_D ' +
+			  ''''+REPLACE(pcv.Cod_ClienteVisita,'''','') +''','+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED  pcv 
+			  WHERE pcv.Cod_ClienteVisita=@Cod_ClienteVisita
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_ClienteVisita), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_ClienteVisita,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -21108,7 +21729,6 @@ BEGIN
 END
 GO
 
-
 --PRI_CUENTA_CONTABLE
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -21188,12 +21808,64 @@ BEGIN
 			  CONVERT(varchar(max),pcc.Flag_CuentaAnalitica)+','+
 			  CONVERT(varchar(max),pcc.Flag_CentroCostos)+','+
 			  CONVERT(varchar(max),pcc.Flag_CuentaBancaria)+','+
+			  CASE WHEN  pcc.Cod_EntidadBancaria IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcc.Cod_EntidadBancaria,'''','')+''','END+
 			  CASE WHEN  pcc.Numero_Cuenta IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcc.Numero_Cuenta,'''','')+''','END+
 			  CASE WHEN  pcc.Clase_Cuenta IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcc.Clase_Cuenta,'''','')+''','END+
 			  ''''+REPLACE(COALESCE(pcc.Cod_UsuarioAct,pcc.Cod_UsuarioReg),'''','')   +''';' 
 			  FROM INSERTED pcc
 			  WHERE pcc.Cod_CuentaContable=@Cod_CuentaContable
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_CuentaContable), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_CuentaContable,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_CuentaContable,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_CuentaContable,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script='USP_PRI_CUENTA_CONTABLE_D ' +
+			  ''''+REPLACE(pcc.Cod_CuentaContable,'''','') +''','+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED pcc
+			  WHERE pcc.Cod_CuentaContable=@Cod_CuentaContable
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -21415,7 +22087,6 @@ BEGIN
 END
 GO
 
-
 --PRI_DESCUENTOS
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -21488,24 +22159,23 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-				 SELECT @Script= 'USP_PRI_DESCUENTOS_I ' +
-				 CASE WHEN  pcp.Cod_TipoDocumento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcp.Cod_TipoDocumento,'''','')+''','END+
-				 CASE WHEN  pcp.Nro_Documento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcp.Nro_Documento,'''','')+''','END+
-				 CASE WHEN  pd.Cod_TipoDescuento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Cod_TipoDescuento,'''','')+''','END+
-				 CASE WHEN  pd.Aplica IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Aplica,'''','')+''','END+
-				 CASE WHEN  pd.Cod_Aplica IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Cod_Aplica,'''','')+''','END+
-				 CASE WHEN  pd.Cod_TipoCliente IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Cod_TipoCliente,'''','')+''','END+
-				 CASE WHEN  pd.Cod_TipoPrecio IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Cod_TipoPrecio,'''','')+''','END+
-				 CASE WHEN  pd.Monto_Precio IS NULL  THEN 'NULL,'    ELSE  CONVERT(varchar(max),pd.Monto_Precio)+','END+
-				 CASE WHEN  pd.Fecha_Inicia IS NULL  THEN 'NULL,'    ELSE '''' +CONVERT(varchar(max),pd.Fecha_Inicia,121)+''','END+
-				 CASE WHEN  pd.Fecha_Fin IS NULL  THEN 'NULL,'    ELSE '''' +CONVERT(varchar(max),pd.Fecha_Fin,121)+''','END+
-				 CASE WHEN  pd.Obs_Descuento IS NULL  THEN 'NULL,'    ELSE '''' +REPLACE(pd.Obs_Descuento,'''','')+''','END+
-				 ''''+REPLACE(COALESCE(pd.Cod_UsuarioAct,pd.Cod_UsuarioReg),'''','')   +''';' 
-				 FROM INSERTED  pd INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp 
-				 ON pd.Id_ClienteProveedor = pcp.Id_ClienteProveedor
-				 WHERE pd.Id_Descuento=@Id_Descuento
+			SELECT @Script= 'USP_PRI_DESCUENTOS_I ' +
+			CASE WHEN  pd.Id_ClienteProveedor IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Cod_TipoDocumento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=pd.Id_ClienteProveedor),''),'''','')+''','END+
+			CASE WHEN  pd.Id_ClienteProveedor IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Nro_Documento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=pd.Id_ClienteProveedor),''),'''','')+''','END+
+			CASE WHEN  pd.Cod_TipoDescuento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Cod_TipoDescuento,'''','')+''','END+
+			CASE WHEN  pd.Aplica IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Aplica,'''','')+''','END+
+			CASE WHEN  pd.Cod_Aplica IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Cod_Aplica,'''','')+''','END+
+			CASE WHEN  pd.Cod_TipoCliente IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Cod_TipoCliente,'''','')+''','END+
+			CASE WHEN  pd.Cod_TipoPrecio IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Cod_TipoPrecio,'''','')+''','END+
+			CASE WHEN  pd.Monto_Precio IS NULL  THEN 'NULL,'    ELSE  CONVERT(varchar(max),pd.Monto_Precio)+','END+
+			CASE WHEN  pd.Fecha_Inicia IS NULL  THEN 'NULL,'    ELSE '''' +CONVERT(varchar(max),pd.Fecha_Inicia,121)+''','END+
+			CASE WHEN  pd.Fecha_Fin IS NULL  THEN 'NULL,'    ELSE '''' +CONVERT(varchar(max),pd.Fecha_Fin,121)+''','END+
+			CASE WHEN  pd.Obs_Descuento IS NULL  THEN 'NULL,'    ELSE '''' +REPLACE(pd.Obs_Descuento,'''','')+''','END+
+			''''+REPLACE(COALESCE(pd.Cod_UsuarioAct,pd.Cod_UsuarioReg),'''','')   +''';' 
+			FROM INSERTED  pd 
+			WHERE pd.Id_Descuento=@Id_Descuento
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -21533,6 +22203,59 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Descuento,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Descuento,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			SELECT @Script= 'USP_PRI_DESCUENTOS_D ' +
+			CASE WHEN  pd.Id_ClienteProveedor IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Cod_TipoDocumento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=pd.Id_ClienteProveedor),''),'''','')+''','END+
+			CASE WHEN  pd.Id_ClienteProveedor IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Nro_Documento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=pd.Id_ClienteProveedor),''),'''','')+''','END+
+			CASE WHEN  pd.Cod_TipoDescuento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pd.Cod_TipoDescuento,'''','')+''','END+
+			''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			FROM DELETED  pd 
+			WHERE pd.Id_Descuento=@Id_Descuento
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_Descuento), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Descuento,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -21735,7 +22458,6 @@ BEGIN
 END
 GO
 
-
 --PRI_EMPRESA
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -21762,8 +22484,6 @@ BEGIN
 	DECLARE @Direccion varchar(1024)
 	DECLARE @Telefonos varchar(512)
 	DECLARE @Web varchar(512)
-	DECLARE @Imagen_H binary
-	DECLARE @Imagen_V binary
 	DECLARE @Flag_ExoneradoImpuesto bit
 	DECLARE @Des_Impuesto varchar(16)
 	DECLARE @Por_Impuesto numeric(5,2)
@@ -21832,7 +22552,7 @@ BEGIN
 			  FROM INSERTED pe
 			  WHERE pe.Cod_Empresa=@Cod_Empresa
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -21860,6 +22580,57 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Empresa,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Empresa,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_PRI_EMPRESA_D ' +
+			  ''''+ REPLACE(pe.Cod_Empresa,'''','') +''','+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED pe
+			  WHERE pe.Cod_Empresa=@Cod_Empresa
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_Empresa), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Empresa,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -21873,8 +22644,6 @@ BEGIN
 			 i.Direccion,
 			 i.Telefonos,
 			 i.Web,
-			 i.Imagen_H,
-			 i.Imagen_V,
 			 i.Flag_ExoneradoImpuesto,
 			 i.Des_Impuesto,
 			 i.Por_Impuesto,
@@ -21895,8 +22664,6 @@ BEGIN
 			 @Direccion,
 			 @Telefonos,
 			 @Web,
-			 @Imagen_H,
-			 @Imagen_V,
 			 @Flag_ExoneradoImpuesto,
 			 @Des_Impuesto,
 			 @Por_Impuesto,
@@ -21918,8 +22685,6 @@ BEGIN
 			 @Direccion,'|' ,
 			 @Telefonos,'|' ,
 			 @Web,'|' ,
-			 @Imagen_H,'|',
-			 @Imagen_V,'|',
 			 @Flag_ExoneradoImpuesto,'|' ,
 			 @Des_Impuesto,'|' ,
 			 @Por_Impuesto,'|' ,
@@ -21959,8 +22724,6 @@ BEGIN
 			 @Direccion,
 			 @Telefonos,
 			 @Web,
-			 @Imagen_H,
-			 @Imagen_V,
 			 @Flag_ExoneradoImpuesto,
 			 @Des_Impuesto,
 			 @Por_Impuesto,
@@ -21988,8 +22751,6 @@ BEGIN
 			 d.Direccion,
 			 d.Telefonos,
 			 d.Web,
-			 d.Imagen_H,
-			 d.Imagen_V,
 			 d.Flag_ExoneradoImpuesto,
 			 d.Des_Impuesto,
 			 d.Por_Impuesto,
@@ -22010,8 +22771,6 @@ BEGIN
 			 @Direccion,
 			 @Telefonos,
 			 @Web,
-			 @Imagen_H,
-			 @Imagen_V,
 			 @Flag_ExoneradoImpuesto,
 			 @Des_Impuesto,
 			 @Por_Impuesto,
@@ -22033,8 +22792,6 @@ BEGIN
 			 @Direccion,'|' ,
 			 @Telefonos,'|' ,
 			 @Web,'|' ,
-			 @Imagen_H,'|',
-			 @Imagen_V,'|',
 			 @Flag_ExoneradoImpuesto,'|' ,
 			 @Des_Impuesto,'|' ,
 			 @Por_Impuesto,'|' ,
@@ -22074,8 +22831,6 @@ BEGIN
 			 @Direccion,
 			 @Telefonos,
 			 @Web,
-			 @Imagen_H,
-			 @Imagen_V,
 			 @Flag_ExoneradoImpuesto,
 			 @Des_Impuesto,
 			 @Por_Impuesto,
@@ -22093,7 +22848,6 @@ BEGIN
 
 END
 GO
-
 
 --PRI_ESTABLECIMIENTOS
 IF EXISTS (SELECT name
@@ -22181,7 +22935,7 @@ BEGIN
 			  ON pe.Id_ClienteProveedor = pcp.Id_ClienteProveedor
 			  WHERE pe.Cod_Establecimientos=@Cod_Establecimientos AND pe.Id_ClienteProveedor=@Id_ClienteProveedor
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -22477,7 +23231,7 @@ BEGIN
 									   PRI_CLIENTE_PROVEEDOR AS CP ON L.Id_ClienteProveedor = CP.Id_ClienteProveedor
 			  WHERE L.Id_ClienteProveedor=@Id_ClienteProveedor AND L.Cod_Licitacion=@Cod_Licitacion
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -22767,25 +23521,42 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			  SELECT @Script= 'USP_PRI_LICITACIONES_D_I ' + 
-			  CASE WHEN CP.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Cod_TipoDocumento,'''','')+''','END+
-			  CASE WHEN CP.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Nro_Documento,'''','')+''','END+
-			  ''''+REPLACE(LD.Cod_Licitacion,'''','')+''','+ 
-			  CONVERT(VARCHAR(MAX),LD.Nro_Detalle)+','+
-			  CASE WHEN P.Cod_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Cod_Producto,'''','')+''','END+ 
-			  CASE WHEN LD.Cantidad IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Cantidad)+','END+ 
-			  CASE WHEN LD.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(LD.Cod_UnidadMedida,'''','')+''','END+
-			  CASE WHEN LD.Descripcion IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(LD.Descripcion,'''','')+''','END+
-			  CASE WHEN LD.Precio_Unitario IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Precio_Unitario)+','END+ 
-			  CASE WHEN LD.Por_Descuento IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Por_Descuento)+','END+ 
-			  ''''+REPLACE(COALESCE(LD.Cod_UsuarioAct,LD.Cod_UsuarioReg),'''','')+''';' 
-			  FROM            INSERTED AS LD INNER JOIN
-			   PRI_CLIENTE_PROVEEDOR AS CP ON LD.Id_ClienteProveedor = CP.Id_ClienteProveedor INNER JOIN
-			   PRI_PRODUCTOS AS P ON LD.Id_Producto = P.Id_Producto
-			   WHERE LD.Id_ClienteProveedor=@Id_ClienteProveedor AND LD.Cod_Licitacion=@Cod_Licitacion
-			   AND LD.Nro_Detalle =@Nro_Detalle
+			--   SELECT @Script= 'USP_PRI_LICITACIONES_D_I ' + 
+			--   CASE WHEN CP.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Cod_TipoDocumento,'''','')+''','END+
+			--   CASE WHEN CP.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Nro_Documento,'''','')+''','END+
+			--   ''''+REPLACE(LD.Cod_Licitacion,'''','')+''','+ 
+			--   CONVERT(VARCHAR(MAX),LD.Nro_Detalle)+','+
+			--   CASE WHEN P.Cod_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Cod_Producto,'''','')+''','END+ 
+			--   CASE WHEN LD.Cantidad IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Cantidad)+','END+ 
+			--   CASE WHEN LD.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(LD.Cod_UnidadMedida,'''','')+''','END+
+			--   CASE WHEN LD.Descripcion IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(LD.Descripcion,'''','')+''','END+
+			--   CASE WHEN LD.Precio_Unitario IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Precio_Unitario)+','END+ 
+			--   CASE WHEN LD.Por_Descuento IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Por_Descuento)+','END+ 
+			--   ''''+REPLACE(COALESCE(LD.Cod_UsuarioAct,LD.Cod_UsuarioReg),'''','')+''';' 
+			--   FROM            INSERTED AS LD INNER JOIN
+			--    PRI_CLIENTE_PROVEEDOR AS CP ON LD.Id_ClienteProveedor = CP.Id_ClienteProveedor INNER JOIN
+			--    PRI_PRODUCTOS AS P ON LD.Id_Producto = P.Id_Producto
+			--    WHERE LD.Id_ClienteProveedor=@Id_ClienteProveedor AND LD.Cod_Licitacion=@Cod_Licitacion
+			--    AND LD.Nro_Detalle =@Nro_Detalle
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+			SELECT @Script= 'USP_PRI_LICITACIONES_D_I ' + 
+			CASE WHEN CP.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Cod_TipoDocumento,'''','')+''','END+
+			CASE WHEN CP.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Nro_Documento,'''','')+''','END+
+			''''+REPLACE(LD.Cod_Licitacion,'''','')+''','+ 
+			CONVERT(VARCHAR(MAX),LD.Nro_Detalle)+','+
+			CASE WHEN LD.Id_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ISNULL((SELECT pp.Cod_Producto FROM dbo.PRI_PRODUCTOS pp WHERE pp.Id_Producto=LD.Id_Producto),''),'''','')+''','END+ 
+			CASE WHEN LD.Cantidad IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Cantidad)+','END+ 
+			CASE WHEN LD.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(LD.Cod_UnidadMedida,'''','')+''','END+
+			CASE WHEN LD.Descripcion IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(LD.Descripcion,'''','')+''','END+
+			CASE WHEN LD.Precio_Unitario IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Precio_Unitario)+','END+ 
+			CASE WHEN LD.Por_Descuento IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Por_Descuento)+','END+ 
+			''''+REPLACE(COALESCE(LD.Cod_UsuarioAct,LD.Cod_UsuarioReg),'''','')+''';' 
+			FROM            INSERTED AS LD INNER JOIN
+			PRI_CLIENTE_PROVEEDOR AS CP ON LD.Id_ClienteProveedor = CP.Id_ClienteProveedor 
+			WHERE LD.Id_ClienteProveedor=@Id_ClienteProveedor AND LD.Cod_Licitacion=@Cod_Licitacion
+			AND LD.Nro_Detalle =@Nro_Detalle
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -23070,26 +23841,43 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			 SELECT @Script= 'USP_PRI_LICITACIONES_M_I '+ 
-			  CASE WHEN C.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(C.Cod_TipoDocumento,'''','') +''',' END +
-			  CASE WHEN C.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(C.Nro_Documento,'''','') +''',' END +
-			  CASE WHEN M.Cod_Licitacion IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Cod_Licitacion,'''','') +''',' END +
-			  CASE WHEN M.Nro_Detalle IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),M.Nro_Detalle)+','END+ 
-			  CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
-			  CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
-			  CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
-			  CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
-			  CASE WHEN P.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoDoc,'''','')+''',' END +
-			 CASE WHEN P.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Doc_Cliente,'''','')+''',' END +
-			  CONVERT(VARCHAR(MAX),M.Flag_Cancelado)	+','+ 
-			  CASE WHEN M.Obs_LicitacionesM IS NULL THEN 'NULL,' ELSE ''''+REPLACE(M.Obs_LicitacionesM,'''','')+''',' END +	
-			  ''''+REPLACE(COALESCE(M.Cod_UsuarioAct,M.Cod_UsuarioReg),'''','')+ ''';'
-			  FROM  INSERTED AS M INNER JOIN
-				  PRI_CLIENTE_PROVEEDOR AS C ON M.Id_ClienteProveedor = C.Id_ClienteProveedor INNER JOIN
-				  CAJ_COMPROBANTE_PAGO AS P ON M.id_ComprobantePago = P.id_ComprobantePago
-			 WHERE M.Id_Movimiento=@Id_Movimiento
+			--  SELECT @Script= 'USP_PRI_LICITACIONES_M_I '+ 
+			--   CASE WHEN C.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(C.Cod_TipoDocumento,'''','') +''',' END +
+			--   CASE WHEN C.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(C.Nro_Documento,'''','') +''',' END +
+			--   CASE WHEN M.Cod_Licitacion IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Cod_Licitacion,'''','') +''',' END +
+			--   CASE WHEN M.Nro_Detalle IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),M.Nro_Detalle)+','END+ 
+			--   CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
+			--   CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
+			--   CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
+			--   CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
+			--   CASE WHEN P.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoDoc,'''','')+''',' END +
+			--  CASE WHEN P.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Doc_Cliente,'''','')+''',' END +
+			--   CONVERT(VARCHAR(MAX),M.Flag_Cancelado)	+','+ 
+			--   CASE WHEN M.Obs_LicitacionesM IS NULL THEN 'NULL,' ELSE ''''+REPLACE(M.Obs_LicitacionesM,'''','')+''',' END +	
+			--   ''''+REPLACE(COALESCE(M.Cod_UsuarioAct,M.Cod_UsuarioReg),'''','')+ ''';'
+			--   FROM  INSERTED AS M INNER JOIN
+			-- 	  PRI_CLIENTE_PROVEEDOR AS C ON M.Id_ClienteProveedor = C.Id_ClienteProveedor INNER JOIN
+			-- 	  CAJ_COMPROBANTE_PAGO AS P ON M.id_ComprobantePago = P.id_ComprobantePago
+			--  WHERE M.Id_Movimiento=@Id_Movimiento
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+			SELECT @Script= 'USP_PRI_LICITACIONES_M_I '+ 
+			CASE WHEN M.Id_ClienteProveedor IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Cod_TipoDocumento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=M.Id_ClienteProveedor),''),'''','') +''',' END +
+			CASE WHEN M.Id_ClienteProveedor IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Nro_Documento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=M.Id_ClienteProveedor),''),'''','') +''',' END +
+			CASE WHEN M.Cod_Licitacion IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Cod_Licitacion,'''','') +''',' END +
+			CASE WHEN M.Nro_Detalle IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),M.Nro_Detalle)+','END+ 
+			CASE WHEN M.id_ComprobantePago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT ccp.Cod_Libro FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=M.id_ComprobantePago),''),'''','')+''',' END +
+			CASE WHEN M.id_ComprobantePago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT ccp.Cod_TipoComprobante FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=M.id_ComprobantePago),''),'''','')+''',' END +
+			CASE WHEN M.id_ComprobantePago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT ccp.Serie FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=M.id_ComprobantePago),''),'''','')+''',' END +
+			CASE WHEN M.id_ComprobantePago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT ccp.Numero FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=M.id_ComprobantePago),''),'''','')+''',' END +	
+			CASE WHEN M.id_ComprobantePago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT ccp.Cod_TipoDoc FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=M.id_ComprobantePago),''),'''','')+''',' END +
+			CASE WHEN M.id_ComprobantePago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT ccp.Doc_Cliente FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=M.id_ComprobantePago),''),'''','')+''',' END +
+			CONVERT(VARCHAR(MAX),M.Flag_Cancelado)	+','+ 
+			CASE WHEN M.Obs_LicitacionesM IS NULL THEN 'NULL,' ELSE ''''+REPLACE(M.Obs_LicitacionesM,'''','')+''',' END +	
+			''''+REPLACE(COALESCE(M.Cod_UsuarioAct,M.Cod_UsuarioReg),'''','')+ ''';'
+			FROM  INSERTED AS M
+			WHERE M.Id_Movimiento=@Id_Movimiento
+
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -23366,7 +24154,7 @@ BEGIN
 			  ''''+REPLACE(COALESCE(pm.Cod_UsuarioAct,pm.Cod_UsuarioReg),'''','')   +''';' 
 			  FROM INSERTED pm 
 			  WHERE pm.Id_Mensaje=@Id_Mensaje
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -23634,7 +24422,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -23884,7 +24672,7 @@ BEGIN
 			  ON pp.Id_ClienteProveedor = pcp.Id_ClienteProveedor
 			  WHERE pp.Cod_Padron=@Cod_Padron AND pp.Id_ClienteProveedor=@Id_ClienteProveedor
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -24152,7 +24940,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -24384,7 +25172,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -24704,7 +25492,7 @@ BEGIN
 			  FROM INSERTED pp
 			  WHERE pp.Cod_Personal=@Cod_Personal
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -25221,7 +26009,7 @@ BEGIN
 				 FROM INSERTED  ppp
 				 WHERE ppp.Cod_Personal=@Cod_Personal AND ppp.Item_Parentesco=@Item_Parentesco
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -25518,7 +26306,7 @@ BEGIN
 					 PRI_PRODUCTOS AS PD ON D.Id_ProductoDetalle = PD.Id_Producto
 				 WHERE D.Id_Producto=@Id_Producto AND D.Item_Detalle=@Item_Detalle
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -25731,7 +26519,6 @@ BEGIN
 	DECLARE @Fecha_Act datetime
 	DECLARE @NombreTabla varchar(max)='PRI_PRODUCTO_IMAGEN'
 	--Variables de tabla secundarias
-	DECLARE @Imagen binary
 	DECLARE @Cod_TipoImagen varchar(5)
 	DECLARE @Cod_UsuarioReg varchar(32)
 	DECLARE @Cod_UsuarioAct varchar(32)
@@ -25782,7 +26569,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -25819,7 +26606,6 @@ BEGIN
 		    SELECT
 			 i.Id_Producto,
 			 i.Item_Imagen,
-			 i.Imagen,
 			 i.Cod_TipoImagen,
 			 i.Cod_UsuarioReg,
 			 i.Fecha_Reg,
@@ -25830,7 +26616,6 @@ BEGIN
 	    FETCH NEXT FROM cursorbd INTO 
 			 @Id_Producto,
 			 @Item_Imagen,
-			 @Imagen,
 			 @Cod_TipoImagen,
 			 @Cod_UsuarioReg,
 			 @Fecha_Reg,
@@ -25842,7 +26627,6 @@ BEGIN
 		  SET @Script = CONCAT(
 			 @Id_Producto,'|' ,
 			 @Item_Imagen,'|' ,
-			 @Imagen,'|',
 			 @Cod_TipoImagen,'|' ,
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
@@ -25872,7 +26656,6 @@ BEGIN
 		  FETCH NEXT FROM cursorbd INTO
 			 @Id_Producto,
 			 @Item_Imagen,
-			 @Imagen,
 			 @Cod_TipoImagen,
 			 @Cod_UsuarioReg,
 			 @Fecha_Reg,
@@ -25890,7 +26673,6 @@ BEGIN
 		    SELECT
 			 d.Id_Producto,
 			 d.Item_Imagen,
-			 d.Imagen,
 			 d.Cod_TipoImagen,
 			 d.Cod_UsuarioReg,
 			 d.Fecha_Reg,
@@ -25901,7 +26683,6 @@ BEGIN
 	    FETCH NEXT FROM cursorbd INTO 
 			 @Id_Producto,
 			 @Item_Imagen,
-			 @Imagen,
 			 @Cod_TipoImagen,
 			 @Cod_UsuarioReg,
 			 @Fecha_Reg,
@@ -25913,7 +26694,6 @@ BEGIN
 		  SET @Script = CONCAT(
 			 @Id_Producto,'|' ,
 			 @Item_Imagen,'|' ,
-			 @Imagen,'|',
 			 @Cod_TipoImagen,'|' ,
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
@@ -25943,7 +26723,6 @@ BEGIN
 		  FETCH NEXT FROM cursorbd INTO
 			 @Id_Producto,
 			 @Item_Imagen,
-			 @Imagen,
 			 @Cod_TipoImagen,
 			 @Cod_UsuarioReg,
 			 @Fecha_Reg,
@@ -26041,7 +26820,7 @@ BEGIN
 									   PRI_PRODUCTOS AS P ON PP.Id_Producto = P.Id_Producto
 			  WHERE PP.Id_Producto=@Id_Producto AND PP.Cod_UnidadMedida=@Cod_UnidadMedida AND PP.Cod_Almacen=@Cod_Almacen AND PP.Cod_TipoPrecio=@Cod_TipoPrecio
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -26320,7 +27099,7 @@ BEGIN
 					  PRI_PRODUCTOS AS P ON S.Id_Producto = P.Id_Producto
 				 WHERE S.Id_Producto=@Id_Producto AND S.Cod_UnidadMedida=@Cod_UnidadMedida AND S.Cod_Almacen=@Cod_Almacen
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -26637,7 +27416,7 @@ BEGIN
 				    PRI_PRODUCTOS AS P ON T.Id_Producto = P.Id_Producto
 			  WHERE T.Id_Producto=@Id_Producto AND T.Cod_Tasa=@Cod_Tasa
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -26948,7 +27727,7 @@ BEGIN
 			  FROM            INSERTED
 			  WHERE INSERTED.Id_Producto=@Id_Producto
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -27329,7 +28108,7 @@ BEGIN
 			  FROM INSERTED ps
 			  WHERE ps.Cod_Sucursal = @Cod_Sucursal
 
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+		   	SET @FechaReg= GETDATE()
 			INSERT dbo.TMP_REGISTRO_LOG
 			(
 			   --Id,
@@ -27574,7 +28353,6 @@ BEGIN
 	--Variables de tabla secundarias
 	DECLARE @Nick varchar(64)
 	DECLARE @Contrasena varchar(512)
-	DECLARE @Foto binary
 	DECLARE @Pregunta varchar(512)
 	DECLARE @Respuesta varchar(128)
 	DECLARE @Cod_Estado varchar(3)
@@ -27626,7 +28404,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -27663,7 +28441,6 @@ BEGIN
 			 i.Cod_Usuarios,
 			 i.Nick,
 			 i.Contrasena,
-			 i.Foto,
 			 i.Pregunta,
 			 i.Respuesta,
 			 i.Cod_Estado,
@@ -27678,7 +28455,6 @@ BEGIN
 			 @Cod_Usuarios,
 			 @Nick,
 			 @Contrasena,
-			 @Foto,
 			 @Pregunta,
 			 @Respuesta,
 			 @Cod_Estado,
@@ -27694,7 +28470,6 @@ BEGIN
 			 @Cod_Usuarios,'|' ,
 			 @Nick,'|' ,
 			 @Contrasena,'|' ,
-			 @Foto,'|',
 			 @Pregunta,'|' ,
 			 @Respuesta,'|' ,
 			 @Cod_Estado,'|' ,
@@ -27728,7 +28503,6 @@ BEGIN
 			 @Cod_Usuarios,
 			 @Nick,
 			 @Contrasena,
-			 @Foto,
 			 @Pregunta,
 			 @Respuesta,
 			 @Cod_Estado,
@@ -27750,7 +28524,6 @@ BEGIN
 			 d.Cod_Usuarios,
 			 d.Nick,
 			 d.Contrasena,
-			 d.Foto,
 			 d.Pregunta,
 			 d.Respuesta,
 			 d.Cod_Estado,
@@ -27765,7 +28538,6 @@ BEGIN
 			 @Cod_Usuarios,
 			 @Nick,
 			 @Contrasena,
-			 @Foto,
 			 @Pregunta,
 			 @Respuesta,
 			 @Cod_Estado,
@@ -27781,7 +28553,6 @@ BEGIN
 			 @Cod_Usuarios,'|' ,
 			 @Nick,'|' ,
 			 @Contrasena,'|' ,
-			 @Foto,'|',
 			 @Pregunta,'|' ,
 			 @Respuesta,'|' ,
 			 @Cod_Estado,'|' ,
@@ -27815,7 +28586,6 @@ BEGIN
 			 @Cod_Usuarios,
 			 @Nick,
 			 @Contrasena,
-			 @Foto,
 			 @Pregunta,
 			 @Respuesta,
 			 @Cod_Estado,
@@ -27907,7 +28677,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -28172,7 +28942,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -28443,7 +29213,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -28703,7 +29473,7 @@ BEGIN
 
 
 
-	--	   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+	--	   	SET @FechaReg= GETDATE()
 	--		INSERT dbo.TMP_REGISTRO_LOG
 	--		(
 	--		   --Id,
@@ -28869,7 +29639,117 @@ BEGIN
 END
 GO
 
+-- --Metodo de exportacion
+-- IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento' AND type = 'P')
+-- DROP PROCEDURE USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento
+-- GO
+-- CREATE PROCEDURE USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento
+-- @NombreBD varchar(max),
+-- @LinkedServer varchar(max)
+-- AS
+-- BEGIN
+-- 	--Variables generales 
+-- 	DECLARE @cmd sysname
+-- 	--DECLARE @NombreBD VARCHAR(MAX)=(SELECT DISTINCT vce.BD_Remota FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
+-- 	--DECLARE @LinkedServer varchar(max)=(SELECT DISTINCT vce.Linked_Server FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
+-- 	--Recuperamos las variables principales
+-- 	DECLARE @Id varchar(max)
+-- 	DECLARE @Nombre_Tabla varchar(max) 
+-- 	DECLARE @Id_Fila varchar(max) 
+-- 	DECLARE @Accion varchar(max) 
+-- 	DECLARE @Script varchar(max) 
+-- 	DECLARE @Fecha_Reg datetime 
+-- 	--Recuperamos el primer objeto de la cola y almacenamos en las variables
+-- 	SELECT TOP 1
+-- 	    @Id=trl.Id, 
+-- 	    @Nombre_Tabla=trl.Nombre_Tabla, 
+-- 	    @Id_Fila=trl.Id_Fila, 
+-- 	    @Accion=trl.Accion, 
+-- 	    @Script=trl.Script, 
+-- 	    @Fecha_Reg=trl.Fecha_Reg 
+-- 	FROM dbo.TMP_REGISTRO_LOG trl
+-- 	ORDER BY trl.Id
+
+-- 	IF @Id IS NOT NULL
+-- 	BEGIN
+-- 		  ----Ejecutamos la sentencia
+-- 		  ----Si es exitosa entonces procedemos a eliminar el registro y almacenarlo en la tabla de historial
+-- 		  --BEGIN TRY
+-- 			 --BEGIN TRAN Transaccion
+-- 			 --EXECUTE(@Script)
+-- 			 --INSERT dbo.TMP_REGISTRO_LOG_H
+-- 			 --(
+-- 				--Id,
+-- 				--Nombre_Tabla,
+-- 				--Id_Fila,
+-- 				--Accion,
+-- 				--Script,
+-- 				--Fecha_Reg,
+-- 				--Fecha_Reg_Insercion
+-- 			 --)
+-- 			 --VALUES
+-- 			 --(
+-- 				--@Id, -- Id - uniqueidentifier
+-- 				--@Nombre_Tabla, -- Nombre_Tabla - varchar
+-- 				--@Id_Fila, -- Id_Fila - varchar
+-- 				--@Accion, -- Accion - varchar
+-- 				--@Script, -- Script - varchar
+-- 				--@Fecha_Reg, -- Fecha_Reg - datetime
+-- 				--GETDATE() -- Fecha_Reg_Insercion - datetime
+-- 			 --)
+-- 			 --DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
+-- 			 --COMMIT TRAN 
+-- 		  --END TRY
+-- 		  --BEGIN CATCH
+-- 			 --ROLLBACK TRAN
+-- 			 --THROW 
+-- 		  --END CATCH
+-- 		      SET XACT_ABORT ON;  
+-- 			 BEGIN TRY  
+-- 				SET @Script=@LinkedServer+'.'+@NombreBD+'.dbo.'+@Script
+-- 				EXECUTE(@Script) ;
+-- 				BEGIN TRANSACTION;  
+-- 				--EXECUTE(@Script) ;--ES NECESARIO ACTIVAR servicio distrinuido pero habilita rollbak desde el servidor
+-- 				INSERT dbo.TMP_REGISTRO_LOG_H
+-- 				(
+-- 				    Nombre_Tabla,
+-- 				    Id_Fila,
+-- 				    Accion,
+-- 				    Script,
+-- 				    Fecha_Reg,
+-- 				    Fecha_Reg_Insercion
+-- 				)
+-- 				VALUES
+-- 				(
+-- 				    @Nombre_Tabla, -- Nombre_Tabla - varchar
+-- 				    @Id_Fila, -- Id_Fila - varchar
+-- 				    @Accion, -- Accion - varchar
+-- 				    @Script, -- Script - varchar
+-- 				    @Fecha_Reg, -- Fecha_Reg - datetime
+-- 				    GETDATE() -- Fecha_Reg_Insercion - datetime
+-- 				)
+-- 				DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
+
+-- 				COMMIT TRANSACTION;
+-- 			 END TRY  
+      
+-- 			 BEGIN CATCH  
+-- 				IF (XACT_STATE()) = -1  
+-- 				BEGIN  
+-- 				    ROLLBACK TRANSACTION; 
+-- 				END;  
+-- 				IF (XACT_STATE()) = 1  
+-- 				BEGIN  
+-- 				    COMMIT TRANSACTION;    
+-- 				END;  
+-- 				THROW;
+-- 			 END CATCH;  
+-- 	END
+-- END
+-- GO
+
 --Metodo de exportacion
+--exec USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento 'PALERPpuquin','PALERPlink'
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento' AND type = 'P')
 DROP PROCEDURE USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento
 GO
@@ -28902,78 +29782,38 @@ BEGIN
 
 	IF @Id IS NOT NULL
 	BEGIN
-		  ----Ejecutamos la sentencia
-		  ----Si es exitosa entonces procedemos a eliminar el registro y almacenarlo en la tabla de historial
-		  --BEGIN TRY
-			 --BEGIN TRAN Transaccion
-			 --EXECUTE(@Script)
-			 --INSERT dbo.TMP_REGISTRO_LOG_H
-			 --(
-				--Id,
-				--Nombre_Tabla,
-				--Id_Fila,
-				--Accion,
-				--Script,
-				--Fecha_Reg,
-				--Fecha_Reg_Insercion
-			 --)
-			 --VALUES
-			 --(
-				--@Id, -- Id - uniqueidentifier
-				--@Nombre_Tabla, -- Nombre_Tabla - varchar
-				--@Id_Fila, -- Id_Fila - varchar
-				--@Accion, -- Accion - varchar
-				--@Script, -- Script - varchar
-				--@Fecha_Reg, -- Fecha_Reg - datetime
-				--GETDATE() -- Fecha_Reg_Insercion - datetime
-			 --)
-			 --DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
-			 --COMMIT TRAN 
-		  --END TRY
-		  --BEGIN CATCH
-			 --ROLLBACK TRAN
-			 --THROW 
-		  --END CATCH
-		      SET XACT_ABORT ON;  
-			  BEGIN TRY  
-				SET @Script=@LinkedServer+'.'+@NombreBD+'.dbo.'+@Script
-				EXECUTE(@Script) ;
-				BEGIN TRANSACTION;  
-				--EXECUTE(@Script) ;--ES NECESARIO ACTIVAR servicio distrinuido pero habilita rollbak desde el servidor
-				INSERT dbo.TMP_REGISTRO_LOG_H
-				(
-				    Nombre_Tabla,
-				    Id_Fila,
-				    Accion,
-				    Script,
-				    Fecha_Reg,
-				    Fecha_Reg_Insercion
-				)
-				VALUES
-				(
-				    @Nombre_Tabla, -- Nombre_Tabla - varchar
-				    @Id_Fila, -- Id_Fila - varchar
-				    @Accion, -- Accion - varchar
-				    @Script, -- Script - varchar
-				    @Fecha_Reg, -- Fecha_Reg - datetime
-				    GETDATE() -- Fecha_Reg_Insercion - datetime
-				)
-				DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
+	    BEGIN TRY  
+			 SET @Script=@LinkedServer+'.'+@NombreBD+'.dbo.'+@Script
+			 EXECUTE(@Script) ;
+			 BEGIN TRANSACTION;  
+			 INSERT dbo.TMP_REGISTRO_LOG_H
+			 (
+				Nombre_Tabla,
+				Id_Fila,
+				Accion,
+				Script,
+				Fecha_Reg,
+				Fecha_Reg_Insercion
+			 )
+			 VALUES
+			 (
+				@Nombre_Tabla, -- Nombre_Tabla - varchar
+				@Id_Fila, -- Id_Fila - varchar
+				@Accion, -- Accion - varchar
+				@Script, -- Script - varchar
+				@Fecha_Reg, -- Fecha_Reg - datetime
+				GETDATE() -- Fecha_Reg_Insercion - datetime
+			 )
+			 DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
 
-				COMMIT TRANSACTION;
-			 END TRY  
+			 COMMIT TRANSACTION;
+		  END TRY  
       
-			 BEGIN CATCH  
-				IF (XACT_STATE()) = -1  
-				BEGIN  
-				    ROLLBACK TRANSACTION; 
-				END;  
-				IF (XACT_STATE()) = 1  
-				BEGIN  
-				    COMMIT TRANSACTION;    
-				END;  
-				THROW;
-			 END CATCH;  
+		BEGIN CATCH  
+			 DECLARE @ErrorMessage NVARCHAR(4000);  
+			 SELECT  @ErrorMessage = CONCAT('Ocurrio un error en : ', @Nombre_Tabla,CHAR(13),CHAR(10) )  + ERROR_MESSAGE() 
+			 RAISERROR(@ErrorMessage,16,1)
+		END CATCH;  
 	END
 END
 GO
@@ -28981,7 +29821,7 @@ GO
  ----Introducir variables
  ----Linked SERVER
  --DECLARE @NombreLinkedServer varchar(max)= N'PALERPlink' --Por defecto
- --DECLARE @ServidorLinkedServer varchar(max)= N'192.168.1.254' --Nombre del servidor remoto
+ --DECLARE @ServidorLinkedServer varchar(max)= N'reyberpalma.hopto.org' --Nombre del servidor remoto
  --DECLARE @NombreBaseDeDatos varchar(max)= (SELECT DB_NAME() AS [Base de datos actual]) --Nombre de la base de datos actual, cambiar si es otro nombre
  --DECLARE @NombreUsuarioServidor varchar(max)= N'sa' --Por defecto
  --DECLARE @NombrePassServidor varchar(max)= N'paleC0nsult0res' --Por defecto
@@ -29093,9 +29933,7 @@ GO
 --  where ccr.id_ComprobantePago=@id_ComprobantePago))) ) FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE @id_ComprobantePago=ccp.id_ComprobantePago
 
 
--- --Nuevas funciones
--- --Funcion que obtiene el valor de verificacion de un comprobante
--- --por su cod_libro, cod_tipoComprobante,serie y numero
+--Nuevas funciones
 -- IF object_id('UFN_CAJ_COMPROBANTE_PAGO_Checksum') IS NOT NULL
 -- BEGIN 
 -- 	PRINT 'Dropping function'
@@ -29111,9 +29949,7 @@ GO
 -- 	@Serie varchar(max),
 -- 	@Numero varchar(max)
 -- ) 
-
 -- RETURNS int
--- WITH ENCRYPTION
 -- BEGIN
 -- 	DECLARE @v_ret int
 -- 	DECLARE @id_ComprobantePago int = (SELECT ccp.id_ComprobantePago FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_Libro=@Cod_libro AND ccp.Cod_TipoComprobante=@Cod_Tipo_Comprobante AND ccp.Serie=@Serie AND ccp.Numero=@Numero)
@@ -29144,1406 +29980,1059 @@ GO
 -- 	RETURN @v_ret
 -- END
 
+-- GO
 
-
---Nuevas funciones
---Funcion que obtiene el valor de verificacion de un comprobante
---por su cod_libro, cod_tipoComprobante,serie y numero
-IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CAJ_COMPROBANTE_PAGO_Checksum' AND type = 'P')
-DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_Checksum
-GO
-
-CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_Checksum
-(
-	@Cod_libro varchar(max),
-	@Cod_Tipo_Comprobante varchar(max),
-	@Serie varchar(max),
-	@Numero varchar(max),
-	@Checksum int OUTPUT
-) 
-
-WITH ENCRYPTION
-AS
+--Modificamos los datos de los correos de exportacion
+IF EXISTS (SELECT vc.* FROM dbo.VIS_CORREOS vc WHERE vc.Tipo_Uso='EXPORTACION' AND vc.Estado=1)
 BEGIN
-	SET @Checksum=0
-	DECLARE @id_ComprobantePago int = (SELECT ccp.id_ComprobantePago FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_Libro=@Cod_libro AND ccp.Cod_TipoComprobante=@Cod_Tipo_Comprobante AND ccp.Serie=@Serie AND ccp.Numero=@Numero)
-	IF @id_ComprobantePago IS NOT NULL
-	BEGIN
-	    SET @Checksum = (SELECT CHECKSUM(ccp.Cod_Libro,ccp.Cod_TipoComprobante,ccp.Serie,ccp.Numero, 
-	    (SELECT CHECKSUM(pcp.Cod_TipoDocumento, pcp.Nro_Documento, pcp.Cliente, pcp.Ap_Paterno, pcp.Ap_Materno, pcp.Nombres, pcp.Direccion, pcp.Cod_EstadoCliente, pcp.Cod_CondicionCliente, pcp.Cod_TipoCliente, pcp.RUC_Natural, pcp.Cod_TipoComprobante, pcp.Cod_Nacionalidad, pcp.Fecha_Nacimiento, pcp.Cod_Sexo, pcp.Email1, pcp.Email2, pcp.Telefono1, pcp.Telefono2, pcp.Fax, pcp.PaginaWeb, pcp.Cod_Ubigeo, pcp.Cod_FormaPago, pcp.Limite_Credito,CONVERT(varchar(max), pcp.Obs_Cliente), pcp.Num_DiaCredito, pcp.Cod_UsuarioReg) 
-	    FROM dbo.PRI_CLIENTE_PROVEEDOR pcp 
-	    WHERE ccp.Id_Cliente=pcp.Id_ClienteProveedor) ,
-	    (SELECT CHECKSUM(ccp.Cod_Periodo,ccp.Cod_Caja,ccp.Cod_Turno,ccp.Cod_TipoOperacion,ccp.Cod_TipoDoc,ccp.Doc_Cliente,ccp.Nom_Cliente,ccp.Direccion_Cliente, ccp.FechaEmision, ccp.FechaVencimiento, ccp.FechaCancelacion, ccp.Glosa, ccp.TipoCambio, ccp.Cod_FormaPago, ccp.Descuento_Total, ccp.Cod_Moneda, ccp.Impuesto, ccp.Total,CONVERT(varchar(max), ccp.Obs_Comprobante), ccp.Cod_UsuarioVendedor, ccp.Cod_RegimenPercepcion, ccp.Tasa_Percepcion, ccp.Placa_Vehiculo, ccp.Otros_Cargos, ccp.Otros_Tributos, ccp.Cod_UsuarioReg) 
-	    FROM dbo.CAJ_COMPROBANTE_PAGO ccp
-	    WHERE ccp.id_ComprobantePago=@id_ComprobantePago) ,
-	    (SELECT checksum((SELECT CHECKSUM(ccd.id_Detalle,pp.Cod_Producto, ccd.Cod_Almacen, ccd.Cantidad, ccd.Cod_UnidadMedida, ccd.Despachado, ccd.Descripcion, ccd.PrecioUnitario, ccd.Descuento, ccd.Sub_Total, ccd.Tipo, ccd.Obs_ComprobanteD, ccd.Cod_Manguera, ccd.Flag_AplicaImpuesto, ccd.Formalizado, ccd.Valor_NoOneroso, ccd.Cod_TipoISC, ccd.Porcentaje_ISC, ccd.ISC, ccd.Cod_TipoIGV, ccd.Porcentaje_IGV, ccd.IGV, ccd.Cod_UsuarioReg )
-	    FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.PRI_PRODUCTOS pp ON ccd.Id_Producto = pp.Id_Producto
-		WHERE ccd.id_ComprobantePago=@id_ComprobantePago))),
-	    (SELECT checksum((SELECT CHECKSUM(cfp.Item, cfp.Des_FormaPago, cfp.Cod_TipoFormaPago, cfp.Cuenta_CajaBanco, cfp.Id_Movimiento, cfp.TipoCambio, cfp.Cod_Moneda, cfp.Monto, cfp.Cod_Caja, cfp.Cod_Turno, cfp.Cod_Plantilla, CONVERT(varchar(max), cfp.Obs_FormaPago), cfp.Fecha, cfp.Cod_UsuarioReg) 
-	    FROM dbo.CAJ_FORMA_PAGO cfp 
-	    where cfp.id_ComprobantePago=@id_ComprobantePago))) ,
-	    (SELECT checksum((SELECT CHECKSUM(ccr.id_Detalle,ccr.Item,ccp2.Cod_Libro,ccp2.Cod_TipoComprobante,ccp2.Serie,ccp2.Numero,ccr.Cod_TipoRelacion, ccr.Valor, ccr.Obs_Relacion, ccr.Cod_UsuarioReg)
-	    FROM dbo.CAJ_COMPROBANTE_RELACION ccr 
-	    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp2 ON ccr.Id_ComprobanteRelacion = ccp2.id_ComprobantePago
-	    where ccr.id_ComprobantePago=@id_ComprobantePago))) ) FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE @id_ComprobantePago=ccp.id_ComprobantePago)
-	END
+    --DECLARE @maxFila int 
+    --IF EXISTS (SELECT * FROM dbo.PAR_FILA pf WHERE pf.Cod_Tabla='118' AND pf.Cod_Columna='004' AND pf.Cadena='EXPORTACION')
+    --BEGIN
+    DECLARE @maxFila int =(SELECT max(pf.Cod_Fila) FROM dbo.PAR_FILA pf WHERE pf.Cod_Tabla='118' AND pf.Cod_Columna='004' AND pf.Cadena='EXPORTACION')
+    --END
+    --ELSE
+    --BEGIN
+	   --SET @maxFila=1
+    --END
+    EXEC USP_PAR_FILA_G '118','001',@maxFila,'PALERP',NULL,NULL,NULL,NULL,1,'MIGRACION';--Nuevo servidor de correo
+    EXEC USP_PAR_FILA_G '118','002',@maxFila,'reg-errores@palerp.com',NULL,NULL,NULL,NULL,1,'MIGRACION';--Nuevo correo e
+    EXEC USP_PAR_FILA_G '118','003',@maxFila,'reg-errores321',NULL,NULL,NULL,NULL,1,'MIGRACION'; --Paswword del nuevo correo
 END
 GO
---Metodo de exportacion
-IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_TMP_COMPROBANTE_REGISTRO_LOG_VerificarComprobante' AND type = 'P')
-DROP PROCEDURE USP_TMP_COMPROBANTE_REGISTRO_LOG_VerificarComprobante
-GO
-CREATE PROCEDURE USP_TMP_COMPROBANTE_REGISTRO_LOG_VerificarComprobante
-@Cod_Libro varchar(max),
-@Cod_Tipo_Comprobante varchar(max),
-@Serie varchar(max),
-@Numero varchar(max),
-@LinkedServer varchar(max),
-@NombreBD varchar(max)
-AS
+IF EXISTS (SELECT vce.* FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
 BEGIN
-    --Reucperamos nuestros hash del servidor remoto
-    DECLARE @nquery NVARCHAR(max)
-           ,@nParams NVARCHAR(max),@Checksum int
-    SET @nParams = '@Cod_Libro varchar(max),@Cod_Tipo_Comprobante varchar(max),@Serie varchar(max),@Numero varchar(max), @Checksum INT OUTPUT'       
-    SET @nquery = 'EXEC '+@LinkedServer+'.'+@NombreBD+'.'+'dbo.USP_CAJ_COMPROBANTE_PAGO_Checksum @Cod_Libro,@Cod_Tipo_Comprobante,@Serie,@Numero,@Checksum OUTPUT'
-
-    EXECUTE sp_executesql @nQuery, @nParams
-				    ,@Cod_libro =@Cod_libro
-				    ,@Cod_Tipo_Comprobante= @Cod_Tipo_Comprobante
-				    ,@Serie=@Serie
-				    ,@Numero=@Numero
-				    ,@Checksum = @Checksum OUTPUT 
-    --Recupermaos nuestro hash local
-    DECLARE @ChecksumLocal int 
-    SET @nParams = '@Cod_Libro varchar(max),@Cod_Tipo_Comprobante varchar(max),@Serie varchar(max),@Numero varchar(max), @Checksum INT OUTPUT'       
-    SET @nquery = 'EXEC '+@LinkedServer+'.'+@NombreBD+'.'+'dbo.USP_CAJ_COMPROBANTE_PAGO_Checksum @Cod_Libro,@Cod_Tipo_Comprobante,@Serie,@Numero,@Checksum OUTPUT'
-
-    EXECUTE sp_executesql @nQuery, @nParams
-				    ,@Cod_libro =@Cod_libro
-				    ,@Cod_Tipo_Comprobante= @Cod_Tipo_Comprobante
-				    ,@Serie=@Serie
-				    ,@Numero=@Numero
-				    ,@Checksum = @ChecksumLocal OUTPUT 
-    
-    --Confirmamos el hash
-    IF @Checksum = @ChecksumLocal
-    BEGIN
-	   --Actualizamos el estado
-	   SET @nParams = '@Cod_Libro varchar(max),@Cod_Tipo_Comprobante varchar(max),@Serie varchar(max),@Numero varchar(max)'  
-	   SET @nquery = 'EXEC '+@LinkedServer+'.'+@NombreBD+'.'+'dbo.USP_CAJ_COMPROBANTE_PAGO_MarcarComprobante @Cod_Libro,@Cod_Tipo_Comprobante,@Serie,@Numero'
-	   EXECUTE sp_executesql @nQuery, @nParams
-				,@Cod_libro =@Cod_libro
-				,@Cod_Tipo_Comprobante= @Cod_Tipo_Comprobante
-				,@Serie=@Serie
-				,@Numero=@Numero
-    END
-    ELSE
-    BEGIN
-	   --Actulizamos nuestros propios campos para volver a reenviar
-	   DECLARE @ID_ComprobanteLocal int = (SELECT ccp.id_ComprobantePago FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_Libro=@Cod_Libro AND ccp.Cod_TipoComprobante=@Cod_Tipo_Comprobante
-	   AND ccp.Serie=@Serie AND ccp.Numero=@Numero)
-	   BEGIN TRY
-		  BEGIN TRANSACTION 
-		  UPDATE dbo.PRI_CLIENTE_PROVEEDOR
-		  SET --dbo.PRI_CLIENTE_PROVEEDOR.Cod_UsuarioAct='VERIFICACION',
-			 dbo.PRI_CLIENTE_PROVEEDOR.Fecha_Act=GETDATE() 
-			 WHERE dbo.PRI_CLIENTE_PROVEEDOR.Id_ClienteProveedor=
-			 (SELECT ccp.Id_Cliente FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=@ID_ComprobanteLocal) 
-		  UPDATE dbo.CAJ_COMPROBANTE_PAGO
-		  SET --dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = 'VERIFICACION',
-		      dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act =GETDATE()
-			 WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@ID_ComprobanteLocal
-		  UPDATE dbo.CAJ_COMPROBANTE_D
-		  SET
-		     --dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct = 'VERIFICACION', 
-		     dbo.CAJ_COMPROBANTE_D.Fecha_Act = GETDATE()
-		     WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@ID_ComprobanteLocal
-		  UPDATE dbo.CAJ_FORMA_PAGO
-		  SET
-		     --dbo.CAJ_FORMA_PAGO.Cod_UsuarioAct = 'VERIFICACION', 
-		     dbo.CAJ_FORMA_PAGO.Fecha_Act = GETDATE()
-			WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@ID_ComprobanteLocal
-		  UPDATE dbo.CAJ_COMPROBANTE_RELACION
-		  SET
-		     --dbo.CAJ_COMPROBANTE_RELACION.Cod_UsuarioAct = 'VERIFICACION', 
-		     dbo.CAJ_COMPROBANTE_RELACION.Fecha_Act = GETDATE()
-		  COMMIT TRANSACTION  
-	   END TRY
-	   BEGIN CATCH
-		  ROLLBACK TRANSACTION
-	   END CATCH
-    END
+    EXEC USP_PAR_FILA_G '120','005',1,'reg-errores@palerp.com',NULL,NULL,NULL,NULL,1,'MIGRACION';--Nuevo correo de recepcion
 END
 GO
 
+--Creamos un procedimiento de mantenimiento para las tablas de auditoria
+--Se borran automaticamente todos los registros con una difernecia de 1 año
+--ademas de borrar el log de transacciones,
+--Ademas crea o modifica los procedimientos de triggers sobre auditoria
+--Tiene una frecuencia de cada 1 dia
+--Borramnos la tare si existia anteriormente
+DECLARE @jobId binary(16) = (SELECT job_id FROM msdb.dbo.sysjobs WHERE (name = 'Mantenimiento Auditoria'))
+IF (@jobId IS NOT NULL)
+BEGIN
+    EXEC msdb.dbo.sp_delete_job @jobId
+END
 
---CAJ_COMPROBANTE_D
+SET @jobId=null
+--Agregamos la tarea
+EXEC msdb.dbo.sp_add_job @job_name='Mantenimiento Auditoria', @enabled=1, @owner_login_name=N'sa', @job_id = @jobId OUTPUT
+--Agregamos el paso 
+DECLARE @BDActual varchar(512) ='PALERP_Auditoria'
+DECLARE @Comando varchar(MAX)= '
+ALTER DATABASE PALERP_Auditoria
+SET RECOVERY SIMPLE;
+GO
+--Reducimos el log de transacciones a  1 MB.
+DBCC SHRINKFILE(PALERP_Auditoria, 1);
+GO
+--Cambiamos nuevamente el modelo de recuperación a Completo.
+ALTER DATABASE PALERP_Auditoria
+SET RECOVERY FULL;
+GO
 IF EXISTS (SELECT name
-	   FROM   sysobjects 
-	   WHERE  name = N'UTR_CAJ_COMPROBANTE_D_IUD'
-	   AND 	  type = 'TR')
-    DROP TRIGGER UTR_CAJ_COMPROBANTE_D_IUD
+ 	   FROM   sysobjects 
+ 	   WHERE  name = N'+''''+'UTR_Auditoria_UD'+''''+'
+ 	   AND 	  type = '+''''+'TR'+''''+')
+     BEGIN
+	   DROP TRIGGER UTR_Auditoria_UD
+	   DELETE dbo.PRI_AUDITORIA WHERE DATEDIFF(year,dbo.PRI_AUDITORIA.Fecha_Reg, getdate())>1
+     END
+GO
+CREATE TRIGGER  UTR_Auditoria_UD 
+ON PRI_AUDITORIA 
+WITH ENCRYPTION
+INSTEAD OF UPDATE,DELETE 
+AS 
+BEGIN 
+    RAISERROR ('+''''+'Edicion y eliminacion no estan permitidos'+''''+', 16, 1)   
+END 
+'
+
+EXEC msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Mantenimiento Auditoria', 
+	   @step_id=1, 
+	   @retry_attempts=10, 
+	   @retry_interval=1, 
+	   @os_run_priority=1, @subsystem=N'TSQL', 
+	   @command=@Comando, 
+	   @database_name=@BDActual, 
+	   @output_file_name=N'C:\APLICACIONES\TEMP\log_mantenimiento.txt',
+	   @flags=2
+
+--Agregamos las frecuencias Diario a una hora predeterminada
+DECLARE @FechaActual varchar(20) = CONCAT(YEAR(GETDATE()),FORMAT(MONTH(GETDATE()),'00'),FORMAT(DAY(GETDATE()),'00'))
+EXEC  msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'Mantenimiento', 
+	   @enabled=1, 
+	   @freq_type=4, 
+	   @freq_interval=1, 
+	   @freq_subday_type=1, 
+	   @freq_subday_interval=0, 
+	   @freq_relative_interval=0, 
+	   @freq_recurrence_factor=0, 
+	   @active_start_date=@FechaActual, 
+	   @active_end_date=99991231, 
+	   @active_start_time=120000,
+	   @schedule_id=1
+
+--Agregamos el jobserver
+EXEC msdb.dbo.sp_add_jobserver @job_id = @jobId
+--Ejecutamos el job
+EXEC msdb.dbo.sp_start_job N'Mantenimiento Auditoria'  
 GO
 
-CREATE TRIGGER UTR_CAJ_COMPROBANTE_D_IUD
-ON dbo.CAJ_COMPROBANTE_D
+--METODO QUE DA DE BAJA UN COMPROBANTE POR ID
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CAJ_COMPROBANTE_PAGO_DarBaja' AND type = 'P')
+DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_DarBaja
+go
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_DarBaja 
+@id_ComprobantePago int,
+@CodUsuario varchar(32),
+@Justificacion varchar(MAX)
 WITH ENCRYPTION
-AFTER INSERT,UPDATE,DELETE
 AS
 BEGIN
-	--Variables de tabla primarias
-	DECLARE @id_ComprobantePago int
-	DECLARE @id_Detalle int
-	DECLARE @Fecha_Reg datetime
-	DECLARE @Fecha_Act datetime
-	DECLARE @NombreTabla varchar(max)='CAJ_COMPROBANTE_D'
-	--Variables de tabla secundarias
-	DECLARE @Id_Producto int
-	DECLARE @Cod_Almacen varchar(32)
-	DECLARE @Cantidad numeric(38,6)
-	DECLARE @Cod_UnidadMedida varchar(5)
-	DECLARE @Despachado numeric(38,6)
-	DECLARE @Descripcion varchar(max)
-	DECLARE @PrecioUnitario numeric(38,6)
-	DECLARE @Descuento numeric(38,2)
-	DECLARE @Sub_Total numeric(38,2)
-	DECLARE @Tipo varchar(256)
-	DECLARE @Obs_ComprobanteD varchar(1024)
-	DECLARE @Cod_Manguera varchar(32)
-	DECLARE @Flag_AplicaImpuesto bit
-	DECLARE @Formalizado numeric(38,6)
-	DECLARE @Valor_NoOneroso numeric(38,2)
-	DECLARE @Cod_TipoISC varchar(8)
-	DECLARE @Porcentaje_ISC numeric(38,2)
-	DECLARE @ISC numeric(38,2)
-	DECLARE @Cod_TipoIGV varchar(8)
-	DECLARE @Porcentaje_IGV numeric(38,2)
-	DECLARE @IGV numeric(38,2)
-	DECLARE @Cod_UsuarioReg varchar(32)
-	DECLARE @Cod_UsuarioAct varchar(32)
-	--Variables Generales
-	DECLARE @Script varchar(max)
-	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
-	DECLARE @FechaReg datetime
-	DECLARE @Accion varchar(MAX)
-	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-   --Acciones
-	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
+	DECLARE @Id_Producto  int, @Signo  int, 
+	@Cod_Almacen  varchar(32), 
+	@Cod_UnidadMedida  varchar(5), 
+	@Despachado  numeric(38,6),
+	@Documento varchar(128),
+	@Proveedor varchar(1024),
+	@Detalle varchar(MAX),
+	@FechaEmision datetime,
+	@FechaActual datetime,
+	@id_Fila int;
+
+	SET @FechaActual =GETDATE();
+
+	SELECT @Documento = Cod_Libro +'-'+ Cod_TipoComprobante+':'+Serie+'-'+Numero,
+	@Proveedor = Cod_TipoDoc +':'+ Doc_Cliente+'-'+ Nom_Cliente,
+	@FechaEmision = FechaEmision
+	FROM CAJ_COMPROBANTE_PAGO WHERE id_ComprobantePago = @id_ComprobantePago
+
+	-- RECUPERAR LOS DETALLES
+	SET @Detalle = STUFF(( SELECT distinct ' ; ' + convert(varchar,D.Id_Producto) +'|'+d.Descripcion +'|'+convert(varchar,d.Cantidad)
+                                     FROM   CAJ_COMPROBANTE_D D
+                                     WHERE  D.id_ComprobantePago = @id_ComprobantePago
+                                   FOR
+                                     XML PATH('')
+                                   ), 1, 2, '') + ''
+
+	set @Signo = (select case Cod_Libro when '08' then -1 when '14' then 1 else 0 end from CAJ_COMPROBANTE_PAGO 
+	where id_ComprobantePago = @id_ComprobantePago);
+
+	DECLARE ComprobanteD CURSOR FOR
+		SELECT Id_Producto,Cod_UnidadMedida,Cod_Almacen,Despachado
+		from CAJ_COMPROBANTE_D
+		WHERE id_ComprobantePago = @id_ComprobantePago and Id_Producto <> 0
+		OPEN ComprobanteD;
+	FETCH NEXT FROM ComprobanteD INTO @Id_Producto,@Cod_UnidadMedida,@Cod_Almacen,@Despachado;
+	WHILE @@FETCH_STATUS = 0
 	BEGIN
-		SET @Accion='ACTUALIZAR'
-	END
+		UPDATE PRI_PRODUCTO_STOCK 
+		SET Stock_Act = Stock_Act+@Signo * @Despachado
+		WHERE Id_Producto = @Id_Producto and Cod_UnidadMedida = @Cod_UnidadMedida and Cod_Almacen = @Cod_Almacen
+	FETCH NEXT FROM ComprobanteD INTO @Id_Producto,@Cod_UnidadMedida,@Cod_Almacen,@Despachado;
+	END;
+	CLOSE ComprobanteD;
+	DEALLOCATE ComprobanteD;
 
-	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
+	--Actualizamos la informacion en comprobante pago
+	UPDATE dbo.CAJ_COMPROBANTE_PAGO
+	SET	
+	dbo.CAJ_COMPROBANTE_PAGO.Flag_Anulado=1,
+	dbo.CAJ_COMPROBANTE_PAGO.Cod_EstadoComprobante='REC',
+	dbo.CAJ_COMPROBANTE_PAGO.Impuesto=0,
+	dbo.CAJ_COMPROBANTE_PAGO.Total=0,
+	dbo.CAJ_COMPROBANTE_PAGO.Descuento_Total=0,
+	dbo.CAJ_COMPROBANTE_PAGO.id_ComprobanteRef=0,
+	dbo.CAJ_COMPROBANTE_PAGO.Otros_Cargos=0,
+	dbo.CAJ_COMPROBANTE_PAGO.Otros_Tributos=0,
+	dbo.CAJ_COMPROBANTE_PAGO.MotivoAnulacion=@Justificacion,
+	dbo.CAJ_COMPROBANTE_PAGO.Id_GuiaRemision=0
+	WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@id_ComprobantePago
+
+    --Actualizamos la informacion de los detalles
+	UPDATE dbo.CAJ_COMPROBANTE_D
+	SET	
+	dbo.CAJ_COMPROBANTE_D.Cantidad=0,
+	dbo.CAJ_COMPROBANTE_D.Despachado=0,
+	dbo.CAJ_COMPROBANTE_D.Formalizado=0,
+	dbo.CAJ_COMPROBANTE_D.Descuento=0,
+	dbo.CAJ_COMPROBANTE_D.Sub_Total=0,
+	dbo.CAJ_COMPROBANTE_D.IGV=0,
+	dbo.CAJ_COMPROBANTE_D.ISC=0
+	WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@id_ComprobantePago
+
+	--Actualizamos la informacion de la forma de pago
+	UPDATE dbo.CAJ_FORMA_PAGO
+	SET
+	dbo.CAJ_FORMA_PAGO.Monto = 0
+	WHERE dbo.CAJ_FORMA_PAGO.id_ComprobantePago=@id_ComprobantePago
+
+	--Eliminamos todas las relaciones
+	DELETE FROM CAJ_COMPROBANTE_RELACION
+	WHERE (Id_ComprobanteRelacion = @id_ComprobantePago)
+	DELETE FROM CAJ_COMPROBANTE_RELACION
+	WHERE (id_ComprobantePago = @id_ComprobantePago)
+
+	--Eliminamos las licitaciones
+	DELETE FROM PRI_LICITACIONES_M
+	WHERE (id_ComprobantePago = @id_ComprobantePago)
+
+	-- Eliminar las Serie que se colocaron
+	DELETE FROM CAJ_SERIES
+	WHERE (Id_Tabla = @id_ComprobantePago AND Cod_Tabla = 'CAJ_COMPROBANTE_PAGO')
+
+	-- insertar elementos en un datos a ver que pasa
+	SET @id_Fila = (SELECT ISNULL(COUNT(*)/9,1)+1 FROM PAR_FILA WHERE Cod_Tabla = '079')
+	EXEC USP_PAR_FILA_G '079','001',@id_Fila,@Documento,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	EXEC USP_PAR_FILA_G '079','002',@id_Fila,'CAJ_COMPROBANTE_PAGO',NULL,NULL,NULL,NULL,1,'MIGRACION';
+	EXEC USP_PAR_FILA_G '079','003',@id_Fila,@Proveedor,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	EXEC USP_PAR_FILA_G '079','004',@id_Fila,@Detalle,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	EXEC USP_PAR_FILA_G '079','005',@id_Fila,NULL,NULL,NULL,@FechaEmision,NULL,1,'MIGRACION';
+	EXEC USP_PAR_FILA_G '079','006',@id_Fila,NULL,NULL,NULL,@FechaActual,NULL,1,'MIGRACION';
+	EXEC USP_PAR_FILA_G '079','007',@id_Fila,@CodUsuario,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	EXEC USP_PAR_FILA_G '079','008',@id_Fila,@Justificacion,NULL,NULL,NULL,NULL,1,'MIGRACION';
+	EXEC USP_PAR_FILA_G '079','009',@id_Fila,NULL,NULL,NULL,NULL,1,1,'MIGRACION';	
+END
+go
+
+
+----------------------------------------------------------------------------------------
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_TMP_REGISTRO_LOG_TraerTodo' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_TMP_REGISTRO_LOG_TraerTodo
+GO
+
+CREATE PROCEDURE USP_TMP_REGISTRO_LOG_TraerTodo
+WITH ENCRYPTION
+AS
+BEGIN
+	SELECT trl.* FROM dbo.TMP_REGISTRO_LOG trl ORDER BY trl.Id
+END
+GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_TMP_REGISTRO_LOG_MoverUno' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_TMP_REGISTRO_LOG_MoverUno
+GO
+
+CREATE PROCEDURE USP_TMP_REGISTRO_LOG_MoverUno
+@Id varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+    --Exporta una fila a un archivo de texto
+    --Variables generales 
+	DECLARE @cmd varchar(max)
+	DECLARE @Nombre_Tabla varchar(max) 
+	DECLARE @Id_Fila varchar(max) 
+	DECLARE @Accion varchar(max) 
+	DECLARE @Script varchar(max) 
+	DECLARE @Fecha_Reg datetime 
+	--Recuperamos el y almacenamos en las variables
+	SELECT 
+	    @Id=trl.Id, 
+	    @Nombre_Tabla=trl.Nombre_Tabla, 
+	    @Id_Fila=trl.Id_Fila, 
+	    @Accion=trl.Accion, 
+	    @Script=trl.Script, 
+	    @Fecha_Reg=trl.Fecha_Reg 
+	FROM dbo.TMP_REGISTRO_LOG trl
+	WHERE trl.Id=@Id
+
+	IF @Id IS NOT NULL
 	BEGIN
-		SET @Accion='INSERTAR'
-	END
-
-	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='ELIMINAR'
-	END
-
-	--Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
-	IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
-	BEGIN
-	   DECLARE @NumeroFIlas int = (SELECT COUNT(*) FROM INSERTED i)
-	   DECLARE @Contador int = 1
-	   DECLARE cursorbd CURSOR LOCAL FOR
-		  SELECT
-		  i.id_ComprobantePago,
-		  i.id_Detalle,
-		  i.Fecha_Reg,
-		  i.Fecha_Act
-		  FROM INSERTED i
-	   OPEN cursorbd 
-	   FETCH NEXT FROM cursorbd INTO
-		  @id_ComprobantePago,
-		  @id_Detalle,
-		  @Fecha_Reg,
-		  @Fecha_Act
-	   WHILE @@FETCH_STATUS = 0
-	   BEGIN
-	   --Si esta habilitada la exportacion para almacenar en la tabla de
-	   --exportaciones
-		  SELECT @Script='USP_CAJ_COMPROBANTE_D_I '+ 
-		  CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
-		  CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
-		  CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
-		  CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
-		  CASE WHEN P.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoDoc,'''','')+''',' END +
-		  CASE WHEN P.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Doc_Cliente,'''','')+''',' END +
-		  CONVERT(VARCHAR(MAX),D.id_Detalle)+','+ 
-		  CASE WHEN PP.Cod_Producto IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Cod_Producto,'''','')+''',' END +
-		  CASE WHEN D.Cod_Almacen IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_Almacen,'''','')+''',' END +
-		  CASE WHEN D.Cantidad IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Cantidad)+','END+
-		  CASE WHEN D.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_UnidadMedida,'''','')+''',' END +
-		  CASE WHEN D.Despachado IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Despachado)+','END+
-		  CASE WHEN D.Descripcion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Descripcion,'''','')+''',' END +
-		  CASE WHEN D.PrecioUnitario IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.PrecioUnitario)+','END+ 
-		  CASE WHEN D.Descuento IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Descuento)+','END+
-		  CASE WHEN D.Sub_Total IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Sub_Total)+','END+ 
-		  CASE WHEN D.Tipo IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Tipo,'''','')+''',' END +
-		  CASE WHEN D.Obs_ComprobanteD IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Obs_ComprobanteD,'''','')+''',' END +
-		  CASE WHEN D.Cod_Manguera IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_Manguera,'''','')+''',' END + 
-		  CONVERT(VARCHAR(MAX),D.Flag_AplicaImpuesto)+','+ 
-		  CASE WHEN D.Formalizado IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Formalizado)+','END+ 
-		  CASE WHEN D.Valor_NoOneroso IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Valor_NoOneroso)+','END+ 
-		  CASE WHEN D.Cod_TipoISC IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_TipoISC,'''','')+''',' END +
-		  CASE WHEN D.Porcentaje_ISC IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Porcentaje_ISC)+','END+ 
-		  CASE WHEN D.ISC IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.ISC)+','END+ 
-		  CASE WHEN D.Cod_TipoIGV IS NULL THEN 'NULL,' ELSE ''''+REPLACE(D.Cod_TipoIGV,'''','')+''',' END +
-		  CASE WHEN D.Porcentaje_IGV IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.Porcentaje_IGV)+','END+ 
-		  CASE WHEN D.IGV IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),D.IGV)+','END+ 
-		  ''''+REPLACE(COALESCE(D.Cod_UsuarioAct,D.Cod_UsuarioReg),'''','')+''';' 
-		  FROM INSERTED D INNER JOIN
-			 CAJ_COMPROBANTE_PAGO AS P ON D.id_ComprobantePago = P.id_ComprobantePago INNER JOIN
-			 PRI_PRODUCTOS AS PP ON D.Id_Producto = PP.Id_Producto
-		  WHERE D.id_ComprobantePago=@id_ComprobantePago AND D.id_Detalle=@id_Detalle
-
-		  SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
-		  INSERT dbo.TMP_REGISTRO_LOG
-		  (
-			 --Id,
-			 Nombre_Tabla,
-			 Id_Fila,
-			 Accion,
-			 Script,
-			 Fecha_Reg
-		  )
-		  VALUES
-		  (
-			 --NULL, -- Id - uniqueidentifier
-			 @NombreTabla, -- Nombre_Tabla - varchar
-			 CONCAT(@id_ComprobantePago,'|',@id_Detalle), -- Id_Fila - varchar
-			 @Accion, -- Accion - varchar
-			 @Script, -- Script - varchar
-			 @FechaReg -- Fecha_Reg - datetime
-		  )
-
-	   --Determinamos si es el ultimo detalles
-	   IF @Contador=@NumeroFIlas 
-	   BEGIN
-		  DECLARE @NombreLinked varchar(max) = (SELECT vce.Linked_Server FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
-		  DECLARE @NombreBDRemota varchar(max) = (SELECT vce.BD_Remota FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
-		  DECLARE @ScriptVerificacion varchar(max)
-
-		  --Construimos el procedimiento de verificacion
-		  SELECT @ScriptVerificacion='USP_TMP_COMPROBANTE_REGISTRO_LOG_VerificarComprobante '+ 
-		  CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
-		  CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
-		  CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
-		  CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
-		  CASE WHEN @NombreLinked IS NULL THEN 'NULL,' ELSE ''''+REPLACE(@NombreLinked,'''','')+''',' END +	
-		  CASE WHEN @NombreBDRemota IS NULL THEN 'NULL,' ELSE ''''+REPLACE(@NombreBDRemota,'''','')+''';'  END 
-		  FROM INSERTED D INNER JOIN
-			 CAJ_COMPROBANTE_PAGO AS P ON D.id_ComprobantePago = P.id_ComprobantePago INNER JOIN
-			 PRI_PRODUCTOS AS PP ON D.Id_Producto = PP.Id_Producto
-		  WHERE D.id_ComprobantePago=@id_ComprobantePago AND D.id_Detalle=@id_Detalle
-		  AND P.Cod_Libro=14 AND P.Cod_TipoComprobante IN ('BE','FE') AND (P.Serie LIKE 'F%' OR P.Serie LIKE 'B%')
-		  AND P.Cod_FormaPago NOT IN ('008','997')
-		  IF(@ScriptVerificacion IS NOT NULL)
-		  BEGIN
-			 SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
-			 INSERT dbo.TMP_REGISTRO_LOG
-			 (
-				--Id,
-				Nombre_Tabla,
-				Id_Fila,
-				Accion,
-				Script,
-				Fecha_Reg
-			 )
-			 VALUES
-			 (
-				--NULL, -- Id - uniqueidentifier
-				'VERIFICACION', -- Nombre_Tabla - varchar
-				@id_ComprobantePago, -- Id_Fila - varchar
-				@Accion, -- Accion - varchar
-				@ScriptVerificacion, -- Script - varchar
-				@FechaReg -- Fecha_Reg - datetime
-			 )
-		  END
-	   END
-	   ELSE
-	   BEGIN
-		  SET @Contador=@Contador+1
-	   END
 		  
-	   FETCH NEXT FROM cursorbd INTO
-		  @id_ComprobantePago,
-		  @id_Detalle,
-		  @Fecha_Reg,
-		  @Fecha_Act
-	   END
-    CLOSE cursorbd;
-    DEALLOCATE cursorbd
-    END
-
-    --Acciones de auditoria, especiales por tipo
-    --Insercion
-    IF @Accion='INSERTAR'
-	 BEGIN
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-			 i.id_ComprobantePago,
-			 i.id_Detalle,
-			 i.Id_Producto,
-			 i.Cod_Almacen,
-			 i.Cantidad,
-			 i.Cod_UnidadMedida,
-			 i.Despachado,
-			 i.Descripcion,
-			 i.PrecioUnitario,
-			 i.Descuento,
-			 i.Sub_Total,
-			 i.Tipo,
-			 i.Obs_ComprobanteD,
-			 i.Cod_Manguera,
-			 i.Flag_AplicaImpuesto,
-			 i.Formalizado,
-			 i.Valor_NoOneroso,
-			 i.Cod_TipoISC,
-			 i.Porcentaje_ISC,
-			 i.ISC,
-			 i.Cod_TipoIGV,
-			 i.Porcentaje_IGV,
-			 i.IGV,
-			 i.Cod_UsuarioReg,
-			 i.Fecha_Reg,
-			 i.Cod_UsuarioAct,
-			 i.Fecha_Act
-		  FROM INSERTED i
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO 
-			 @id_ComprobantePago,
-			 @id_Detalle,
-			 @Id_Producto,
-			 @Cod_Almacen,
-			 @Cantidad,
-			 @Cod_UnidadMedida,
-			 @Despachado,
-			 @Descripcion,
-			 @PrecioUnitario,
-			 @Descuento,
-			 @Sub_Total,
-			 @Tipo,
-			 @Obs_ComprobanteD,
-			 @Cod_Manguera,
-			 @Flag_AplicaImpuesto,
-			 @Formalizado,
-			 @Valor_NoOneroso,
-			 @Cod_TipoISC,
-			 @Porcentaje_ISC,
-			 @ISC,
-			 @Cod_TipoIGV,
-			 @Porcentaje_IGV,
-			 @IGV,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-		  --Acciones
-		  SET @Script = CONCAT(
-			 @id_ComprobantePago,'|' ,
-			 @id_Detalle,'|' ,
-			 @Id_Producto,'|' ,
-			 @Cod_Almacen,'|' ,
-			 @Cantidad,'|' ,
-			 @Cod_UnidadMedida,'|' ,
-			 @Despachado,'|' ,
-			 @Descripcion,'|' ,
-			 @PrecioUnitario,'|' ,
-			 @Descuento,'|' ,
-			 @Sub_Total,'|' ,
-			 @Tipo,'|' ,
-			 @Obs_ComprobanteD,'|' ,
-			 @Cod_Manguera,'|' ,
-			 @Flag_AplicaImpuesto,'|' ,
-			 @Formalizado,'|' ,
-			 @Valor_NoOneroso,'|' ,
-			 @Cod_TipoISC,'|' ,
-			 @Porcentaje_ISC,'|' ,
-			 @ISC,'|' ,
-			 @Cod_TipoIGV,'|' ,
-			 @Porcentaje_IGV,'|' ,
-			 @IGV,'|' ,
-			 @Cod_UsuarioReg,'|' ,
-			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
-			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
-		  )
-
-		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
-		  (
-		      Nombre_BD,
-		      Nombre_Tabla,
-		      Id_Fila,
-		      Accion,
-		      Valor,
-		      Fecha_Reg
-		  )
-		  VALUES
-		  (
-		      @NombreBD, -- Nombre_BD - varchar
-		      @NombreTabla, -- Nombre_Tabla - varchar
-			  CONCAT(@id_ComprobantePago,'|',@id_Detalle), -- Id_Fila - varchar
-		      @Accion, -- Accion - varchar
-		      @Script, -- Valor - varchar
-		      GETDATE() -- Fecha_Reg - datetime
-		  )
-
-		  FETCH NEXT FROM cursorbd INTO
-			 @id_ComprobantePago,
-			 @id_Detalle,
-			 @Id_Producto,
-			 @Cod_Almacen,
-			 @Cantidad,
-			 @Cod_UnidadMedida,
-			 @Despachado,
-			 @Descripcion,
-			 @PrecioUnitario,
-			 @Descuento,
-			 @Sub_Total,
-			 @Tipo,
-			 @Obs_ComprobanteD,
-			 @Cod_Manguera,
-			 @Flag_AplicaImpuesto,
-			 @Formalizado,
-			 @Valor_NoOneroso,
-			 @Cod_TipoISC,
-			 @Porcentaje_ISC,
-			 @ISC,
-			 @Cod_TipoIGV,
-			 @Porcentaje_IGV,
-			 @IGV,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
-
-    --Actualizacion y eliminacion
-    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
-	 BEGIN
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-			 d.id_ComprobantePago,
-			 d.id_Detalle,
-			 d.Id_Producto,
-			 d.Cod_Almacen,
-			 d.Cantidad,
-			 d.Cod_UnidadMedida,
-			 d.Despachado,
-			 d.Descripcion,
-			 d.PrecioUnitario,
-			 d.Descuento,
-			 d.Sub_Total,
-			 d.Tipo,
-			 d.Obs_ComprobanteD,
-			 d.Cod_Manguera,
-			 d.Flag_AplicaImpuesto,
-			 d.Formalizado,
-			 d.Valor_NoOneroso,
-			 d.Cod_TipoISC,
-			 d.Porcentaje_ISC,
-			 d.ISC,
-			 d.Cod_TipoIGV,
-			 d.Porcentaje_IGV,
-			 d.IGV,
-			 d.Cod_UsuarioReg,
-			 d.Fecha_Reg,
-			 d.Cod_UsuarioAct,
-			 d.Fecha_Act
-		  FROM DELETED d
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO 
-			 @id_ComprobantePago,
-			 @id_Detalle,
-			 @Id_Producto,
-			 @Cod_Almacen,
-			 @Cantidad,
-			 @Cod_UnidadMedida,
-			 @Despachado,
-			 @Descripcion,
-			 @PrecioUnitario,
-			 @Descuento,
-			 @Sub_Total,
-			 @Tipo,
-			 @Obs_ComprobanteD,
-			 @Cod_Manguera,
-			 @Flag_AplicaImpuesto,
-			 @Formalizado,
-			 @Valor_NoOneroso,
-			 @Cod_TipoISC,
-			 @Porcentaje_ISC,
-			 @ISC,
-			 @Cod_TipoIGV,
-			 @Porcentaje_IGV,
-			 @IGV,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-		  --Acciones
-		  SET @Script = CONCAT(
-			 @id_ComprobantePago,'|' ,
-			 @id_Detalle,'|' ,
-			 @Id_Producto,'|' ,
-			 @Cod_Almacen,'|' ,
-			 @Cantidad,'|' ,
-			 @Cod_UnidadMedida,'|' ,
-			 @Despachado,'|' ,
-			 @Descripcion,'|' ,
-			 @PrecioUnitario,'|' ,
-			 @Descuento,'|' ,
-			 @Sub_Total,'|' ,
-			 @Tipo,'|' ,
-			 @Obs_ComprobanteD,'|' ,
-			 @Cod_Manguera,'|' ,
-			 @Flag_AplicaImpuesto,'|' ,
-			 @Formalizado,'|' ,
-			 @Valor_NoOneroso,'|' ,
-			 @Cod_TipoISC,'|' ,
-			 @Porcentaje_ISC,'|' ,
-			 @ISC,'|' ,
-			 @Cod_TipoIGV,'|' ,
-			 @Porcentaje_IGV,'|' ,
-			 @IGV,'|' ,
-			 @Cod_UsuarioReg,'|' ,
-			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
-			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
-		  )
-
-		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
-		  (
-		      Nombre_BD,
-		      Nombre_Tabla,
-		      Id_Fila,
-		      Accion,
-		      Valor,
-		      Fecha_Reg
-		  )
-		  VALUES
-		  (
-		      @NombreBD, -- Nombre_BD - varchar
-		      @NombreTabla, -- Nombre_Tabla - varchar
-			   CONCAT(@id_ComprobantePago,'|',@id_Detalle), -- Id_Fila - varchar
-		      @Accion, -- Accion - varchar
-		      @Script, -- Valor - varchar
-		      GETDATE() -- Fecha_Reg - datetime
-		  )
-
-		  FETCH NEXT FROM cursorbd INTO
-			 @id_ComprobantePago,
-			 @id_Detalle,
-			 @Id_Producto,
-			 @Cod_Almacen,
-			 @Cantidad,
-			 @Cod_UnidadMedida,
-			 @Despachado,
-			 @Descripcion,
-			 @PrecioUnitario,
-			 @Descuento,
-			 @Sub_Total,
-			 @Tipo,
-			 @Obs_ComprobanteD,
-			 @Cod_Manguera,
-			 @Flag_AplicaImpuesto,
-			 @Formalizado,
-			 @Valor_NoOneroso,
-			 @Cod_TipoISC,
-			 @Porcentaje_ISC,
-			 @ISC,
-			 @Cod_TipoIGV,
-			 @Porcentaje_IGV,
-			 @IGV,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
-
-END
-GO
-
-
---CAJ_FORMA_PAGO
-IF EXISTS (SELECT name
-	   FROM   sysobjects 
-	   WHERE  name = N'UTR_CAJ_FORMA_PAGO_IUD'
-	   AND 	  type = 'TR')
-    DROP TRIGGER UTR_CAJ_FORMA_PAGO_IUD
-GO
-
-CREATE TRIGGER UTR_CAJ_FORMA_PAGO_IUD
-ON dbo.CAJ_FORMA_PAGO
-WITH ENCRYPTION
-AFTER INSERT,UPDATE,DELETE
-AS
-BEGIN
-	--Variables de tabla primarias
-	DECLARE @id_ComprobantePago int
-	DECLARE @Item int
-	DECLARE @Fecha_Reg datetime
-	DECLARE @Fecha_Act datetime
-	DECLARE @NombreTabla varchar(max)='CAJ_FORMA_PAGO'
-	--Variables de tabla secundarias
-	DECLARE @Des_FormaPago varchar(512)
-	DECLARE @Cod_TipoFormaPago varchar(3)
-	DECLARE @Cuenta_CajaBanco varchar(64)
-	DECLARE @Id_Movimiento int
-	DECLARE @TipoCambio numeric(10,4)
-	DECLARE @Cod_Moneda varchar(3)
-	DECLARE @Monto numeric(38,2)
-	DECLARE @Cod_Caja varchar(32)
-	DECLARE @Cod_Turno varchar(32)
-	DECLARE @Cod_Plantilla varchar(32)
-	DECLARE @Obs_FormaPago xml
-	DECLARE @Fecha datetime
-	DECLARE @Cod_UsuarioReg varchar(32)
-	DECLARE @Cod_UsuarioAct varchar(32)
-	--Variables Generales
-	DECLARE @Script varchar(max)
-	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
-	DECLARE @FechaReg datetime
-	DECLARE @Accion varchar(MAX)
-	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce) 
-   --Acciones
-	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='ACTUALIZAR'
-	END
-
-	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='INSERTAR'
-	END
-
-	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='ELIMINAR'
-	END
-
-	--Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
-	IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
-	BEGIN
-	   DECLARE @NumeroFIlas int = (SELECT COUNT(*) FROM INSERTED i)
-	   DECLARE @Contador int = 1
-	   DECLARE cursorbd CURSOR LOCAL FOR
-		  SELECT
-		  i.id_ComprobantePago,
-		  i.Item,
-		  i.Fecha_Reg,
-		  i.Fecha_Act
-		  FROM INSERTED i
-	   OPEN cursorbd 
-	   FETCH NEXT FROM cursorbd INTO
-		  @id_ComprobantePago,
-		  @Item,
-		  @Fecha_Reg,
-		  @Fecha_Act
-	   WHILE @@FETCH_STATUS = 0
-	   BEGIN
-		  --Si esta habilitada la exportacion para almacenar en la tabla de
-		  --exportaciones
-				SELECT @Script= 'USP_CAJ_FORMA_PAGO_I '+ 
-				CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
-				CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
-				CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
-				CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
-				CASE WHEN P.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoDoc,'''','')+''',' END +
-				CASE WHEN P.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Doc_Cliente,'''','')+''',' END +
-				CONVERT(VARCHAR(MAX),F.Item)+','+ 
-				CASE WHEN F.Des_FormaPago IS NULL THEN 'NULL,' ELSE  ''''+REPLACE(F.Des_FormaPago,'''','')+''','END+ 
-				CASE WHEN F.Cod_TipoFormaPago IS NULL THEN 'NULL,' ELSE  ''''+REPLACE(F.Cod_TipoFormaPago,'''','')+''','END+ 
-				CASE WHEN F.Cuenta_CajaBanco IS NULL THEN 'NULL,' ELSE ''''+REPLACE(F.Cuenta_CajaBanco,'''','')+''',' END +	
-				CASE WHEN F.Id_Movimiento IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),F.Id_Movimiento)+','END+ 
-				CASE WHEN F.TipoCambio IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),F.TipoCambio)+','END+ 
-				CASE WHEN F.Cod_Moneda IS NULL THEN 'NULL,' ELSE  ''''+REPLACE(F.Cod_Moneda,'''','')+''','END+ 
-				CASE WHEN F.Monto IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),F.Monto)+','END+ 
-				CASE WHEN F.Cod_Caja IS NULL THEN 'NULL,' ELSE  ''''+REPLACE(F.Cod_Caja,'''','') +''','END+ 
-				CASE WHEN F.Cod_Turno IS NULL THEN 'NULL,' ELSE  ''''+REPLACE(F.Cod_Turno,'''','') +''','END+ 
-				CASE WHEN F.Cod_Plantilla IS NULL THEN 'NULL,' ELSE  ''''+REPLACE(F.Cod_Plantilla,'''','') +''','END+ 
-				CASE WHEN F.Obs_FormaPago IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CONVERT(VARCHAR(MAX),F.Obs_FormaPago),'''','')+''','END+ 
-				CASE WHEN F.Fecha IS NULL THEN 'NULL,' ELSE '''' +CONVERT(VARCHAR(MAX),F.Fecha,121)+''','END+ 
-				''''+REPLACE(COALESCE(F.Cod_UsuarioAct,F.Cod_UsuarioReg),'''','')+ ''';' 
-				FROM  INSERTED  F INNER JOIN
-				CAJ_COMPROBANTE_PAGO AS P ON F.id_ComprobantePago = P.id_ComprobantePago
-				WHERE F.id_ComprobantePago=@id_ComprobantePago AND F.Item=@Item
-
-		  SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
-		  INSERT dbo.TMP_REGISTRO_LOG
-		  (
-			 --Id,
-			 Nombre_Tabla,
-			 Id_Fila,
-			 Accion,
-			 Script,
-			 Fecha_Reg
-		  )
-		  VALUES
-		  (
-			 --NULL, -- Id - uniqueidentifier
-			 @NombreTabla, -- Nombre_Tabla - varchar
-			 CONCAT(@id_ComprobantePago,'|',@Item), -- Id_Fila - varchar
-			 @Accion, -- Accion - varchar
-			 @Script, -- Script - varchar
-			 @FechaReg -- Fecha_Reg - datetime
-		  )
-
-		  --Determinamos si es el ultimo detalles
-	   IF @Contador=@NumeroFIlas 
-	   BEGIN
-		  DECLARE @NombreLinked varchar(max) = (SELECT vce.Linked_Server FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
-		  DECLARE @NombreBDRemota varchar(max) = (SELECT vce.BD_Remota FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
-		  DECLARE @ScriptVerificacion varchar(max)
-
-		  --Construimos el procedimiento de verificacion
-		  SELECT @ScriptVerificacion= 'USP_CAJ_FORMA_PAGO_I '+ 
-				CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
-				CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
-				CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
-				CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
-				CASE WHEN @NombreLinked IS NULL THEN 'NULL,' ELSE ''''+REPLACE(@NombreLinked,'''','')+''',' END +	
-				CASE WHEN @NombreBDRemota IS NULL THEN 'NULL,' ELSE ''''+REPLACE(@NombreBDRemota,'''','')+''';'  END 
-				FROM  INSERTED  F INNER JOIN
-				CAJ_COMPROBANTE_PAGO AS P ON F.id_ComprobantePago = P.id_ComprobantePago
-				WHERE F.id_ComprobantePago=@id_ComprobantePago AND F.Item=@Item
-		  AND P.Cod_Libro=14 AND P.Cod_TipoComprobante IN ('BE','FE') AND (P.Serie LIKE 'F%' OR P.Serie LIKE 'B%')
-		  AND P.Cod_FormaPago IN ('008','997')
-		  IF(@ScriptVerificacion IS NOT NULL)
-		  BEGIN
-			 SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
-			 INSERT dbo.TMP_REGISTRO_LOG
+		      SET XACT_ABORT ON;  
+			 BEGIN TRY  
+			 BEGIN TRANSACTION;  
+			 INSERT dbo.TMP_REGISTRO_LOG_H
 			 (
-				--Id,
 				Nombre_Tabla,
 				Id_Fila,
 				Accion,
 				Script,
-				Fecha_Reg
+				Fecha_Reg,
+				Fecha_Reg_Insercion
 			 )
 			 VALUES
 			 (
-				--NULL, -- Id - uniqueidentifier
-				'VERIFICACION', -- Nombre_Tabla - varchar
-				@id_ComprobantePago, -- Id_Fila - varchar
+				@Nombre_Tabla, -- Nombre_Tabla - varchar
+				@Id_Fila, -- Id_Fila - varchar
 				@Accion, -- Accion - varchar
-				@ScriptVerificacion, -- Script - varchar
-				@FechaReg -- Fecha_Reg - datetime
+				@Script, -- Script - varchar
+				@Fecha_Reg, -- Fecha_Reg - datetime
+				GETDATE() -- Fecha_Reg_Insercion - datetime
 			 )
-		  END
-	   END
-	   ELSE
-	   BEGIN
-		  SET @Contador=@Contador+1
-	   END
+			 DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
 
-	   FETCH NEXT FROM cursorbd INTO
-		  @id_ComprobantePago,
-		  @Item,
-		  @Fecha_Reg,
-		  @Fecha_Act
-	   END
-	   CLOSE cursorbd;
-	   DEALLOCATE cursorbd
-    END
-
-    --Acciones de auditoria, especiales por tipo
-    --Insercion
-    IF @Accion='INSERTAR'
-	 BEGIN
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-			 i.id_ComprobantePago,
-			 i.Item,
-			 i.Des_FormaPago,
-			 i.Cod_TipoFormaPago,
-			 i.Cuenta_CajaBanco,
-			 i.Id_Movimiento,
-			 i.TipoCambio,
-			 i.Cod_Moneda,
-			 i.Monto,
-			 i.Cod_Caja,
-			 i.Cod_Turno,
-			 i.Cod_Plantilla,
-			 i.Obs_FormaPago,
-			 i.Fecha,
-			 i.Cod_UsuarioReg,
-			 i.Fecha_Reg,
-			 i.Cod_UsuarioAct,
-			 i.Fecha_Act
-		  FROM INSERTED i
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO 
-			 @id_ComprobantePago,
-			 @Item,
-			 @Des_FormaPago,
-			 @Cod_TipoFormaPago,
-			 @Cuenta_CajaBanco,
-			 @Id_Movimiento,
-			 @TipoCambio,
-			 @Cod_Moneda,
-			 @Monto,
-			 @Cod_Caja,
-			 @Cod_Turno,
-			 @Cod_Plantilla,
-			 @Obs_FormaPago,
-			 @Fecha,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-		  --Acciones
-		  SET @Script = CONCAT(
-			 @id_ComprobantePago,'|' ,
-			 @Item,'|' ,
-			 @Des_FormaPago,'|' ,
-			 @Cod_TipoFormaPago,'|' ,
-			 @Cuenta_CajaBanco,'|' ,
-			 @Id_Movimiento,'|' ,
-			 @TipoCambio,'|' ,
-			 @Cod_Moneda,'|' ,
-			 @Monto,'|' ,
-			 @Cod_Caja,'|' ,
-			 @Cod_Turno,'|' ,
-			 @Cod_Plantilla,'|' ,
-			 CONVERT(varchar(max),@Obs_FormaPago),'|' ,
-			 CONVERT(varchar,@Fecha,121), '|' ,
-			 @Cod_UsuarioReg,'|' ,
-			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
-			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
-		  )
-
-		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
-		  (
-		      Nombre_BD,
-		      Nombre_Tabla,
-		      Id_Fila,
-		      Accion,
-		      Valor,
-		      Fecha_Reg
-		  )
-		  VALUES
-		  (
-		      @NombreBD, -- Nombre_BD - varchar
-		      @NombreTabla, -- Nombre_Tabla - varchar
-			  CONCAT(@id_ComprobantePago,'|',@Item), -- Id_Fila - varchar
-		      @Accion, -- Accion - varchar
-		      @Script, -- Valor - varchar
-		      GETDATE() -- Fecha_Reg - datetime
-		  )
-
-		  FETCH NEXT FROM cursorbd INTO
-			 @id_ComprobantePago,
-			 @Item,
-			 @Des_FormaPago,
-			 @Cod_TipoFormaPago,
-			 @Cuenta_CajaBanco,
-			 @Id_Movimiento,
-			 @TipoCambio,
-			 @Cod_Moneda,
-			 @Monto,
-			 @Cod_Caja,
-			 @Cod_Turno,
-			 @Cod_Plantilla,
-			 @Obs_FormaPago,
-			 @Fecha,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
-
-    --Actualizacion y eliminacion
-    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
-	 BEGIN
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-			 d.id_ComprobantePago,
-			 d.Item,
-			 d.Des_FormaPago,
-			 d.Cod_TipoFormaPago,
-			 d.Cuenta_CajaBanco,
-			 d.Id_Movimiento,
-			 d.TipoCambio,
-			 d.Cod_Moneda,
-			 d.Monto,
-			 d.Cod_Caja,
-			 d.Cod_Turno,
-			 d.Cod_Plantilla,
-			 d.Obs_FormaPago,
-			 d.Fecha,
-			 d.Cod_UsuarioReg,
-			 d.Fecha_Reg,
-			 d.Cod_UsuarioAct,
-			 d.Fecha_Act
-		  FROM DELETED d
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO 
-			 @id_ComprobantePago,
-			 @Item,
-			 @Des_FormaPago,
-			 @Cod_TipoFormaPago,
-			 @Cuenta_CajaBanco,
-			 @Id_Movimiento,
-			 @TipoCambio,
-			 @Cod_Moneda,
-			 @Monto,
-			 @Cod_Caja,
-			 @Cod_Turno,
-			 @Cod_Plantilla,
-			 @Obs_FormaPago,
-			 @Fecha,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-		  --Acciones
-		  SET @Script = CONCAT(
-			 @id_ComprobantePago,'|' ,
-			 @Item,'|' ,
-			 @Des_FormaPago,'|' ,
-			 @Cod_TipoFormaPago,'|' ,
-			 @Cuenta_CajaBanco,'|' ,
-			 @Id_Movimiento,'|' ,
-			 @TipoCambio,'|' ,
-			 @Cod_Moneda,'|' ,
-			 @Monto,'|' ,
-			 @Cod_Caja,'|' ,
-			 @Cod_Turno,'|' ,
-			 @Cod_Plantilla,'|' ,
-			 CONVERT(varchar(max),@Obs_FormaPago),'|' ,
-			 CONVERT(varchar,@Fecha,121), '|' ,
-			 @Cod_UsuarioReg,'|' ,
-			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
-			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
-		  )
-
-		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
-		  (
-		      Nombre_BD,
-		      Nombre_Tabla,
-		      Id_Fila,
-		      Accion,
-		      Valor,
-		      Fecha_Reg
-		  )
-		  VALUES
-		  (
-		      @NombreBD, -- Nombre_BD - varchar
-		      @NombreTabla, -- Nombre_Tabla - varchar
-			 CONCAT(@id_ComprobantePago,'|',@Item), -- Id_Fila - varchar
-		      @Accion, -- Accion - varchar
-		      @Script, -- Valor - varchar
-		      GETDATE() -- Fecha_Reg - datetime
-		  )
-
-		  FETCH NEXT FROM cursorbd INTO
-			 @id_ComprobantePago,
-			 @Item,
-			 @Des_FormaPago,
-			 @Cod_TipoFormaPago,
-			 @Cuenta_CajaBanco,
-			 @Id_Movimiento,
-			 @TipoCambio,
-			 @Cod_Moneda,
-			 @Monto,
-			 @Cod_Caja,
-			 @Cod_Turno,
-			 @Cod_Plantilla,
-			 @Obs_FormaPago,
-			 @Fecha,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
-
+			 COMMIT TRANSACTION;
+		  END TRY  
+      
+		  BEGIN CATCH  
+			 IF (XACT_STATE()) = -1  
+			 BEGIN  
+				ROLLBACK TRANSACTION; 
+			 END;  
+			 IF (XACT_STATE()) = 1  
+			 BEGIN  
+				COMMIT TRANSACTION;    
+			 END;  
+			 THROW;
+		  END CATCH;  
+	END
 END
+
 GO
 
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_ObtenerDatos_Servidor' AND type = 'P')
+DROP PROCEDURE USP_ObtenerDatos_Servidor
+go
+CREATE PROCEDURE USP_ObtenerDatos_Servidor
 
-
---CAJ_COMPROBANTE_RELACION
-IF EXISTS (SELECT name
-	   FROM   sysobjects 
-	   WHERE  name = N'UTR_CAJ_COMPROBANTE_RELACION_IUD'
-	   AND 	  type = 'TR')
-    DROP TRIGGER UTR_CAJ_COMPROBANTE_RELACION_IUD
-GO
-
-CREATE TRIGGER UTR_CAJ_COMPROBANTE_RELACION_IUD
-ON dbo.CAJ_COMPROBANTE_RELACION
 WITH ENCRYPTION
-AFTER INSERT,UPDATE,DELETE
 AS
 BEGIN
-	--Variables de tabla primarias
-	DECLARE @id_ComprobantePago int
-	DECLARE @id_Detalle int
-	DECLARE @Item int
-	DECLARE @Fecha_Reg datetime
-	DECLARE @Fecha_Act datetime
-	DECLARE @NombreTabla varchar(max)='CAJ_COMPROBANTE_RELACION'
-	--Variables de tabla secundarias
-	DECLARE @Id_ComprobanteRelacion int
-	DECLARE @Cod_TipoRelacion varchar(8)
-	DECLARE @Valor numeric(38,6)
-	DECLARE @Obs_Relacion varchar(1024)
-	DECLARE @Id_DetalleRelacion int
-	DECLARE @Cod_UsuarioReg varchar(32)
-	DECLARE @Cod_UsuarioAct varchar(32)
-	--Variables Generales
-	DECLARE @Script varchar(max)
-	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
-	DECLARE @FechaReg datetime
-	DECLARE @Accion varchar(MAX)
-	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-   --Acciones
-	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='ACTUALIZAR'
-	END
-
-	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='INSERTAR'
-	END
-
-	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
-	BEGIN
-		SET @Accion='ELIMINAR'
-	END
-
-	--Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
-	IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
-	BEGIN
-	    DECLARE @NumeroFIlas int = (SELECT COUNT(*) FROM INSERTED i)
-	    DECLARE @Contador int = 1
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-		    i.id_ComprobantePago,
-		    i.id_Detalle,
-		    i.Item,
-		    i.Fecha_Reg,
-		    i.Fecha_Act
-		    FROM INSERTED i
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO
-		    @id_ComprobantePago,
-		    @id_Detalle,
-		    @Item,
-		    @Fecha_Reg,
-		    @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-			--Si esta habilitada la exportacion para almacenar en la tabla de
-			--exportaciones
-			  SELECT @Script='USP_CAJ_COMPROBANTE_RELACION_I '+ 
-			  CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
-			  CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
-			  CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
-			  CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
-			  CASE WHEN P.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoDoc,'''','')+''',' END +
-			  CASE WHEN P.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Doc_Cliente,'''','')+''',' END +
-			  CONVERT(VARCHAR(MAX),R.id_Detalle)+','+ 
-			  CONVERT(VARCHAR(MAX),R.Item) +','+ 
-			  CASE WHEN PP.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Cod_Libro,'''','')+''',' END +
-			  CASE WHEN PP.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Cod_TipoComprobante,'''','')+''',' END +
-			  CASE WHEN PP.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Serie,'''','')+''',' END +
-			  CASE WHEN PP.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Numero,'''','')+''',' END +	
-			  CASE WHEN PP.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Cod_TipoDoc,'''','')+''',' END +
-			  CASE WHEN PP.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Doc_Cliente,'''','')+''',' END +
-			  CASE WHEN R.Cod_TipoRelacion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(R.Cod_TipoRelacion,'''','')+''',' END +	
-			  CASE WHEN R.Valor IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),R.VALOR)+','END+ 
-			  CASE WHEN R.Obs_Relacion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(R.Obs_Relacion,'''','')+''',' END +	
-			  CASE WHEN R.Id_DetalleRelacion IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),R.Id_DetalleRelacion)+','END+ 
-			  ''''+REPLACE(COALESCE(R.Cod_UsuarioAct,R.Cod_UsuarioReg),'''','')+ ''';' 
-			  FROM  INSERTED  R INNER JOIN
-				   CAJ_COMPROBANTE_PAGO AS P ON R.id_ComprobantePago = P.id_ComprobantePago INNER JOIN
-				   CAJ_COMPROBANTE_PAGO AS PP ON R.Id_ComprobanteRelacion = PP.id_ComprobantePago
-			 WHERE 
-				R.id_ComprobantePago=@id_ComprobantePago AND R.id_Detalle=@id_Detalle AND R.Item=@Item
-
-		   	SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
-			INSERT dbo.TMP_REGISTRO_LOG
-			(
-			   --Id,
-			   Nombre_Tabla,
-			   Id_Fila,
-			   Accion,
-			   Script,
-			   Fecha_Reg
-		     )
-		    VALUES
-			(
-			   --NULL, -- Id - uniqueidentifier
-			   @NombreTabla, -- Nombre_Tabla - varchar
-			   CONCAT(@id_ComprobantePago,'|',@id_Detalle,'|',@Item), -- Id_Fila - varchar
-			   @Accion, -- Accion - varchar
-			   @Script, -- Script - varchar
-			   @FechaReg -- Fecha_Reg - datetime
-		     )
-
-			  --Determinamos si es el ultimo detalles
-	   IF @Contador=@NumeroFIlas 
-	   BEGIN
-		  DECLARE @NombreLinked varchar(max) = (SELECT vce.Linked_Server FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
-		  DECLARE @NombreBDRemota varchar(max) = (SELECT vce.BD_Remota FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
-		  DECLARE @ScriptVerificacion varchar(max)
-
-		  --Construimos el procedimiento de verificacion
-		  SELECT @ScriptVerificacion='USP_CAJ_COMPROBANTE_RELACION_I '+ 
-			  CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
-			  CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
-			  CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
-			  CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
-			  CASE WHEN @NombreLinked IS NULL THEN 'NULL,' ELSE ''''+REPLACE(@NombreLinked,'''','')+''',' END +	
-			  CASE WHEN @NombreBDRemota IS NULL THEN 'NULL,' ELSE ''''+REPLACE(@NombreBDRemota,'''','')+''';'  END 
-			  FROM  INSERTED  R INNER JOIN
-				   CAJ_COMPROBANTE_PAGO AS P ON R.id_ComprobantePago = P.id_ComprobantePago INNER JOIN
-				   CAJ_COMPROBANTE_PAGO AS PP ON R.Id_ComprobanteRelacion = PP.id_ComprobantePago
-			 WHERE 
-				R.id_ComprobantePago=@id_ComprobantePago AND R.id_Detalle=@id_Detalle AND R.Item=@Item
-		  AND P.Cod_Libro=14 AND P.Cod_TipoComprobante IN ('NCE','NDE') AND (P.Serie LIKE 'F%' OR P.Serie LIKE 'B%')
-		  IF(@ScriptVerificacion IS NOT NULL)
-		  BEGIN
-			 SET @FechaReg= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
-			 INSERT dbo.TMP_REGISTRO_LOG
-			 (
-				--Id,
-				Nombre_Tabla,
-				Id_Fila,
-				Accion,
-				Script,
-				Fecha_Reg
-			 )
-			 VALUES
-			 (
-				--NULL, -- Id - uniqueidentifier
-				'VERIFICACION', -- Nombre_Tabla - varchar
-				@id_ComprobantePago, -- Id_Fila - varchar
-				@Accion, -- Accion - varchar
-				@ScriptVerificacion, -- Script - varchar
-				@FechaReg -- Fecha_Reg - datetime
-			 )
-		  END
-	   END
-	   ELSE
-	   BEGIN
-		  SET @Contador=@Contador+1
-	   END
-
-		  FETCH NEXT FROM cursorbd INTO
-		    @id_ComprobantePago,
-		    @id_Detalle,
-		    @Item,
-		    @Fecha_Reg,
-		    @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
-
-    --Acciones de auditoria, especiales por tipo
-    --Insercion
-    IF @Accion='INSERTAR'
-	 BEGIN
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-			 i.id_ComprobantePago,
-			 i.id_Detalle,
-			 i.Item,
-			 i.Id_ComprobanteRelacion,
-			 i.Cod_TipoRelacion,
-			 i.Valor,
-			 i.Obs_Relacion,
-			 i.Id_DetalleRelacion,
-			 i.Cod_UsuarioReg,
-			 i.Fecha_Reg,
-			 i.Cod_UsuarioAct,
-			 i.Fecha_Act
-		  FROM INSERTED i
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO 
-			 @id_ComprobantePago,
-			 @id_Detalle,
-			 @Item,
-			 @Id_ComprobanteRelacion,
-			 @Cod_TipoRelacion,
-			 @Valor,
-			 @Obs_Relacion,
-			 @Id_DetalleRelacion,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-		  --Acciones
-		  SET @Script = CONCAT(
-			 @id_ComprobantePago,'|' ,
-			 @id_Detalle,'|' ,
-			 @Item,'|' ,
-			 @Id_ComprobanteRelacion,'|' ,
-			 @Cod_TipoRelacion,'|' ,
-			 @Valor,'|' ,
-			 @Obs_Relacion,'|' ,
-			 @Id_DetalleRelacion,'|' ,
-			 @Cod_UsuarioReg,'|' ,
-			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
-			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
-		  )
-
-		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
-		  (
-		      Nombre_BD,
-		      Nombre_Tabla,
-		      Id_Fila,
-		      Accion,
-		      Valor,
-		      Fecha_Reg
-		  )
-		  VALUES
-		  (
-		      @NombreBD, -- Nombre_BD - varchar
-		      @NombreTabla, -- Nombre_Tabla - varchar
-			  CONCAT(@id_ComprobantePago,'|',@id_Detalle,'|',@Item), -- Id_Fila - varchar
-		      @Accion, -- Accion - varchar
-		      @Script, -- Valor - varchar
-		      GETDATE() -- Fecha_Reg - datetime
-		  )
-
-		  FETCH NEXT FROM cursorbd INTO
-			 @id_ComprobantePago,
-			 @id_Detalle,
-			 @Item,
-			 @Id_ComprobanteRelacion,
-			 @Cod_TipoRelacion,
-			 @Valor,
-			 @Obs_Relacion,
-			 @Id_DetalleRelacion,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
-
-    --Actualizacion y eliminacion
-    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
-	 BEGIN
-	    DECLARE cursorbd CURSOR LOCAL FOR
-		    SELECT
-			 d.id_ComprobantePago,
-			 d.id_Detalle,
-			 d.Item,
-			 d.Id_ComprobanteRelacion,
-			 d.Cod_TipoRelacion,
-			 d.Valor,
-			 d.Obs_Relacion,
-			 d.Id_DetalleRelacion,
-			 d.Cod_UsuarioReg,
-			 d.Fecha_Reg,
-			 d.Cod_UsuarioAct,
-			 d.Fecha_Act
-		  FROM DELETED d
-	    OPEN cursorbd 
-	    FETCH NEXT FROM cursorbd INTO 
-			 @id_ComprobantePago,
-			 @id_Detalle,
-			 @Item,
-			 @Id_ComprobanteRelacion,
-			 @Cod_TipoRelacion,
-			 @Valor,
-			 @Obs_Relacion,
-			 @Id_DetalleRelacion,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-	    WHILE @@FETCH_STATUS = 0
-	    BEGIN
-		  --Acciones
-		  SET @Script = CONCAT(
-			 @id_ComprobantePago,'|' ,
-			 @id_Detalle,'|' ,
-			 @Item,'|' ,
-			 @Id_ComprobanteRelacion,'|' ,
-			 @Cod_TipoRelacion,'|' ,
-			 @Valor,'|' ,
-			 @Obs_Relacion,'|' ,
-			 @Id_DetalleRelacion,'|' ,
-			 @Cod_UsuarioReg,'|' ,
-			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
-			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
-		  )
-
-		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
-		  (
-		      Nombre_BD,
-		      Nombre_Tabla,
-		      Id_Fila,
-		      Accion,
-		      Valor,
-		      Fecha_Reg
-		  )
-		  VALUES
-		  (
-		      @NombreBD, -- Nombre_BD - varchar
-		      @NombreTabla, -- Nombre_Tabla - varchar
-			   CONCAT(@id_ComprobantePago,'|',@id_Detalle,'|',@Item), -- Id_Fila - varchar
-		      @Accion, -- Accion - varchar
-		      @Script, -- Valor - varchar
-		      GETDATE() -- Fecha_Reg - datetime
-		  )
-
-		  FETCH NEXT FROM cursorbd INTO
-			 @id_ComprobantePago,
-			 @id_Detalle,
-			 @Item,
-			 @Id_ComprobanteRelacion,
-			 @Cod_TipoRelacion,
-			 @Valor,
-			 @Obs_Relacion,
-			 @Id_DetalleRelacion,
-			 @Cod_UsuarioReg,
-			 @Fecha_Reg,
-			 @Cod_UsuarioAct,
-			 @Fecha_Act
-		END
-		CLOSE cursorbd;
-    	DEALLOCATE cursorbd
-    END
-
+    SELECT @@SERVERNAME AS 'SERVIDOR',@@SPID AS 'ID',SYSTEM_USER AS 'LOGIN',USER AS 'USER', @@LANGUAGE AS 'LENGUAJE',@@REMSERVER  AS 'SERVIDOR_BASE',@@VERSION AS 'VERSION_SQL',DB_NAME() AS 'NOMBRE_BD'
 END
 GO
+
+
+----Actualziamos todos las tablas en orden relacional, solo para servidores nuevos que
+----necesitan ser replicados en uno principal
+--UPDATE dbo.PRI_MENSAJES
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.TAR_ALERTAS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_DESCUENTOS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_AFP_PRIMA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_TIPOCAMBIO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_TRANSFERENCIAS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_SERIES
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAL_CALENDARIO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAL_DOCUMENTOS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_MODULO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PERFIL
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PERFIL_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_USUARIO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PAR_TABLA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PAR_COLUMNA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PAR_FILA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CON_PLANTILLA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CON_PLANTILLA_ASIENTO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CON_PLANTILLA_ASIENTO_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.TAR_PROYECTOS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.TAR_ACTIVIDADES
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.TAR_CRONOMETROS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_GUIA_REMISION
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_GUIA_REMISION_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_CLIENTE_PROVEEDOR
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_ACTIVIDADES_ECONOMICAS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_CLIENTE_VEHICULOS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CUE_TARJETAS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_CLIENTE_CUENTABANCARIA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_ESTABLECIMIENTOS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PADRONES
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CUE_CLIENTE_CUENTA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CUE_CLIENTE_CUENTA_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--UPDATE dbo.CUE_CLIENTE_CUENTA_M
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_CLIENTE_CONTACTO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_CLIENTE_VISITAS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_CONCEPTO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CON_ASIENTO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_CUENTA_CONTABLE
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CON_ASIENTO_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PAT_GRUPOS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PAT_GRUPOS_CARACTERISTICAS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PAT_BIENES
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PAT_BIENES_CARACTERISTICAS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PAT_BIENES_MOVIMIENTO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_SUCURSAL
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+
+--UPDATE dbo.PRI_AREAS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+
+--UPDATE dbo.PRI_PERSONAL
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PERSONAL_PARENTESCO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_BIOMETRICO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_HORARIOS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_ASISTENCIA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_PERSONAL_HORARIO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO 
+--UPDATE dbo.PLA_CONCEPTOS_PLANILLA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_PLANILLA_TIPO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_PLANILLA_TIPO_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_PLANILLA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_PLANILLA_TIPO_PERSONAL
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_BOLETA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PLA_CONTRATOS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.BAN_CUENTA_BANCARIA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_CAJAS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_CAJAS_DOC
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_TURNO_ATENCION
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.BAN_CUENTA_M
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_ARQUEOFISICO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_ARQUEOFISICO_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_ARQUEOFISICO_SALDO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_CAJA_MOVIMIENTOS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_MEDICION_VC
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_CATEGORIA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PRODUCTOS
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.ALM_ALMACEN
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PRODUCTO_STOCK
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_CAJA_ALMACEN
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.ALM_ALMACEN_MOV
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.ALM_ALMACEN_MOV_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PRODUCTO_PRECIO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.ALM_INVENTARIO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.ALM_INVENTARIO_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PRODUCTO_DETALLE
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PRODUCTO_TASA
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_CLIENTE_PRODUCTO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_PRODUCTO_IMAGEN
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_COMPROBANTE_PAGO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_FORMA_PAGO
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_COMPROBANTE_LOG
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_COMPROBANTE_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_COMPROBANTE_RELACION
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_LICITACIONES
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_LICITACIONES_D
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.PRI_LICITACIONES_M
+--SET
+--    Cod_UsuarioAct = 'MIGRACION', 
+--    Fecha_Act = GETDATE()
+--GO
+
+
+--Script de prueba para agregar la IP del servidor donde se ejecuta la accion
+----ALM_ALMACEN
+--IF EXISTS (SELECT name
+--	   FROM   sysobjects 
+--	   WHERE  name = N'UTR_ALM_ALMACEN_IUD'
+--	   AND 	  type = 'TR')
+--    DROP TRIGGER UTR_ALM_ALMACEN_IUD
+--GO
+
+--CREATE TRIGGER UTR_ALM_ALMACEN_IUD
+--ON dbo.ALM_ALMACEN
+--WITH ENCRYPTION
+--AFTER INSERT,UPDATE,DELETE
+--AS
+--BEGIN
+--	--Variables de tabla primarias
+--	DECLARE @Cod_Almacen varchar(32)
+--	DECLARE @Fecha_Reg datetime
+--	DECLARE @Fecha_Act datetime
+--	DECLARE @NombreTabla varchar(max)='ALM_ALMACEN'
+--	--Variables de tabla secundarias
+--	DECLARE @Des_Almacen varchar(512)
+--	DECLARE @Des_CortaAlmacen varchar(64)
+--	DECLARE @Cod_TipoAlmacen varchar(5)
+--	DECLARE @Flag_Principal bit
+--	DECLARE @Cod_UsuarioReg varchar(32)
+--	DECLARE @Cod_UsuarioAct varchar(32)
+--	--Variables Generales
+--	DECLARE @Script varchar(max)
+--	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
+--	DECLARE @Fecha datetime
+--	DECLARE @Accion varchar(MAX)
+--	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+--	DECLARE @InformacionConexion varchar(max)= (SELECT  CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) FROM sys.dm_exec_connections dec
+--		WHERE dec.session_id=@@SPID)
+--   --Acciones
+--	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
+--	BEGIN
+--		SET @Accion='ACTUALIZAR'
+--	END
+
+--	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
+--	BEGIN
+--		SET @Accion='INSERTAR'
+--	END
+
+--	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
+--	BEGIN
+--		SET @Accion='ELIMINAR'
+--	END
+
+--	--Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
+--	IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
+--	BEGIN
+--	    DECLARE cursorbd CURSOR LOCAL FOR
+--		    SELECT
+--		    i.Cod_Almacen,
+--		    i.Fecha_Reg,
+--		    i.Fecha_Act
+--		    FROM INSERTED i
+--	    OPEN cursorbd 
+--	    FETCH NEXT FROM cursorbd INTO
+--		    @Cod_Almacen,
+--		    @Fecha_Reg,
+--		    @Fecha_Act
+--	    WHILE @@FETCH_STATUS = 0
+--	    BEGIN
+--			--Si esta habilitada la exportacion para almacenar en la tabla de
+--			--exportaciones
+--			 SELECT @Script='USP_ALM_ALMACEN_I ' +
+--			 CASE WHEN aa.Cod_Almacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Cod_Almacen,'''','')+''','END+
+--			 CASE WHEN aa.Des_Almacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Des_Almacen,'''','')+''','END+
+--			 CASE WHEN aa.Des_CortaAlmacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Des_CortaAlmacen,'''','')+''','END+
+--			 CASE WHEN aa.Cod_TipoAlmacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Cod_TipoAlmacen,'''','')+''','END+
+--			 CONVERT(VARCHAR(MAX),aa.Flag_Principal)+','+
+--			 ''''+ REPLACE(COALESCE(Cod_UsuarioAct,Cod_UsuarioReg),'''','')+''';' 
+--			 FROM INSERTED aa WHERE @Cod_Almacen=aa.Cod_Almacen
+
+--		   	SET @Fecha= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
+--			INSERT dbo.TMP_REGISTRO_LOG
+--			(
+--			   --Id,
+--			   Nombre_Tabla,
+--			   Id_Fila,
+--			   Accion,
+--			   Script,
+--			   Fecha_Reg
+--		     )
+--		    VALUES
+--			(
+--			   --NULL, -- Id - uniqueidentifier
+--			   @NombreTabla, -- Nombre_Tabla - varchar
+--			   CONCAT('',@Cod_Almacen), -- Id_Fila - varchar
+--			   @Accion, -- Accion - varchar
+--			   @Script, -- Script - varchar
+--			   @Fecha -- Fecha_Reg - datetime
+--		     )
+--		  FETCH NEXT FROM cursorbd INTO
+--		    @Cod_Almacen,
+--		    @Fecha_Reg,
+--		    @Fecha_Act
+--		END
+--		CLOSE cursorbd;
+--    	DEALLOCATE cursorbd
+--    END
+
+--    --Acciones de auditoria, especiales por tipo
+--    --Insercion
+--    IF @Accion='INSERTAR'
+--	 BEGIN
+--	    DECLARE cursorbd CURSOR LOCAL FOR
+--		    SELECT
+--			 i.Cod_Almacen,
+--			 i.Des_Almacen,
+--			 i.Des_CortaAlmacen,
+--			 i.Cod_TipoAlmacen,
+--			 i.Flag_Principal,
+--			 i.Cod_UsuarioReg,
+--			 i.Fecha_Reg,
+--			 i.Cod_UsuarioAct,
+--			 i.Fecha_Act
+--		  FROM INSERTED i
+--	    OPEN cursorbd 
+--	    FETCH NEXT FROM cursorbd INTO 
+--			 @Cod_Almacen,
+--			 @Des_Almacen,
+--			 @Des_CortaAlmacen,
+--			 @Cod_TipoAlmacen,
+--			 @Flag_Principal,
+--			 @Cod_UsuarioReg,
+--			 @Fecha_Reg,
+--			 @Cod_UsuarioAct,
+--			 @Fecha_Act
+--	    WHILE @@FETCH_STATUS = 0
+--	    BEGIN
+--		  --Acciones
+--		  SET @Script = CONCAT(
+--			 @Cod_Almacen,'|' ,
+--			 @Des_Almacen,'|' ,
+--			 @Des_CortaAlmacen,'|' ,
+--			 @Cod_TipoAlmacen,'|' ,
+--			 @Flag_Principal,'|' ,
+--			 @Cod_UsuarioReg,'|' ,
+--			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
+--			 @Cod_UsuarioAct,'|' ,
+--			 CONVERT(varchar,@Fecha_Act,121), '|' , 
+--			 @InformacionConexion
+--		  )
+
+--		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
+--		  (
+--		      Nombre_BD,
+--		      Nombre_Tabla,
+--		      Id_Fila,
+--		      Accion,
+--		      Valor,
+--		      Fecha_Reg
+--		  )
+--		  VALUES
+--		  (
+--		      @NombreBD, -- Nombre_BD - varchar
+--		      @NombreTabla, -- Nombre_Tabla - varchar
+--			  CONCAT('',@Cod_Almacen), -- Id_Fila - varchar
+--		      @Accion, -- Accion - varchar
+--		      @Script, -- Valor - varchar
+--		      GETDATE() -- Fecha_Reg - datetime
+--		  )
+
+--		  FETCH NEXT FROM cursorbd INTO
+--			 @Cod_Almacen,
+--			 @Des_Almacen,
+--			 @Des_CortaAlmacen,
+--			 @Cod_TipoAlmacen,
+--			 @Flag_Principal,
+--			 @Cod_UsuarioReg,
+--			 @Fecha_Reg,
+--			 @Cod_UsuarioAct,
+--			 @Fecha_Act
+--		END
+--		CLOSE cursorbd;
+--    	DEALLOCATE cursorbd
+--    END
+
+--    --Actualizacion y eliminacion
+--    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
+--	 BEGIN
+--	    DECLARE cursorbd CURSOR LOCAL FOR
+--		    SELECT
+--			 d.Cod_Almacen,
+--			 d.Des_Almacen,
+--			 d.Des_CortaAlmacen,
+--			 d.Cod_TipoAlmacen,
+--			 d.Flag_Principal,
+--			 d.Cod_UsuarioReg,
+--			 d.Fecha_Reg,
+--			 d.Cod_UsuarioAct,
+--			 d.Fecha_Act
+--		  FROM DELETED d
+--	    OPEN cursorbd 
+--	    FETCH NEXT FROM cursorbd INTO 
+--			 @Cod_Almacen,
+--			 @Des_Almacen,
+--			 @Des_CortaAlmacen,
+--			 @Cod_TipoAlmacen,
+--			 @Flag_Principal,
+--			 @Cod_UsuarioReg,
+--			 @Fecha_Reg,
+--			 @Cod_UsuarioAct,
+--			 @Fecha_Act
+--	    WHILE @@FETCH_STATUS = 0
+--	    BEGIN
+--		  --Acciones
+--		  SET @Script = CONCAT(
+--			 @Cod_Almacen,'|' ,
+--			 @Des_Almacen,'|' ,
+--			 @Des_CortaAlmacen,'|' ,
+--			 @Cod_TipoAlmacen,'|' ,
+--			 @Flag_Principal,'|' ,
+--			 @Cod_UsuarioReg,'|' ,
+--			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
+--			 @Cod_UsuarioAct,'|' ,
+--			 CONVERT(varchar,@Fecha_Act,121),  '|' , 
+--			 @InformacionConexion
+--		  )
+
+--		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
+--		  (
+--		      Nombre_BD,
+--		      Nombre_Tabla,
+--		      Id_Fila,
+--		      Accion,
+--		      Valor,
+--		      Fecha_Reg
+--		  )
+--		  VALUES
+--		  (
+--		      @NombreBD, -- Nombre_BD - varchar
+--		      @NombreTabla, -- Nombre_Tabla - varchar
+--			   CONCAT('',@Cod_Almacen), -- Id_Fila - varchar
+--		      @Accion, -- Accion - varchar
+--		      @Script, -- Valor - varchar
+--		      GETDATE() -- Fecha_Reg - datetime
+--		  )
+
+--		  FETCH NEXT FROM cursorbd INTO
+--			 @Cod_Almacen,
+--			 @Des_Almacen,
+--			 @Des_CortaAlmacen,
+--			 @Cod_TipoAlmacen,
+--			 @Flag_Principal,
+--			 @Cod_UsuarioReg,
+--			 @Fecha_Reg,
+--			 @Cod_UsuarioAct,
+--			 @Fecha_Act
+--		END
+--		CLOSE cursorbd;
+--    	DEALLOCATE cursorbd
+--    END
+
+--END
+--
