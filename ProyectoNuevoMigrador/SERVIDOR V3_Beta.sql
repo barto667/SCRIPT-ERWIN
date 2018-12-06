@@ -5015,3 +5015,487 @@ BEGIN
 END
 GO
 
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_ESTABLECIMIENTOS_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_ESTABLECIMIENTOS_D
+go
+CREATE PROCEDURE USP_PRI_ESTABLECIMIENTOS_D 
+	@Cod_Establecimientos	varchar(32), 
+	@Cod_TipoDocumento  varchar(3), 
+	@Nro_Documento  varchar(32), 
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @Id_ClienteProveedor int = (SELECT TOP 1 ISNULL(Id_ClienteProveedor,0) FROM PRI_CLIENTE_PROVEEDOR 
+							WHERE  (Cod_TipoDocumento = @Cod_TipoDocumento
+							AND Nro_Documento = @Nro_Documento))
+		DELETE dbo.PRI_ESTABLECIMIENTOS WHERE dbo.PRI_ESTABLECIMIENTOS.Id_ClienteProveedor=@Id_ClienteProveedor AND dbo.PRI_ESTABLECIMIENTOS.Cod_Establecimientos=@Cod_Establecimientos
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_LICITACIONES_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_LICITACIONES_D
+go
+CREATE PROCEDURE USP_PRI_LICITACIONES_D 
+	@Cod_TipoDocumento int,
+	@Nro_Documento varchar(32), 
+	@Cod_Licitacion	varchar(32), 
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @Id_ClienteProveedor	int=(SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR where Cod_TipoDocumento=@Cod_TipoDocumento and Nro_Documento=@Nro_Documento)
+		DELETE dbo.PRI_LICITACIONES WHERE dbo.PRI_LICITACIONES.Id_ClienteProveedor=@Id_ClienteProveedor AND dbo.PRI_LICITACIONES.Cod_Licitacion=@Cod_Licitacion
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_LICITACIONES_D_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_LICITACIONES_D_D
+go
+CREATE PROCEDURE USP_PRI_LICITACIONES_D_D 
+	@Cod_TipoDocumento int,
+	@Nro_Documento varchar(32), 
+	@Cod_Licitacion	varchar(32), 
+	@Nro_Detalle	int,  
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @Id_ClienteProveedor	int=(SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR where Cod_TipoDocumento=@Cod_TipoDocumento and Nro_Documento=@Nro_Documento)
+		DELETE dbo.PRI_LICITACIONES_D WHERE dbo.PRI_LICITACIONES_D.Id_ClienteProveedor=@Id_ClienteProveedor AND dbo.PRI_LICITACIONES_D.Cod_Licitacion=@Cod_Licitacion AND dbo.PRI_LICITACIONES_D.Nro_Detalle=@Nro_Detalle
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_LICITACIONES_M_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_LICITACIONES_M_D
+go
+CREATE PROCEDURE USP_PRI_LICITACIONES_M_D 
+	@Cod_TipoDoc   varchar(4),
+	@Doc_Cliente   varchar(32),
+	@Cod_Licitacion	varchar(32), 
+	@Nro_Detalle	int, 
+	@Cod_Libro varchar(4),
+	@Cod_TipoComprobante varchar(4),
+	@Serie varchar(5),
+	@Numero  varchar(32),
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @id_ComprobantePago INT=(SELECT ISNULL(id_ComprobantePago,0) FROM CAJ_COMPROBANTE_PAGO
+										WHERE Cod_Libro = @Cod_Libro
+										AND Cod_TipoComprobante = @Cod_TipoComprobante
+										AND Serie = @Serie
+										AND Numero= @Numero
+										AND Cod_TipoDoc = @Cod_TipoDoc
+										AND Doc_Cliente = @Doc_Cliente)
+		DECLARE @Id_Movimiento	int =(SELECT Id_Movimiento FROM PRI_LICITACIONES_M where Cod_Licitacion=@Cod_Licitacion and Nro_Detalle=@Nro_Detalle AND id_ComprobantePago=@id_ComprobantePago)
+		DELETE dbo.PRI_LICITACIONES_M WHERE dbo.PRI_LICITACIONES_M.Id_Movimiento=@Id_Movimiento
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_MENSAJES_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_MENSAJES_D
+go
+CREATE PROCEDURE USP_PRI_MENSAJES_D 
+	@Cod_UsuarioRemite	varchar(32), 
+	@Fecha_Remite	VARCHAR(32), 
+	@Cod_UsuarioRecibe	varchar(32), 
+	@Fecha_Recibe	VARCHAR(32),
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @Id_Mensaje	int =(SELECT pm.Id_Mensaje FROM dbo.PRI_MENSAJES pm WHERE pm.Cod_UsuarioRemite=@Cod_UsuarioRemite 
+		AND pm.Fecha_Remite=@Fecha_Remite AND pm.Cod_UsuarioRecibe=@Cod_UsuarioRecibe AND pm.Fecha_Recibe=@Fecha_Recibe)
+		DELETE dbo.PRI_MENSAJES WHERE dbo.PRI_MENSAJES.Id_Mensaje=@Id_Mensaje
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_PADRONES_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_PADRONES_D
+go
+CREATE PROCEDURE USP_PRI_PADRONES_D 
+	@Cod_Padron	varchar(32), 
+	@Cod_TipoDocumento  varchar(3), 
+	@Nro_Documento  varchar(32), 
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @Id_ClienteProveedor INT = (SELECT TOP 1 ISNULL(Id_ClienteProveedor,0) FROM PRI_CLIENTE_PROVEEDOR 
+							WHERE  (Cod_TipoDocumento = @Cod_TipoDocumento
+							AND Nro_Documento = @Nro_Documento));
+		DELETE dbo.PRI_PADRONES WHERE dbo.PRI_PADRONES.Id_ClienteProveedor=@Id_ClienteProveedor AND  dbo.PRI_PADRONES.Cod_Padron=@Cod_Padron
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_PERSONAL_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_PERSONAL_D
+go
+CREATE PROCEDURE USP_PRI_PERSONAL_D 
+	@Cod_Personal	varchar(32), 
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DELETE dbo.PRI_PERSONAL WHERE dbo.PRI_PERSONAL.Cod_Personal=@Cod_Personal
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_PERSONAL_PARENTESCO_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_PERSONAL_PARENTESCO_D
+go
+CREATE PROCEDURE USP_PRI_PERSONAL_PARENTESCO_D 
+	@Cod_Personal	varchar(32), 
+	@Item_Parentesco	int, 
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DELETE dbo.PRI_PERSONAL_PARENTESCO WHERE dbo.PRI_PERSONAL_PARENTESCO.Cod_Personal=@Cod_Personal AND dbo.PRI_PERSONAL_PARENTESCO.Item_Parentesco=@Item_Parentesco
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_PRODUCTO_DETALLE_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_PRODUCTO_DETALLE_D
+go
+CREATE PROCEDURE USP_PRI_PRODUCTO_DETALLE_D 
+	@Cod_Producto	int, 
+	@Item_Detalle	int, 
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @Id_Producto int =  (SELECT TOP 1 Id_Producto FROM PRI_PRODUCTOS WHERE Cod_Producto=@Cod_Producto)
+		DELETE dbo.PRI_PRODUCTO_DETALLE WHERE dbo.PRI_PRODUCTO_DETALLE.Id_Producto=@Id_Producto AND dbo.PRI_PRODUCTO_DETALLE.Item_Detalle=@Item_Detalle
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_PRODUCTO_PRECIO_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_PRODUCTO_PRECIO_D
+go
+CREATE PROCEDURE USP_PRI_PRODUCTO_PRECIO_D 
+	@Cod_Producto	varchar(64), 
+	@Cod_UnidadMedida	varchar(5), 
+	@Cod_Almacen	varchar(32), 
+	@Cod_TipoPrecio	varchar(5),  
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @Id_Producto int = (SELECT TOP 1 Id_Producto FROM PRI_PRODUCTOS where Cod_Producto=@Cod_Producto)
+		DELETE dbo.PRI_PRODUCTO_PRECIO WHERE dbo.PRI_PRODUCTO_PRECIO.Id_Producto=@Id_Producto AND dbo.PRI_PRODUCTO_PRECIO.Cod_UnidadMedida=@Cod_UnidadMedida AND
+		dbo.PRI_PRODUCTO_PRECIO.Cod_Almacen = @Cod_Almacen AND dbo.PRI_PRODUCTO_PRECIO.Cod_TipoPrecio=@Cod_TipoPrecio
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_PRODUCTO_STOCK_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_PRODUCTO_STOCK_D
+go
+CREATE PROCEDURE USP_PRI_PRODUCTO_STOCK_D 
+	@Cod_Producto	varchar(64), 
+	@Cod_UnidadMedida	varchar(5), 
+	@Cod_Almacen	varchar(32),   
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @Id_Producto int =  (SELECT TOP 1 Id_Producto FROM PRI_PRODUCTOS WHERE Cod_Producto=@Cod_Producto)
+		DELETE dbo.PRI_PRODUCTO_STOCK WHERE dbo.PRI_PRODUCTO_STOCK.Id_Producto=@Id_Producto AND dbo.PRI_PRODUCTO_STOCK.Cod_UnidadMedida=@Cod_UnidadMedida AND dbo.PRI_PRODUCTO_STOCK.Cod_Almacen=@Cod_Almacen
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_PRODUCTO_TASA_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_PRODUCTO_TASA_D
+go
+CREATE PROCEDURE USP_PRI_PRODUCTO_TASA_D 
+	@Cod_Tasa varchar(32), 
+	@Cod_Producto varchar(32),  
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @Id_Producto INT = (SELECT Id_Producto FROM PRI_PRODUCTOS WHERE  Cod_Producto = @Cod_Producto);
+		DELETE dbo.PRI_PRODUCTO_TASA WHERE dbo.PRI_PRODUCTO_TASA.Cod_Tasa=@Cod_Tasa AND dbo.PRI_PRODUCTO_TASA.Id_Producto=@Id_Producto
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_PRODUCTOS_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_PRODUCTOS_D
+go
+CREATE PROCEDURE USP_PRI_PRODUCTOS_D 
+	@Cod_Producto varchar(32),  
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DELETE dbo.PRI_PRODUCTOS WHERE dbo.PRI_PRODUCTOS.Cod_Producto=@Cod_Producto
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_SUCURSAL_D' AND type = 'P')
+	DROP PROCEDURE dbo.USP_PRI_SUCURSAL_D
+go
+CREATE PROCEDURE USP_PRI_SUCURSAL_D 
+	@Cod_Sucursal varchar(32),  
+	@Cod_Usuario Varchar(32),
+	@Motivo varchar(max)
+WITH ENCRYPTION
+AS
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DELETE dbo.PRI_SUCURSAL WHERE dbo.PRI_SUCURSAL.Cod_Sucursal=@Cod_Sucursal
+	END TRY  
+	BEGIN CATCH  
+		SELECT   
+			ERROR_NUMBER() AS ErrorNumber  
+			,ERROR_SEVERITY() AS ErrorSeverity  
+			,ERROR_STATE() AS ErrorState  
+			,ERROR_PROCEDURE() AS ErrorProcedure  
+			,ERROR_LINE() AS ErrorLine  
+			,ERROR_MESSAGE() AS ErrorMessage;  
+  
+	IF @@TRANCOUNT > 0  
+				ROLLBACK TRANSACTION;  
+	END CATCH;  
+		IF @@TRANCOUNT > 0  
+			COMMIT TRANSACTION;  
+END
+GO
+

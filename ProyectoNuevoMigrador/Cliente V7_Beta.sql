@@ -22964,6 +22964,64 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Establecimientos,
+		    d.Id_ClienteProveedor,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Establecimientos,
+		    @Id_ClienteProveedor,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_PRI_ESTABLECIMIENTOS_D ' +
+			  ''''+ REPLACE(pe.Cod_Establecimientos,'''','') +''','+
+			  CASE WHEN  pcp.Cod_TipoDocumento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcp.Cod_TipoDocumento,'''','')+''','END+
+			  CASE WHEN  pcp.Nro_Documento IS NULL  THEN 'NULL,'    ELSE ''''+ REPLACE(pcp.Nro_Documento,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED pe INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp 
+			  ON pe.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+			  WHERE pe.Cod_Establecimientos=@Cod_Establecimientos AND pe.Id_ClienteProveedor=@Id_ClienteProveedor
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Cod_Establecimientos,'|',@Id_ClienteProveedor), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Establecimientos,
+		    @Id_ClienteProveedor,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -23142,7 +23200,6 @@ BEGIN
 END
 GO
 
-
 --PRI_LICITACIONES
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -23228,6 +23285,64 @@ BEGIN
 			  CASE WHEN L.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(L.Cod_TipoComprobante,'''','')+''','END+
 			  ''''+REPLACE(COALESCE(L.Cod_UsuarioAct,L.Cod_UsuarioReg),'''','')+''';' 
 			  FROM            INSERTED AS L INNER JOIN
+									   PRI_CLIENTE_PROVEEDOR AS CP ON L.Id_ClienteProveedor = CP.Id_ClienteProveedor
+			  WHERE L.Id_ClienteProveedor=@Id_ClienteProveedor AND L.Cod_Licitacion=@Cod_Licitacion
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_ClienteProveedor,'|',@Cod_Licitacion), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Cod_Licitacion,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_ClienteProveedor,
+		    d.Cod_Licitacion,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Cod_Licitacion,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script = 'USP_PRI_LICITACIONES_D ' + 
+			  CASE WHEN CP.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Cod_TipoDocumento,'''','')+''','END+
+			  CASE WHEN CP.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Nro_Documento,'''','')+''','END+ 
+			  ''''+REPLACE(L.Cod_Licitacion,'''','')+''','+ 
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM  DELETED L INNER JOIN
 									   PRI_CLIENTE_PROVEEDOR AS CP ON L.Id_ClienteProveedor = CP.Id_ClienteProveedor
 			  WHERE L.Id_ClienteProveedor=@Id_ClienteProveedor AND L.Cod_Licitacion=@Cod_Licitacion
 
@@ -23446,7 +23561,6 @@ BEGIN
 END
 GO
 
-
 --PRI_LICITACIONES_D
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -23521,24 +23635,6 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			--   SELECT @Script= 'USP_PRI_LICITACIONES_D_I ' + 
-			--   CASE WHEN CP.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Cod_TipoDocumento,'''','')+''','END+
-			--   CASE WHEN CP.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Nro_Documento,'''','')+''','END+
-			--   ''''+REPLACE(LD.Cod_Licitacion,'''','')+''','+ 
-			--   CONVERT(VARCHAR(MAX),LD.Nro_Detalle)+','+
-			--   CASE WHEN P.Cod_Producto IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Cod_Producto,'''','')+''','END+ 
-			--   CASE WHEN LD.Cantidad IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Cantidad)+','END+ 
-			--   CASE WHEN LD.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(LD.Cod_UnidadMedida,'''','')+''','END+
-			--   CASE WHEN LD.Descripcion IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(LD.Descripcion,'''','')+''','END+
-			--   CASE WHEN LD.Precio_Unitario IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Precio_Unitario)+','END+ 
-			--   CASE WHEN LD.Por_Descuento IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Por_Descuento)+','END+ 
-			--   ''''+REPLACE(COALESCE(LD.Cod_UsuarioAct,LD.Cod_UsuarioReg),'''','')+''';' 
-			--   FROM            INSERTED AS LD INNER JOIN
-			--    PRI_CLIENTE_PROVEEDOR AS CP ON LD.Id_ClienteProveedor = CP.Id_ClienteProveedor INNER JOIN
-			--    PRI_PRODUCTOS AS P ON LD.Id_Producto = P.Id_Producto
-			--    WHERE LD.Id_ClienteProveedor=@Id_ClienteProveedor AND LD.Cod_Licitacion=@Cod_Licitacion
-			--    AND LD.Nro_Detalle =@Nro_Detalle
-
 			SELECT @Script= 'USP_PRI_LICITACIONES_D_I ' + 
 			CASE WHEN CP.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Cod_TipoDocumento,'''','')+''','END+
 			CASE WHEN CP.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Nro_Documento,'''','')+''','END+
@@ -23552,6 +23648,69 @@ BEGIN
 			CASE WHEN LD.Por_Descuento IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX),LD.Por_Descuento)+','END+ 
 			''''+REPLACE(COALESCE(LD.Cod_UsuarioAct,LD.Cod_UsuarioReg),'''','')+''';' 
 			FROM            INSERTED AS LD INNER JOIN
+			PRI_CLIENTE_PROVEEDOR AS CP ON LD.Id_ClienteProveedor = CP.Id_ClienteProveedor 
+			WHERE LD.Id_ClienteProveedor=@Id_ClienteProveedor AND LD.Cod_Licitacion=@Cod_Licitacion
+			AND LD.Nro_Detalle =@Nro_Detalle
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_ClienteProveedor,'|',@Cod_Licitacion,'|',@Nro_Detalle), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Cod_Licitacion,
+		    @Nro_Detalle,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_ClienteProveedor,
+		    d.Cod_Licitacion,
+		    d.Nro_Detalle,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_ClienteProveedor,
+		    @Cod_Licitacion,
+		    @Nro_Detalle,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			SELECT @Script= 'USP_PRI_LICITACIONES_D_D ' + 
+			CASE WHEN CP.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Cod_TipoDocumento,'''','')+''','END+
+			CASE WHEN CP.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.Nro_Documento,'''','')+''','END+
+			''''+REPLACE(LD.Cod_Licitacion,'''','')+''','+ 
+			CONVERT(VARCHAR(MAX),LD.Nro_Detalle)+','+
+			''''+'TRIGGER'+''',' +
+			''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			FROM  DELETED LD INNER JOIN
 			PRI_CLIENTE_PROVEEDOR AS CP ON LD.Id_ClienteProveedor = CP.Id_ClienteProveedor 
 			WHERE LD.Id_ClienteProveedor=@Id_ClienteProveedor AND LD.Cod_Licitacion=@Cod_Licitacion
 			AND LD.Nro_Detalle =@Nro_Detalle
@@ -23772,7 +23931,6 @@ BEGIN
 END
 GO
 
-
 --PRI_LICITACIONES_M
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -23841,25 +23999,6 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			--  SELECT @Script= 'USP_PRI_LICITACIONES_M_I '+ 
-			--   CASE WHEN C.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(C.Cod_TipoDocumento,'''','') +''',' END +
-			--   CASE WHEN C.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(C.Nro_Documento,'''','') +''',' END +
-			--   CASE WHEN M.Cod_Licitacion IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Cod_Licitacion,'''','') +''',' END +
-			--   CASE WHEN M.Nro_Detalle IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),M.Nro_Detalle)+','END+ 
-			--   CASE WHEN P.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Libro,'''','')+''',' END +
-			--   CASE WHEN P.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoComprobante,'''','')+''',' END +
-			--   CASE WHEN P.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Serie,'''','')+''',' END +
-			--   CASE WHEN P.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Numero,'''','')+''',' END +	
-			--   CASE WHEN P.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_TipoDoc,'''','')+''',' END +
-			--  CASE WHEN P.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Doc_Cliente,'''','')+''',' END +
-			--   CONVERT(VARCHAR(MAX),M.Flag_Cancelado)	+','+ 
-			--   CASE WHEN M.Obs_LicitacionesM IS NULL THEN 'NULL,' ELSE ''''+REPLACE(M.Obs_LicitacionesM,'''','')+''',' END +	
-			--   ''''+REPLACE(COALESCE(M.Cod_UsuarioAct,M.Cod_UsuarioReg),'''','')+ ''';'
-			--   FROM  INSERTED AS M INNER JOIN
-			-- 	  PRI_CLIENTE_PROVEEDOR AS C ON M.Id_ClienteProveedor = C.Id_ClienteProveedor INNER JOIN
-			-- 	  CAJ_COMPROBANTE_PAGO AS P ON M.id_ComprobantePago = P.id_ComprobantePago
-			--  WHERE M.Id_Movimiento=@Id_Movimiento
-
 			SELECT @Script= 'USP_PRI_LICITACIONES_M_I '+ 
 			CASE WHEN M.Id_ClienteProveedor IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Cod_TipoDocumento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=M.Id_ClienteProveedor),''),'''','') +''',' END +
 			CASE WHEN M.Id_ClienteProveedor IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Nro_Documento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=M.Id_ClienteProveedor),''),'''','') +''',' END +
@@ -23875,6 +24014,65 @@ BEGIN
 			CASE WHEN M.Obs_LicitacionesM IS NULL THEN 'NULL,' ELSE ''''+REPLACE(M.Obs_LicitacionesM,'''','')+''',' END +	
 			''''+REPLACE(COALESCE(M.Cod_UsuarioAct,M.Cod_UsuarioReg),'''','')+ ''';'
 			FROM  INSERTED AS M
+			WHERE M.Id_Movimiento=@Id_Movimiento
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_Movimiento), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Movimiento,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Movimiento,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Movimiento,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			SELECT @Script= 'USP_PRI_LICITACIONES_M_D '+ 
+			CASE WHEN M.Id_ClienteProveedor IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Cod_TipoDocumento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=M.Id_ClienteProveedor),''),'''','') +''',' END +
+			CASE WHEN M.Id_ClienteProveedor IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(ISNULL((SELECT pcp.Nro_Documento FROM dbo.PRI_CLIENTE_PROVEEDOR pcp WHERE pcp.Id_ClienteProveedor=M.Id_ClienteProveedor),''),'''','') +''',' END +
+			CASE WHEN M.Cod_Licitacion IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(M.Cod_Licitacion,'''','') +''',' END +
+			CASE WHEN M.Nro_Detalle IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),M.Nro_Detalle)+','END+ 
+			CASE WHEN M.id_ComprobantePago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT ccp.Cod_Libro FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=M.id_ComprobantePago),''),'''','')+''',' END +
+			CASE WHEN M.id_ComprobantePago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT ccp.Cod_TipoComprobante FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=M.id_ComprobantePago),''),'''','')+''',' END +
+			CASE WHEN M.id_ComprobantePago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT ccp.Serie FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=M.id_ComprobantePago),''),'''','')+''',' END +
+			CASE WHEN M.id_ComprobantePago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(ISNULL((SELECT ccp.Numero FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=M.id_ComprobantePago),''),'''','')+''',' END +	
+			''''+'TRIGGER'+''',' +
+			''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			FROM DELETED  M
 			WHERE M.Id_Movimiento=@Id_Movimiento
 
 		   	SET @FechaReg= GETDATE()
@@ -24075,7 +24273,6 @@ BEGIN
 END
 GO
 
-
 --PRI_MENSAJES
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -24182,6 +24379,59 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Mensaje,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Mensaje,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script = 'USP_PRI_MENSAJES_D ' +
+			  ''''+REPLACE(pm.Cod_UsuarioRemite,'''','')+''','+
+			  ''''+CONVERT(varchar(max), pm.Fecha_Remite,121)+''',' +
+			  ''''+REPLACE(pm.Cod_UsuarioRecibe,'''','')+''','+
+			  CASE WHEN pm.Fecha_Recibe IS NULL THEN 'NULL,' ELSE ''''+CONVERT(varchar(max), pm.Fecha_Recibe,121)+''',' END +
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED pm 
+			  WHERE pm.Id_Mensaje=@Id_Mensaje
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_Mensaje), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Mensaje,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -24351,7 +24601,6 @@ BEGIN
 
 END
 GO
-
 
 --PRI_MODULO
 IF EXISTS (SELECT name
@@ -24701,6 +24950,63 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Padron,
+		    d.Id_ClienteProveedor,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Padron,
+		    @Id_ClienteProveedor,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script = 'USP_PRI_PADRONES_D ' +
+			  ''''+REPLACE(pp.Cod_Padron,'''','')+''','+
+			  CASE WHEN pcp.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','')+''','END+
+			  CASE WHEN pcp.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Nro_Documento,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED pp INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp 
+			  ON pp.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+			  WHERE pp.Cod_Padron=@Cod_Padron AND pp.Id_ClienteProveedor=@Id_ClienteProveedor
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Cod_Padron,'|',@Id_ClienteProveedor), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Padron,
+		    @Id_ClienteProveedor,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -24870,7 +25176,6 @@ BEGIN
 
 END
 GO
-
 
 --PRI_PERFIL
 IF EXISTS (SELECT name
@@ -25354,6 +25659,7 @@ BEGIN
 
 END
 GO
+
 --PRI_PERSONAL
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -25520,6 +25826,57 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Personal,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Personal,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script = 'USP_PRI_PERSONAL_D ' +
+			  ''''+REPLACE(pp.Cod_Personal,'''','')+''','+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED pp
+			  WHERE pp.Cod_Personal=@Cod_Personal
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_Personal), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Personal,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -25922,7 +26279,6 @@ BEGIN
 END
 GO
 
-
 --PRI_PERSONAL_PARENTESCO
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -26038,6 +26394,61 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Personal,
+		    d.Item_Parentesco,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Personal,
+		    @Item_Parentesco,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+				 SELECT @Script= 'USP_PRI_PERSONAL_PARENTESCO_D ' +
+				 ''''+REPLACE(ppp.Cod_Personal,'''','')+''','+
+				 CONVERT(varchar(max),ppp.Item_Parentesco)+','+
+				 ''''+'TRIGGER'+''',' +
+				 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+				 FROM DELETED ppp
+				 WHERE ppp.Cod_Personal=@Cod_Personal AND ppp.Item_Parentesco=@Item_Parentesco
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Cod_Personal,'|',@Item_Parentesco), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Personal,
+		    @Item_Parentesco,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -26220,7 +26631,6 @@ BEGIN
 		CLOSE cursorbd;
     	DEALLOCATE cursorbd
     END
-
 END
 GO
 
@@ -26302,6 +26712,64 @@ BEGIN
 				 CASE WHEN D.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(D.Cod_UnidadMedida,'''','')+''','END+
 				 ''''+REPLACE(COALESCE(D.Cod_UsuarioAct,D.Cod_UsuarioReg),'''','')+''';' 
 				 FROM INSERTED AS D INNER JOIN
+					 PRI_PRODUCTOS AS P ON D.Id_Producto = P.Id_Producto INNER JOIN
+					 PRI_PRODUCTOS AS PD ON D.Id_ProductoDetalle = PD.Id_Producto
+				 WHERE D.Id_Producto=@Id_Producto AND D.Item_Detalle=@Item_Detalle
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_Producto,'|',@Item_Detalle), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Producto,
+		    @Item_Detalle,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Producto,
+		    d.Item_Detalle,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Producto,
+		    @Item_Detalle,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+				 SELECT @Script= 'USP_PRI_PRODUCTO_DETALLE_D ''' + 
+				 CASE WHEN P.Cod_Producto IS NULL THEN 'NULL,' ELSE ''''+  REPLACE(P.Cod_Producto,'''','')+''','END+
+				 CONVERT(VARCHAR(MAX),D.Item_Detalle)+','''+ 
+				 ''''+'TRIGGER'+''',' +
+				 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+				 FROM DELETED D INNER JOIN
 					 PRI_PRODUCTOS AS P ON D.Id_Producto = P.Id_Producto INNER JOIN
 					 PRI_PRODUCTOS AS PD ON D.Id_ProductoDetalle = PD.Id_Producto
 				 WHERE D.Id_Producto=@Id_Producto AND D.Item_Detalle=@Item_Detalle
@@ -26496,7 +26964,6 @@ BEGIN
 
 END
 GO
-
 
 --PRI_PRODUCTO_IMAGEN
 IF EXISTS (SELECT name
@@ -26736,7 +27203,6 @@ BEGIN
 END
 GO
 
-
 --PRI_PRODUCTO_PRECIO
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -26851,6 +27317,70 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Producto,
+		    d.Cod_UnidadMedida,
+		    d.Cod_Almacen,
+		    d.Cod_TipoPrecio,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Producto,
+		    @Cod_UnidadMedida,
+		    @Cod_Almacen,
+		    @Cod_TipoPrecio,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_PRI_PRODUCTO_PRECIO_D ' + 
+			  CASE WHEN P.Cod_Producto IS NULL THEN 'NULL,' ELSE ''''+REPLACE(P.Cod_Producto,'''','')+''',' END+ 
+			  CASE WHEN PP.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Cod_UnidadMedida,'''','')+''',' END+ 
+			  CASE WHEN PP.Cod_Almacen IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Cod_Almacen,'''','')+''',' END+ 
+			  CASE WHEN PP.Cod_TipoPrecio IS NULL THEN 'NULL,' ELSE ''''+REPLACE(PP.Cod_TipoPrecio,'''','')+''',' END+ 
+ 			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED PP INNER JOIN
+									   PRI_PRODUCTOS AS P ON PP.Id_Producto = P.Id_Producto
+			  WHERE PP.Id_Producto=@Id_Producto AND PP.Cod_UnidadMedida=@Cod_UnidadMedida AND PP.Cod_Almacen=@Cod_Almacen AND PP.Cod_TipoPrecio=@Cod_TipoPrecio
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_Producto,'|',@Cod_UnidadMedida,'|',@Cod_Almacen,'|',@Cod_TipoPrecio), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Producto,
+		    @Cod_UnidadMedida,
+		    @Cod_Almacen,
+		    @Cod_TipoPrecio,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -27005,7 +27535,6 @@ BEGIN
 END
 GO
 
-
 --PRI_PRODUCTO_STOCK
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -27096,6 +27625,67 @@ BEGIN
 				 CASE WHEN S.Cantidad_Min IS NULL THEN 'NULL,' ELSE CONVERT(VARCHAR(MAX), S.Cantidad_Min)+','END+
 				 ''''+ REPLACE(COALESCE(S.Cod_UsuarioAct,S.Cod_UsuarioReg),'''','')+''';' 
 				 FROM INSERTED AS S INNER JOIN
+					  PRI_PRODUCTOS AS P ON S.Id_Producto = P.Id_Producto
+				 WHERE S.Id_Producto=@Id_Producto AND S.Cod_UnidadMedida=@Cod_UnidadMedida AND S.Cod_Almacen=@Cod_Almacen
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_Producto,'|',@Cod_UnidadMedida,'|',@Cod_Almacen), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Producto,
+		    @Cod_UnidadMedida,
+		    @Cod_Almacen,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Producto,
+		    d.Cod_UnidadMedida,
+		    d.Cod_Almacen,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Producto,
+		    @Cod_UnidadMedida,
+		    @Cod_Almacen,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+				 SELECT @Script= 'USP_PRI_PRODUCTO_STOCK_D ' +
+				 CASE WHEN P.Cod_Producto  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Cod_Producto,'''','')+''','END+
+				 CASE WHEN S.Cod_UnidadMedida  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(S.Cod_UnidadMedida,'''','')+''','END+
+				 CASE WHEN S.Cod_Almacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(S.Cod_Almacen,'''','')+''','END+
+				 ''''+'TRIGGER'+''',' +
+			     ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+				 FROM DELETED S INNER JOIN
 					  PRI_PRODUCTOS AS P ON S.Id_Producto = P.Id_Producto
 				 WHERE S.Id_Producto=@Id_Producto AND S.Cod_UnidadMedida=@Cod_UnidadMedida AND S.Cod_Almacen=@Cod_Almacen
 
@@ -27327,7 +27917,6 @@ BEGIN
 		CLOSE cursorbd;
     	DEALLOCATE cursorbd
     END
-
 END
 GO
 
@@ -27445,6 +28034,62 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Producto,
+		    d.Cod_Tasa,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Producto,
+		    @Cod_Tasa,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_PRI_PRODUCTO_TASA_D ' +
+			  CASE WHEN T.Cod_Tasa  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(T.Cod_Tasa,'''','') +''','END+
+			  CASE WHEN P.Cod_Producto  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(P.Cod_Producto,'''','') +''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED T INNER JOIN
+				    PRI_PRODUCTOS AS P ON T.Id_Producto = P.Id_Producto
+			  WHERE T.Id_Producto=@Id_Producto AND T.Cod_Tasa=@Cod_Tasa
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT(@Id_Producto,'|',@Cod_Tasa), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Producto,
+		    @Cod_Tasa,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -27623,7 +28268,6 @@ BEGIN
 END
 GO
 
-
 --PRI_PRODUCTOS
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -27755,6 +28399,57 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Id_Producto,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Id_Producto,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script='USP_PRI_PRODUCTOS_D ' +
+			  CASE WHEN Cod_Producto  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(Cod_Producto,'''','')+''','END+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED 
+			  WHERE Id_Producto=@Id_Producto
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Id_Producto), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Id_Producto,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -28021,7 +28716,6 @@ BEGIN
 END
 GO
 
-
 --PRI_SUCURSAL
 IF EXISTS (SELECT name
 	   FROM   sysobjects 
@@ -28136,6 +28830,57 @@ BEGIN
     	DEALLOCATE cursorbd
     END
 
+	IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.Cod_Sucursal,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @Cod_Sucursal,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			  SELECT @Script= 'USP_PRI_SUCURSAL_D ' +
+			  ''''+REPLACE(ps.Cod_Sucursal,'''','')+''','+
+			  ''''+'TRIGGER'+''',' +
+			  ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 
+			  FROM DELETED ps
+			  WHERE ps.Cod_Sucursal = @Cod_Sucursal
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@Cod_Sucursal), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @Cod_Sucursal,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
     --Acciones de auditoria, especiales por tipo
     --Insercion
     IF @Accion='INSERTAR'
@@ -28329,7 +29074,6 @@ BEGIN
 
 END
 GO
-
 
 --PRI_USUARIO
 IF EXISTS (SELECT name
