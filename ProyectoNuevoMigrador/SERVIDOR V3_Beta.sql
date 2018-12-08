@@ -24,6 +24,7 @@ CREATE PROCEDURE USP_PRI_CLIENTE_CONTACTO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor	int=(SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR where Cod_TipoDocumento=@Cod_TipoDocumentoP and Nro_Documento=@Nro_DocumentoP)
 DECLARE @Id_ClienteContacto	int = (SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR where Cod_TipoDocumento=@Cod_TipoDocumentoC and Nro_Documento=@Nro_DocumentoC)
 IF NOT EXISTS (SELECT * FROM PRI_CLIENTE_CONTACTO WHERE  (Id_ClienteProveedor = @Id_ClienteProveedor) AND (Id_ClienteContacto = @Id_ClienteContacto))
@@ -91,6 +92,7 @@ CREATE PROCEDURE USP_PRI_SUCURSAL_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_Sucursal FROM PRI_SUCURSAL WHERE  (Cod_Sucursal = @Cod_Sucursal))
 	BEGIN
 		INSERT INTO PRI_SUCURSAL  VALUES (
@@ -146,6 +148,7 @@ CREATE PROCEDURE USP_PRI_PERSONAL_PARENTESCO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_Personal, @Item_Parentesco FROM PRI_PERSONAL_PARENTESCO WHERE  (Cod_Personal = @Cod_Personal) AND (Item_Parentesco = @Item_Parentesco))
 	BEGIN
 		INSERT INTO PRI_PERSONAL_PARENTESCO  VALUES (
@@ -224,6 +227,7 @@ CREATE PROCEDURE USP_PRI_PERSONAL_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_Personal FROM PRI_PERSONAL WHERE  (Cod_Personal = @Cod_Personal))
 	BEGIN
 		INSERT INTO PRI_PERSONAL  VALUES (
@@ -329,6 +333,7 @@ CREATE PROCEDURE USP_PRI_PADRONES_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor INT;
 SET @Id_ClienteProveedor = (SELECT TOP 1 ISNULL(Id_ClienteProveedor,0) FROM PRI_CLIENTE_PROVEEDOR 
 							WHERE  (Cod_TipoDocumento = @Cod_TipoDocumento
@@ -377,6 +382,7 @@ CREATE PROCEDURE USP_PRI_MENSAJES_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_Mensaje	int =(SELECT pm.Id_Mensaje FROM dbo.PRI_MENSAJES pm WHERE pm.Cod_UsuarioRemite=@Cod_UsuarioRemite 
 AND pm.Fecha_Remite=@Fecha_Remite AND pm.Cod_UsuarioRecibe=@Cod_UsuarioRecibe AND pm.Fecha_Recibe=@Fecha_Recibe)
 IF NOT EXISTS (SELECT @Id_Mensaje FROM PRI_MENSAJES WHERE  (Id_Mensaje = @Id_Mensaje))
@@ -426,6 +432,7 @@ CREATE PROCEDURE USP_PRI_ESTABLECIMIENTOS_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor INT;
 SET @Id_ClienteProveedor = (SELECT TOP 1 ISNULL(Id_ClienteProveedor,0) FROM PRI_CLIENTE_PROVEEDOR 
 							WHERE  (Cod_TipoDocumento = @Cod_TipoDocumento
@@ -485,6 +492,7 @@ CREATE PROCEDURE USP_PRI_EMPRESA_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_Empresa FROM PRI_EMPRESA WHERE  (Cod_Empresa = @Cod_Empresa))
 	BEGIN
 		INSERT INTO PRI_EMPRESA  VALUES (
@@ -551,6 +559,7 @@ CREATE PROCEDURE USP_PRI_DESCUENTOS_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor INT;
 SET @Id_ClienteProveedor = (SELECT TOP 1 ISNULL(Id_ClienteProveedor,0) FROM PRI_CLIENTE_PROVEEDOR 
 							WHERE  (Cod_TipoDocumento = @Cod_TipoDocumento
@@ -613,6 +622,7 @@ CREATE PROCEDURE USP_PRI_CUENTA_CONTABLE_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_CuentaContable FROM PRI_CUENTA_CONTABLE WHERE  (Cod_CuentaContable = @Cod_CuentaContable))
 	BEGIN
 		INSERT INTO PRI_CUENTA_CONTABLE  VALUES (
@@ -671,6 +681,7 @@ CREATE PROCEDURE USP_PRI_CLIENTE_VISITAS_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor INT;
 SET @Id_ClienteProveedor = (SELECT TOP 1 ISNULL(Id_ClienteProveedor,0) FROM PRI_CLIENTE_PROVEEDOR 
 							WHERE  (Cod_TipoDocumento = @Cod_TipoDocumento
@@ -733,6 +744,7 @@ CREATE PROCEDURE USP_PRI_CLIENTE_CUENTABANCARIA_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor INT;
 SET @Id_ClienteProveedor = (SELECT TOP 1 ISNULL(Id_ClienteProveedor,0) FROM PRI_CLIENTE_PROVEEDOR 
 							WHERE  (Cod_TipoDocumento = @Cod_TipoDocumento
@@ -782,6 +794,7 @@ CREATE PROCEDURE USP_PRI_CATEGORIA_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_Categoria FROM PRI_CATEGORIA WHERE  (Cod_Categoria = @Cod_Categoria))
 	BEGIN
 		INSERT INTO PRI_CATEGORIA  VALUES (
@@ -820,6 +833,7 @@ CREATE PROCEDURE USP_PRI_AREAS_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_Area FROM PRI_AREAS WHERE  (Cod_Area = @Cod_Area))
 	BEGIN
 		INSERT INTO PRI_AREAS  VALUES (
@@ -863,6 +877,7 @@ CREATE PROCEDURE USP_PRI_ACTIVIDADES_ECONOMICAS_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor	int=(SELECT TOP 1 ISNULL(Id_ClienteProveedor,0) FROM PRI_CLIENTE_PROVEEDOR 
 							WHERE  (Cod_TipoDocumento = @Cod_TipoDocumento
 							AND Nro_Documento = @Nro_Documento));
@@ -908,6 +923,7 @@ CREATE PROCEDURE USP_CAJ_TIPOCAMBIO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_TipoCambio	int = (SELECT ct.Id_TipoCambio FROM dbo.CAJ_TIPOCAMBIO ct WHERE ct.FechaHora=@FechaHora AND ct.Cod_Moneda=@Cod_Moneda)
 IF NOT EXISTS (SELECT @Id_TipoCambio FROM CAJ_TIPOCAMBIO WHERE  (Id_TipoCambio = @Id_TipoCambio))
 	BEGIN
@@ -937,48 +953,6 @@ IF NOT EXISTS (SELECT @Id_TipoCambio FROM CAJ_TIPOCAMBIO WHERE  (Id_TipoCambio =
 END
 go
 
--- -- Guadar
--- IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CAJ_IMPUESTOS_I' AND type = 'P')
--- 	DROP PROCEDURE USP_CAJ_IMPUESTOS_I
--- go
--- CREATE PROCEDURE USP_CAJ_IMPUESTOS_I 
--- 	@Cod_TipoComprobante	varchar(5), 
--- 	@Serie varchar(4), 
--- 	@Numero	varchar(20), 
--- 	@Cod_Impuesto	varchar(32), 
--- 	@Porcentaje	numeric(5,2), 
--- 	@Monto	numeric(38,2), 
--- 	@Obs_Impuesto	varchar(1024),
--- 	@Cod_Usuario Varchar(32)
--- WITH ENCRYPTION
--- AS
--- BEGIN
--- DECLARE @id_ComprobantePago int = (SELECT TOP 1 ccp.id_ComprobantePago FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_TipoComprobante=@Cod_TipoComprobante AND ccp.Serie=@Serie AND ccp.Numero=@Numero)
--- IF NOT EXISTS (SELECT * FROM CAJ_IMPUESTOS WHERE  (id_ComprobantePago = @id_ComprobantePago) AND (Cod_Impuesto = @Cod_Impuesto))
--- 	BEGIN
--- 		INSERT INTO CAJ_IMPUESTOS  VALUES (
--- 		@id_ComprobantePago,
--- 		@Cod_Impuesto,
--- 		@Porcentaje,
--- 		@Monto,
--- 		@Obs_Impuesto,
--- 		@Cod_Usuario,GETDATE(),NULL,NULL)
-		
--- 	END
--- 	ELSE
--- 	BEGIN
--- 		UPDATE CAJ_IMPUESTOS
--- 		SET	
--- 			Porcentaje = @Porcentaje, 
--- 			Monto = @Monto, 
--- 			Obs_Impuesto = @Obs_Impuesto,
--- 			Cod_UsuarioAct = @Cod_Usuario, 
--- 			Fecha_Act = GETDATE()
--- 		WHERE (id_ComprobantePago = @id_ComprobantePago) AND (Cod_Impuesto = @Cod_Impuesto)	
--- 	END
--- END
--- go
-
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CAJ_COMPROBANTE_LOG_I' AND type = 'P')
 	DROP PROCEDURE USP_CAJ_COMPROBANTE_LOG_I
 go
@@ -994,6 +968,7 @@ CREATE PROCEDURE USP_CAJ_COMPROBANTE_LOG_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @id_ComprobantePago int = (SELECT TOP 1 ccp.id_ComprobantePago FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_TipoComprobante=@Cod_TipoComprobante AND ccp.Serie=@Serie AND ccp.Numero=@Numero)
 IF NOT EXISTS (SELECT @id_ComprobantePago, @Item FROM CAJ_COMPROBANTE_LOG WHERE  (id_ComprobantePago = @id_ComprobantePago) AND (Item = @Item))
 	BEGIN
@@ -1020,44 +995,6 @@ IF NOT EXISTS (SELECT @id_ComprobantePago, @Item FROM CAJ_COMPROBANTE_LOG WHERE 
 END
 go
 
-
--- -- Guadar
--- IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CAJ_COMPROBANTE_GUIA_I' AND type = 'P')
--- 	DROP PROCEDURE USP_CAJ_COMPROBANTE_GUIA_I
--- go
--- CREATE PROCEDURE USP_CAJ_COMPROBANTE_GUIA_I
--- 	@Cod_TipoComprobanteGuia	varchar(5), 
--- 	@SerieGuia	varchar(4), 
--- 	@NumeroGuia	varchar(20), 
--- 	@Cod_TipoComprobanteComprobante	varchar(5), 
--- 	@SerieComprobante	varchar(4), 
--- 	@NumeroComprobante	varchar(20), 
--- 	@Flag_Relacion	bit,
--- 	@Cod_Usuario Varchar(32)
--- WITH ENCRYPTION
--- AS
--- BEGIN
--- DECLARE @Id_GuiaRemision	int = (SELECT TOP 1 ccp.id_ComprobantePago FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_TipoComprobante=@Cod_TipoComprobanteGuia AND ccp.Serie=@SerieGuia AND ccp.Numero=@NumeroGuia)
--- DECLARE @id_ComprobantePago	int=(SELECT TOP 1 ccp.id_ComprobantePago FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_TipoComprobante=@Cod_TipoComprobanteComprobante AND ccp.Serie=@SerieComprobante AND ccp.Numero=@NumeroComprobante)
--- IF NOT EXISTS (SELECT * FROM CAJ_COMPROBANTE_GUIA WHERE  (Id_GuiaRemision = @Id_GuiaRemision) AND (id_ComprobantePago = @id_ComprobantePago))
--- 	BEGIN
--- 		INSERT INTO CAJ_COMPROBANTE_GUIA  VALUES (
--- 		@Id_GuiaRemision,
--- 		@Flag_Relacion,
--- 		@Cod_Usuario,GETDATE(),NULL,NULL)
--- 	END
--- 	ELSE
--- 	BEGIN
--- 		UPDATE CAJ_COMPROBANTE_GUIA
--- 		SET	
--- 			Flag_Relacion = @Flag_Relacion,
--- 			Cod_UsuarioAct = @Cod_Usuario, 
--- 			Fecha_Act = GETDATE()
--- 		WHERE (Id_GuiaRemision = @Id_GuiaRemision) AND (id_ComprobantePago = @id_ComprobantePago)	
--- 	END
--- END
--- go
-
 -- Guadar
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CAJ_CAJA_ALMACEN_I' AND type = 'P')
 	DROP PROCEDURE USP_CAJ_CAJA_ALMACEN_I
@@ -1070,6 +1007,7 @@ CREATE PROCEDURE USP_CAJ_CAJA_ALMACEN_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_Caja, @Cod_Almacen FROM CAJ_CAJA_ALMACEN WHERE  (Cod_Caja = @Cod_Caja) AND (Cod_Almacen = @Cod_Almacen))
 	BEGIN
 		INSERT INTO CAJ_CAJA_ALMACEN  VALUES (
@@ -1111,6 +1049,7 @@ CREATE PROCEDURE USP_CAJ_CAJAS_DOC_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_Caja, @Item FROM CAJ_CAJAS_DOC WHERE  (Cod_Caja = @Cod_Caja) AND (Item = @Item))
 	BEGIN
 		INSERT INTO CAJ_CAJAS_DOC  VALUES (
@@ -1161,6 +1100,7 @@ CREATE PROCEDURE USP_ALM_INVENTARIO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_Inventario	int =(SELECT TOP 1 Id_Inventario FROM ALM_INVENTARIO WHERE Cod_TipoInventario=@Cod_TipoInventario and Cod_Almacen=@Cod_Almacen)
 IF NOT EXISTS (SELECT * FROM ALM_INVENTARIO WHERE  (Id_Inventario = @Id_Inventario))
 	BEGIN
@@ -1204,7 +1144,7 @@ CREATE PROCEDURE USP_ALM_INVENTARIO_D_I
 WITH ENCRYPTION
 AS
 BEGIN
-
+SET DATEFORMAT ymd;
 DECLARE @Id_Inventario	int =(SELECT TOP 1 Id_Inventario FROM ALM_INVENTARIO WHERE Cod_TipoInventario=@Cod_TipoInventario and Cod_Almacen=@Cod_Almacen)
 DECLARE @Id_Producto int =  (SELECT TOP 1 Id_Producto FROM PRI_PRODUCTOS WHERE Cod_Producto=@Cod_Producto)
 IF NOT EXISTS (SELECT * FROM ALM_INVENTARIO_D WHERE  (Id_Inventario = @Id_Inventario) AND (Item = @Item))
@@ -1253,6 +1193,7 @@ CREATE PROCEDURE USP_CAJ_CAJAS_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_Caja FROM CAJ_CAJAS WHERE  (Cod_Caja = @Cod_Caja))
 	BEGIN
 		INSERT INTO CAJ_CAJAS  VALUES (
@@ -1295,6 +1236,7 @@ CREATE PROCEDURE USP_ALM_ALMACEN_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT * FROM ALM_ALMACEN WHERE  (Cod_Almacen = @Cod_Almacen))
 	BEGIN
 		INSERT INTO ALM_ALMACEN  VALUES (
@@ -1348,6 +1290,7 @@ CREATE PROCEDURE USP_PRI_PRODUCTOS_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT * FROM PRI_PRODUCTOS WHERE  (Cod_Producto = @Cod_Producto))
 	BEGIN
 		INSERT INTO PRI_PRODUCTOS  VALUES (
@@ -1420,6 +1363,7 @@ CREATE PROCEDURE USP_PRI_PRODUCTO_STOCK_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_Producto int =  (SELECT TOP 1 Id_Producto FROM PRI_PRODUCTOS WHERE Cod_Producto=@Cod_Producto)
 IF NOT EXISTS (SELECT * FROM PRI_PRODUCTO_STOCK WHERE  (Id_Producto = @Id_Producto) AND (Cod_UnidadMedida = @Cod_UnidadMedida) AND (Cod_Almacen = @Cod_Almacen))
 	BEGIN
@@ -1471,6 +1415,7 @@ CREATE PROCEDURE USP_PRI_PRODUCTO_PRECIO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_Producto int = (SELECT TOP 1 Id_Producto FROM PRI_PRODUCTOS where Cod_Producto=@Cod_Producto)
 IF NOT EXISTS (SELECT * FROM PRI_PRODUCTO_PRECIO WHERE  (Id_Producto = @Id_Producto) AND (Cod_UnidadMedida = @Cod_UnidadMedida) AND (Cod_Almacen = @Cod_Almacen) AND (Cod_TipoPrecio = @Cod_TipoPrecio))
 	BEGIN
@@ -1509,6 +1454,7 @@ CREATE PROCEDURE USP_PRI_PRODUCTO_DETALLE_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_Producto int =  (SELECT TOP 1 Id_Producto FROM PRI_PRODUCTOS WHERE Cod_Producto=@Cod_Producto)
 DECLARE @Id_ProductoDetalle	int=(SELECT Id_ProductoDetalle FROM PRI_PRODUCTO_DETALLE WHERE Id_Producto=@Id_Producto AND Item_Detalle=@Item_Detalle )
 IF NOT EXISTS (SELECT * FROM PRI_PRODUCTO_DETALLE WHERE  (Id_Producto = @Id_Producto) AND (Item_Detalle = @Item_Detalle))
@@ -1553,6 +1499,7 @@ CREATE PROCEDURE USP_PRI_PRODUCTO_TASA_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_Producto INT;
 SET @Id_Producto= (SELECT Id_Producto FROM PRI_PRODUCTOS WHERE  Cod_Producto = @Cod_Producto);
 IF NOT EXISTS (SELECT * FROM PRI_PRODUCTO_TASA WHERE  (Id_Producto = @Id_Producto) AND (Cod_Tasa = @Cod_Tasa))
@@ -1624,6 +1571,7 @@ CREATE PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor INT;
 SET @Id_ClienteProveedor = (SELECT TOP 1 ISNULL(Id_ClienteProveedor,0) FROM PRI_CLIENTE_PROVEEDOR 
 							WHERE  (Cod_TipoDocumento = @Cod_TipoDocumento
@@ -1718,6 +1666,7 @@ CREATE PROCEDURE USP_CAJ_TURNO_ATENCION_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT * FROM CAJ_TURNO_ATENCION WHERE  (Cod_Turno = @Cod_Turno))
 	BEGIN
 		INSERT INTO CAJ_TURNO_ATENCION  VALUES (
@@ -1760,6 +1709,7 @@ CREATE PROCEDURE USP_CAJ_MEDICION_VC_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT * FROM CAJ_MEDICION_VC WHERE  (Cod_AMedir = @Cod_AMedir) AND (Medio_AMedir=@Medio_AMedir) and Cod_Turno = @Cod_Turno)
 	BEGIN
 		INSERT INTO CAJ_MEDICION_VC  VALUES (
@@ -1807,6 +1757,7 @@ CREATE PROCEDURE USP_CAJ_ARQUEOFISICO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @id_ArqueoFisico int = (SELECT id_ArqueoFisico FROM CAJ_ARQUEOFISICO WHERE (Cod_Caja=@Cod_Caja) and (Cod_Turno=@Cod_Turno))
 IF NOT EXISTS (SELECT * FROM CAJ_ARQUEOFISICO WHERE  (id_ArqueoFisico = @id_ArqueoFisico))
 	BEGIN
@@ -1852,6 +1803,7 @@ CREATE PROCEDURE USP_CAJ_ARQUEOFISICO_D_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @id_ArqueoFisico int = (SELECT id_ArqueoFisico FROM CAJ_ARQUEOFISICO WHERE (Cod_Caja=@Cod_Caja) and (Cod_Turno=@Cod_Turno))
 IF NOT EXISTS (SELECT * FROM CAJ_ARQUEOFISICO_D WHERE  (id_ArqueoFisico = @id_ArqueoFisico) AND (Cod_Billete = @Cod_Billete))
 	BEGIN
@@ -1888,6 +1840,7 @@ CREATE PROCEDURE USP_CAJ_ARQUEOFISICO_SALDO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @id_ArqueoFisico int = (SELECT TOP 1 id_ArqueoFisico FROM CAJ_ARQUEOFISICO WHERE (Cod_Caja=@Cod_Caja) and (Cod_Turno=@Cod_Turno))
 IF NOT EXISTS (SELECT * FROM CAJ_ARQUEOFISICO_SALDO WHERE  (id_ArqueoFisico = @id_ArqueoFisico) AND (Cod_Moneda = @Cod_Moneda) AND (Tipo = @Tipo))
 	BEGIN
@@ -1930,6 +1883,7 @@ CREATE PROCEDURE USP_PRI_LICITACIONES_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor	int=(SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR where Cod_TipoDocumento=@Cod_TipoDocumento and Nro_Documento=@Nro_Documento)
 IF NOT EXISTS (SELECT * FROM PRI_LICITACIONES WHERE  (Id_ClienteProveedor = @Id_ClienteProveedor) AND (Cod_Licitacion = @Cod_Licitacion))
 	BEGIN
@@ -1983,6 +1937,7 @@ CREATE PROCEDURE USP_PRI_LICITACIONES_D_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor	int=(SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR where Cod_TipoDocumento=@Cod_TipoDocumento and Nro_Documento=@Nro_Documento)
 DECLARE @Id_Producto	int = (SELECT Id_Producto FROM PRI_PRODUCTOS WHERE Cod_Producto=@Cod_Producto)
 IF NOT EXISTS (SELECT @Id_ClienteProveedor, @Cod_Licitacion, @Nro_Detalle FROM PRI_LICITACIONES_D WHERE  (Id_ClienteProveedor = @Id_ClienteProveedor) AND (Cod_Licitacion = @Cod_Licitacion) AND (Nro_Detalle = @Nro_Detalle))
@@ -2031,6 +1986,7 @@ CREATE PROCEDURE USP_CAJ_CONCEPTO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Id_Concepto FROM CAJ_CONCEPTO WHERE  (Id_Concepto = @Id_Concepto))
 	BEGIN
 		INSERT INTO CAJ_CONCEPTO  VALUES (
@@ -2087,6 +2043,7 @@ CREATE PROCEDURE USP_CAJ_CAJA_MOVIMIENTOS_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor int= (select TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR where Cod_TipoDocumento=@Cod_TipoDocumento AND Nro_Documento=@DocCliente)
 DECLARE @Nom_Cliente varchar(MAX)= (select Nombres FROM PRI_CLIENTE_PROVEEDOR where Id_ClienteProveedor=@Id_ClienteProveedor)
 DECLARE @id_Movimiento	int =(SELECT id_Movimiento FROM CAJ_CAJA_MOVIMIENTOS where Cod_TipoComprobante=@Cod_TipoComprobante and Serie=@Serie and Numero=@Numero
@@ -2203,6 +2160,7 @@ CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_Cliente int =(SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR where Cod_TipoDocumento=@Cod_TipoDoc and Nro_Documento=@Doc_Cliente)
 DECLARE @id_ComprobantePago	int =(SELECT ISNULL(id_ComprobantePago,0) FROM CAJ_COMPROBANTE_PAGO WHERE Cod_Libro=@Cod_Libro AND Cod_TipoComprobante=@Cod_TipoComprobante AND Serie=@Serie
 AND Numero=@Numero)
@@ -2350,6 +2308,7 @@ CREATE PROCEDURE USP_CAJ_COMPROBANTE_D_I
 WITH ENCRYPTION
 AS
 BEGIN
+	SET DATEFORMAT ymd;
 	DECLARE @id_ComprobantePago INT=0,@Id_Producto int;
 	SET @id_ComprobantePago = (SELECT ISNULL(id_ComprobantePago,0) FROM CAJ_COMPROBANTE_PAGO
 	WHERE Cod_Libro = @Cod_Libro
@@ -2439,7 +2398,7 @@ CREATE PROCEDURE USP_CAJ_SERIES_PAGO_I
 WITH ENCRYPTION
 AS
 BEGIN
-
+SET DATEFORMAT ymd;
 DECLARE @id_ComprobantePago	int = (SELECT id_ComprobantePago FROM CAJ_COMPROBANTE_PAGO WHERE  Cod_TipoComprobante=@Cod_TipoComprobante and Serie=@Serie AND Numero=@Numero
 AND Cod_TipoDoc=@Cod_TipoDoc and Doc_Cliente=@Doc_Cliente)
 IF NOT EXISTS (SELECT * FROM CAJ_SERIES WHERE  (Id_Tabla = @id_ComprobantePago) AND (Item = @id_Detalle))
@@ -2484,7 +2443,7 @@ CREATE PROCEDURE USP_CAJ_SERIES_MOVIMIENTO_I
 WITH ENCRYPTION
 AS
 BEGIN
-
+SET DATEFORMAT ymd;
 DECLARE @id_ComprobantePago	int = (SELECT id_Movimiento FROM CAJ_CAJA_MOVIMIENTOS WHERE  Cod_TipoComprobante=@Cod_TipoComprobante and Serie=@Serie AND Numero=@Numero)
 IF NOT EXISTS (SELECT * FROM CAJ_SERIES WHERE  (Id_Tabla = @id_ComprobantePago) AND (Item = @id_Detalle))
 	BEGIN
@@ -2541,6 +2500,7 @@ CREATE PROCEDURE USP_CAJ_COMPROBANTE_RELACION_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @id_ComprobantePago INT=0;
 	SET @id_ComprobantePago = (SELECT ISNULL(id_ComprobantePago,0) FROM CAJ_COMPROBANTE_PAGO
 	WHERE Cod_Libro = @Cod_Libro
@@ -2613,6 +2573,7 @@ CREATE PROCEDURE USP_PRI_LICITACIONES_M_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @id_ComprobantePago INT=0;
 	SET @id_ComprobantePago = (SELECT ISNULL(id_ComprobantePago,0) FROM CAJ_COMPROBANTE_PAGO
 	WHERE Cod_Libro = @Cod_Libro
@@ -2670,6 +2631,7 @@ CREATE PROCEDURE USP_PRI_CLIENTE_VEHICULOS_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor	int = (SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR where Cod_TipoDocumento=@Cod_TipoDoc AND @Doc_Cliente=Nro_Documento )
 IF NOT EXISTS (SELECT * FROM PRI_CLIENTE_VEHICULOS WHERE  (Id_ClienteProveedor = @Id_ClienteProveedor) AND (Cod_Placa = @Cod_Placa))
 	BEGIN
@@ -2720,6 +2682,7 @@ CREATE PROCEDURE USP_BAN_CUENTA_BANCARIA_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT @Cod_CuentaBancaria FROM BAN_CUENTA_BANCARIA WHERE  (Cod_CuentaBancaria = @Cod_CuentaBancaria))
 	BEGIN
 		INSERT INTO BAN_CUENTA_BANCARIA  VALUES (
@@ -2777,6 +2740,7 @@ CREATE PROCEDURE USP_BAN_CUENTA_M_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_MovimientoCuenta	int = (SELECT Id_MovimientoCuenta FROM BAN_CUENTA_M WHERE Cod_CuentaBancaria=@Cod_CuentaBancaria)
 IF NOT EXISTS (SELECT * FROM BAN_CUENTA_M WHERE  (Id_MovimientoCuenta = @Id_MovimientoCuenta))
 	BEGIN
@@ -2849,6 +2813,7 @@ CREATE PROCEDURE USP_ALM_ALMACEN_MOV_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @id_ComprobantePago INT=0;
 	SET @id_ComprobantePago = (SELECT ISNULL(id_ComprobantePago,0) FROM CAJ_COMPROBANTE_PAGO
 	WHERE Cod_Libro = @Cod_Libro
@@ -2917,6 +2882,7 @@ CREATE PROCEDURE USP_ALM_ALMACEN_MOV_D_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_AlmacenMov	int = (SELECT Id_AlmacenMov FROM ALM_ALMACEN_MOV WHERE Cod_TipoComprobante=@Cod_TipoComprobante AND Serie=@Serie AND Numero=@Numero)
 DECLARE @Id_Producto	int = (SELECT Id_Producto FROM PRI_PRODUCTOS WHERE Cod_Producto=@Cod_Producto)
 
@@ -2966,6 +2932,7 @@ CREATE PROCEDURE USP_PRI_CLIENTE_PRODUCTO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @Id_ClienteProveedor	int = (SELECT TOP 1 Id_ClienteProveedor FROM PRI_CLIENTE_PROVEEDOR where Cod_TipoDocumento=@Cod_TipoDoc AND @Doc_Cliente=Nro_Documento )
 DECLARE @Id_Producto	int = (SELECT Id_Producto FROM PRI_PRODUCTOS WHERE Cod_Producto=@Cod_Producto)
 IF NOT EXISTS (SELECT @Id_ClienteProveedor, @Id_Producto FROM PRI_CLIENTE_PRODUCTO WHERE  (Id_ClienteProveedor = @Id_ClienteProveedor) AND (Id_Producto = @Id_Producto))
@@ -3021,6 +2988,7 @@ CREATE PROCEDURE USP_CAJ_FORMA_PAGO_I
 WITH ENCRYPTION
 AS
 BEGIN
+SET DATEFORMAT ymd;
 DECLARE @id_ComprobantePago int = (SELECT  id_ComprobantePago FROM CAJ_COMPROBANTE_PAGO WHERE Cod_Libro=@Cod_Libro AND Cod_TipoComprobante=@Cod_TipoComprobante and Serie=@Serie AND Numero=@Numero)
 
 IF NOT EXISTS (SELECT @id_ComprobantePago, @Item FROM CAJ_FORMA_PAGO WHERE  (id_ComprobantePago = @id_ComprobantePago) AND (Item = @Item))
@@ -3085,7 +3053,7 @@ CREATE PROCEDURE USP_PAR_COLUMNA_I
 WITH ENCRYPTION
 AS
 BEGIN
-
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT * FROM PAR_COLUMNA  WHERE  (Cod_Tabla = @Cod_Tabla) AND (Cod_Columna=@Cod_Columna))
 	BEGIN
 	   INSERT dbo.PAR_COLUMNA
@@ -3142,7 +3110,7 @@ CREATE PROCEDURE USP_PAR_FILA_I
 WITH ENCRYPTION
 AS
 BEGIN
-
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT * FROM dbo.PAR_FILA pf  WHERE  pf.Cod_Tabla=@Cod_Tabla AND pf.Cod_Columna=@Cod_Columna AND pf.Cod_Fila=@Cod_Fila)
 	BEGIN
 	   INSERT dbo.PAR_FILA
@@ -3180,111 +3148,6 @@ IF NOT EXISTS (SELECT * FROM dbo.PAR_FILA pf  WHERE  pf.Cod_Tabla=@Cod_Tabla AND
 END
 GO
 
-
-
---IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CAJ_GUIA_REMISION_I' AND type = 'P')
---	DROP PROCEDURE USP_CAJ_GUIA_REMISION_I
---go
---CREATE PROCEDURE USP_CAJ_GUIA_REMISION_I 
---	@Cod_Caja varchar(32),
---	@Cod_Turno varchar(32),
---	@Cod_TipoComprobante varchar(5),
---	@Serie varchar(5),
---	@Numero varchar(32),
---	@Punto_Partida varchar(512),
---	@Origen varchar(512),
---	@Nro_Partida varchar(64),
---	@Fecha_Traslado datetime,
---	@Certificado_Inscripcion varchar(512),
---	@Certificado_Habilitacion varchar(512),
---	@Num_Placa varchar(32),
---	@Licencia_Conductor varchar(32),
---	@Punto_Llegada varchar(512),
---	@Destino varchar(512),
---	@Nro_Llegada varchar(64),
---	@Id_ClienteProveedor int,
---	@Id_Transportista int,
---	@Cod_MotivoTraslado varchar(5),
---	@Motivo_Traslado varchar(512),
---	@Obs_GuiaRemision varchar(1024),
---	@Flag_Anulado bit,
---	@Cod_EstadoGuia varchar(3),
---	@Cod_Usuario varchar(32)
---WITH ENCRYPTION
---AS
---BEGIN
---DECLARE @Id_GuiaRemision	int =(SELECT ISNULL(Id_GuiaRemision,0) FROM dbo.CAJ_GUIA_REMISION  WHERE Cod_Caja=@Cod_Caja AND @Cod_Turno=Cod_Turno AND @Cod_TipoComprobante=Cod_TipoComprobante
---AND Serie=@Serie AND @Numero=Numero)
-
---IF NOT EXISTS (SELECT * FROM dbo.CAJ_GUIA_REMISION cgr WHERE  (cgr.Id_GuiaRemision = @Id_GuiaRemision))
---	BEGIN
---	    INSERT dbo.CAJ_GUIA_REMISION
---	    VALUES
---	    (
---	        @Cod_Caja, -- Cod_Caja - varchar
---	        @Cod_Turno, -- Cod_Turno - varchar
---	        @Cod_TipoComprobante, -- Cod_TipoComprobante - varchar
---	        @Serie, -- Serie - varchar
---	        @Numero, -- Numero - varchar
---	        @Punto_Partida, -- Punto_Partida - varchar
---	        @Origen, -- Origen - varchar
---	        @Nro_Partida, -- Nro_Partida - varchar
---	        @Fecha_Traslado, -- Fecha_Traslado - datetime
---	        @Certificado_Inscripcion, -- Certificado_Inscripcion - varchar
---	        @Certificado_Habilitacion, -- Certificado_Habilitacion - varchar
---	        @Num_Placa, -- Num_Placa - varchar
---	        @Licencia_Conductor, -- Licencia_Conductor - varchar
---	        @Punto_Llegada, -- Punto_Llegada - varchar
---	        @Destino, -- Destino - varchar
---	        @Nro_Llegada, -- Nro_Llegada - varchar
---	        @Id_ClienteProveedor, -- Id_ClienteProveedor - int
---	        @Id_Transportista, -- Id_Transportista - int
---	        @Cod_MotivoTraslado, -- Cod_MotivoTraslado - varchar
---	        @Motivo_Traslado, -- Motivo_Traslado - varchar
---	        @Obs_GuiaRemision, -- Obs_GuiaRemision - varchar
---	        @Flag_Anulado, -- Flag_Anulado - bit
---	        @Cod_EstadoGuia, -- Cod_EstadoGuia - varchar
---	        @Cod_Usuario, -- Cod_UsuarioReg - varchar
---	        GETDATE(), -- Fecha_Reg - datetime
---	        NULL, -- Cod_UsuarioAct - varchar
---	        NULL -- Fecha_Act - datetime
---	    )SET @Id_GuiaRemision = @@IDENTITY 
---	END
---	ELSE
---	BEGIN
---	   UPDATE dbo.CAJ_GUIA_REMISION
---	   SET
---	       --Id_GuiaRemision - this column value is auto-generated
---	       dbo.CAJ_GUIA_REMISION.Cod_Caja = @Cod_Caja, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Cod_Turno = @Cod_Turno, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Cod_TipoComprobante = @Cod_TipoComprobante, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Serie = @Serie, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Numero = @Numero, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Punto_Partida = @Punto_Partida, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Origen = @Origen, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Nro_Partida = @Nro_Partida, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Fecha_Traslado = @Fecha_Traslado, -- datetime
---	       dbo.CAJ_GUIA_REMISION.Certificado_Inscripcion = @Certificado_Inscripcion, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Certificado_Habilitacion = @Certificado_Habilitacion, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Num_Placa = @Num_Placa, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Licencia_Conductor = @Licencia_Conductor, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Punto_Llegada = @Punto_Llegada, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Destino = @Destino, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Nro_Llegada = @Nro_Llegada, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Id_ClienteProveedor = @Id_ClienteProveedor, -- int
---	       dbo.CAJ_GUIA_REMISION.Id_Transportista = @Id_Transportista, -- int
---	       dbo.CAJ_GUIA_REMISION.Cod_MotivoTraslado = @Cod_MotivoTraslado, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Motivo_Traslado =@Motivo_Traslado, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Obs_GuiaRemision = @Obs_GuiaRemision, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Flag_Anulado = @Flag_Anulado, -- bit
---	       dbo.CAJ_GUIA_REMISION.Cod_EstadoGuia = @Cod_EstadoGuia, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Cod_UsuarioAct = @Cod_Usuario, -- varchar
---	       dbo.CAJ_GUIA_REMISION.Fecha_Act = GETDATE() -- datetime
---	   WHERE dbo.CAJ_GUIA_REMISION.Id_GuiaRemision=@Id_GuiaRemision
---	END
---END
---go
-
 -- Guadar
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PAR_TABLA_I' AND type = 'P')
 DROP PROCEDURE USP_PAR_TABLA_I
@@ -3299,7 +3162,7 @@ CREATE PROCEDURE USP_PAR_TABLA_I
 WITH ENCRYPTION
 AS
 BEGIN
-
+SET DATEFORMAT ymd;
 IF NOT EXISTS (SELECT * FROM dbo.PAR_TABLA pt WHERE pt.Cod_Tabla=@Cod_Tabla)
 	BEGIN
 	   INSERT dbo.PAR_TABLA
@@ -5498,4 +5361,3 @@ BEGIN
 			COMMIT TRANSACTION;  
 END
 GO
-

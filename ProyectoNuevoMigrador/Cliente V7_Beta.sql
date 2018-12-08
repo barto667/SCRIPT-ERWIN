@@ -217,28 +217,6 @@ BEGIN
 END
 GO
 
-
-
-
-----TRIGGERS
-----ALM_ALMACEN
---IF EXISTS (SELECT name
---	   FROM   sysobjects 
---	   WHERE  name = N'PALERP_Auditoria.dbo.UTR_PRI_AUDITORIA_UD'
---	   AND 	  type = 'TR')
---    DROP TRIGGER PALERP_Auditoria.dbo.UTR_PRI_AUDITORIA_UD
---GO
-
---CREATE TRIGGER PALERP_Auditoria.dbo.UTR_PRI_AUDITORIA_UD
---ON PALERP_Auditoria.dbo.ALM_ALMACEN
---WITH ENCRYPTION
---BEFORE UPDATE,DELETE
---AS
---BEGIN
---	RAISERROR 'Operacion invalida'
---END
---GO
-
 --TRIGGERS
 --ALM_ALMACEN
 IF EXISTS (SELECT name
@@ -272,6 +250,8 @@ BEGIN
 	DECLARE @Fecha datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -432,7 +412,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -507,7 +488,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -586,6 +568,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -784,7 +768,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -887,7 +872,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA 
@@ -969,6 +955,8 @@ BEGIN
 	DECLARE @Fecha datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -1157,7 +1145,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -1244,7 +1233,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -1319,6 +1309,8 @@ BEGIN
 	DECLARE @Fecha datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -1482,7 +1474,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -1557,7 +1550,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -1632,6 +1626,8 @@ BEGIN
 	DECLARE @Fecha datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -1815,7 +1811,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -1902,7 +1899,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -1981,6 +1979,8 @@ BEGIN
 	DECLARE @Fecha datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -2160,7 +2160,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -2251,7 +2252,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -2338,6 +2340,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -2538,7 +2542,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -2653,7 +2658,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -2738,6 +2744,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -2910,7 +2918,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -2997,7 +3006,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -3070,6 +3080,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -3235,7 +3247,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -3302,7 +3315,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -3370,6 +3384,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -3547,7 +3563,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -3618,7 +3635,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -3687,6 +3705,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce) 
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -3848,7 +3868,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -3915,7 +3936,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -4001,6 +4023,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -4232,7 +4256,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -4371,7 +4396,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -4459,6 +4485,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -4626,7 +4654,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -4705,7 +4734,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -4784,6 +4814,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -4977,7 +5009,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -5076,7 +5109,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -5172,6 +5206,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -5423,7 +5459,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -5570,7 +5607,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -5660,6 +5698,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -5836,7 +5876,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -5911,7 +5952,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -6022,6 +6064,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -6358,7 +6402,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -6589,7 +6634,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -6703,6 +6749,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -6910,7 +6958,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -6997,7 +7046,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -7072,6 +7122,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -7235,7 +7287,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -7310,7 +7363,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -7391,6 +7445,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce) 
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -7607,7 +7663,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -7718,7 +7775,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -7802,6 +7860,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -7977,7 +8037,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -8064,7 +8125,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -8140,6 +8202,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -8258,7 +8322,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -8337,7 +8402,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -8412,6 +8478,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -8582,7 +8650,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -8665,7 +8734,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -8758,6 +8828,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -8921,7 +8993,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -9072,7 +9145,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -9164,6 +9238,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -9328,7 +9404,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -9403,7 +9480,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -9483,6 +9561,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -9613,7 +9693,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -9720,7 +9801,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -9817,6 +9899,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -9980,7 +10064,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -10123,7 +10208,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -10220,6 +10306,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -10359,7 +10447,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -10466,7 +10555,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -10551,6 +10641,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -10672,7 +10764,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -10767,7 +10860,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -10843,6 +10937,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -10946,7 +11042,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -11013,7 +11110,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -11087,6 +11185,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -11211,7 +11311,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -11302,7 +11403,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -11387,6 +11489,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -11517,7 +11621,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -11624,7 +11729,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -11706,6 +11812,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -11821,7 +11929,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -11904,7 +12013,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -11986,6 +12096,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -12116,7 +12228,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -12223,7 +12336,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -12306,6 +12420,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -12421,7 +12537,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -12508,7 +12625,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -12587,6 +12705,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
      --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -12772,7 +12892,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -12863,7 +12984,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -12943,6 +13065,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -13135,7 +13259,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -13226,7 +13351,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -13302,6 +13428,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -13461,7 +13589,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -13536,7 +13665,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -13622,6 +13752,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -13770,7 +13902,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -13901,7 +14034,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -13987,6 +14121,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -14093,7 +14229,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -14164,7 +14301,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -14240,6 +14378,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -14364,7 +14504,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -14459,7 +14600,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -14539,6 +14681,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -14651,7 +14795,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -14734,7 +14879,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -14808,6 +14954,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -14914,7 +15062,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -14985,7 +15134,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -15059,6 +15209,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -15174,7 +15326,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -15257,7 +15410,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -15339,6 +15493,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -15469,7 +15625,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -15576,7 +15733,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -15657,6 +15815,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -15766,7 +15926,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -15841,7 +16002,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -15917,6 +16079,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -16038,7 +16202,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -16125,7 +16290,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -16209,6 +16375,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -16339,7 +16507,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -16446,7 +16615,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -16533,6 +16703,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -16660,7 +16832,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -16759,7 +16932,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -16843,6 +17017,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -16964,7 +17140,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -17059,7 +17236,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -17138,6 +17316,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -17247,7 +17427,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -17326,7 +17507,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -17406,6 +17588,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -17530,7 +17714,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -17629,7 +17814,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -17708,6 +17894,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -17814,7 +18002,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -17889,7 +18078,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -17964,6 +18154,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -18079,7 +18271,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -18162,7 +18355,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -18235,6 +18429,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -18338,7 +18534,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -18405,7 +18602,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -18476,6 +18674,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -18653,7 +18853,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -18732,7 +18933,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -18805,6 +19007,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -18967,7 +19171,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -19042,7 +19247,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -19112,6 +19318,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -19267,7 +19475,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -19334,7 +19543,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -19414,6 +19624,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -19630,7 +19842,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -19745,7 +19958,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -19830,6 +20044,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -20015,7 +20231,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -20102,7 +20319,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -20177,6 +20395,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -20352,7 +20572,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -20427,7 +20648,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -20522,6 +20744,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -20774,7 +20998,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -20937,7 +21162,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -21033,6 +21259,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -21219,7 +21447,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -21306,7 +21535,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -21388,6 +21618,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -21579,7 +21811,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -21682,7 +21915,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -21766,6 +22000,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -21947,7 +22183,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -22042,7 +22279,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -22125,6 +22363,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -22313,7 +22553,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -22412,7 +22653,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -22498,6 +22740,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -22694,7 +22938,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -22801,7 +23046,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -22884,6 +23130,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -23070,7 +23318,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -23157,7 +23406,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -23236,6 +23486,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -23426,7 +23678,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -23517,7 +23770,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -23597,6 +23851,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -23796,7 +24052,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -23887,7 +24144,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -23965,6 +24223,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -24148,7 +24408,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -24231,7 +24492,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -24307,6 +24569,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -24477,7 +24741,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -24560,7 +24825,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -24632,6 +24898,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -24732,7 +25000,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -24799,7 +25068,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -24871,6 +25141,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -25052,7 +25324,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -25135,7 +25408,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -25206,6 +25480,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -25303,7 +25579,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -25366,7 +25643,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -25436,6 +25714,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -25545,7 +25825,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -25620,7 +25901,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -25723,6 +26005,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -26009,7 +26293,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -26208,7 +26493,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -26315,6 +26601,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -26500,7 +26788,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -26591,7 +26880,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -26667,6 +26957,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -26845,7 +27137,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -26924,7 +27217,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -26995,6 +27289,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -27098,7 +27394,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -27165,7 +27462,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -27235,6 +27533,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -27420,7 +27720,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -27495,7 +27796,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -27573,6 +27875,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -27776,7 +28080,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -27875,7 +28180,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -27955,6 +28261,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -28138,7 +28446,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -28225,7 +28534,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -28314,6 +28624,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -28531,7 +28843,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -28662,7 +28975,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -28753,6 +29067,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -28935,7 +29251,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -29030,7 +29347,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -29109,6 +29427,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -29221,7 +29541,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -29304,7 +29625,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -29380,6 +29702,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -29492,7 +29816,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -29571,7 +29896,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -29647,6 +29973,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -29759,7 +30087,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -29842,7 +30171,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -29918,6 +30248,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -30027,7 +30359,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -30106,7 +30439,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -30178,6 +30512,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
 	BEGIN
@@ -30278,7 +30614,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -30345,7 +30682,8 @@ BEGIN
 			 @Cod_UsuarioReg,'|' ,
 			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
 			 @Cod_UsuarioAct,'|' ,
-			 CONVERT(varchar,@Fecha_Act,121)
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
 		  )
 
 		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
@@ -30383,114 +30721,6 @@ BEGIN
 END
 GO
 
--- --Metodo de exportacion
--- IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento' AND type = 'P')
--- DROP PROCEDURE USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento
--- GO
--- CREATE PROCEDURE USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento
--- @NombreBD varchar(max),
--- @LinkedServer varchar(max)
--- AS
--- BEGIN
--- 	--Variables generales 
--- 	DECLARE @cmd sysname
--- 	--DECLARE @NombreBD VARCHAR(MAX)=(SELECT DISTINCT vce.BD_Remota FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
--- 	--DECLARE @LinkedServer varchar(max)=(SELECT DISTINCT vce.Linked_Server FROM dbo.VIS_CONFIGURACION_EXPORTACION vce WHERE vce.Habilitado=1)
--- 	--Recuperamos las variables principales
--- 	DECLARE @Id varchar(max)
--- 	DECLARE @Nombre_Tabla varchar(max) 
--- 	DECLARE @Id_Fila varchar(max) 
--- 	DECLARE @Accion varchar(max) 
--- 	DECLARE @Script varchar(max) 
--- 	DECLARE @Fecha_Reg datetime 
--- 	--Recuperamos el primer objeto de la cola y almacenamos en las variables
--- 	SELECT TOP 1
--- 	    @Id=trl.Id, 
--- 	    @Nombre_Tabla=trl.Nombre_Tabla, 
--- 	    @Id_Fila=trl.Id_Fila, 
--- 	    @Accion=trl.Accion, 
--- 	    @Script=trl.Script, 
--- 	    @Fecha_Reg=trl.Fecha_Reg 
--- 	FROM dbo.TMP_REGISTRO_LOG trl
--- 	ORDER BY trl.Id
-
--- 	IF @Id IS NOT NULL
--- 	BEGIN
--- 		  ----Ejecutamos la sentencia
--- 		  ----Si es exitosa entonces procedemos a eliminar el registro y almacenarlo en la tabla de historial
--- 		  --BEGIN TRY
--- 			 --BEGIN TRAN Transaccion
--- 			 --EXECUTE(@Script)
--- 			 --INSERT dbo.TMP_REGISTRO_LOG_H
--- 			 --(
--- 				--Id,
--- 				--Nombre_Tabla,
--- 				--Id_Fila,
--- 				--Accion,
--- 				--Script,
--- 				--Fecha_Reg,
--- 				--Fecha_Reg_Insercion
--- 			 --)
--- 			 --VALUES
--- 			 --(
--- 				--@Id, -- Id - uniqueidentifier
--- 				--@Nombre_Tabla, -- Nombre_Tabla - varchar
--- 				--@Id_Fila, -- Id_Fila - varchar
--- 				--@Accion, -- Accion - varchar
--- 				--@Script, -- Script - varchar
--- 				--@Fecha_Reg, -- Fecha_Reg - datetime
--- 				--GETDATE() -- Fecha_Reg_Insercion - datetime
--- 			 --)
--- 			 --DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
--- 			 --COMMIT TRAN 
--- 		  --END TRY
--- 		  --BEGIN CATCH
--- 			 --ROLLBACK TRAN
--- 			 --THROW 
--- 		  --END CATCH
--- 		      SET XACT_ABORT ON;  
--- 			 BEGIN TRY  
--- 				SET @Script=@LinkedServer+'.'+@NombreBD+'.dbo.'+@Script
--- 				EXECUTE(@Script) ;
--- 				BEGIN TRANSACTION;  
--- 				--EXECUTE(@Script) ;--ES NECESARIO ACTIVAR servicio distrinuido pero habilita rollbak desde el servidor
--- 				INSERT dbo.TMP_REGISTRO_LOG_H
--- 				(
--- 				    Nombre_Tabla,
--- 				    Id_Fila,
--- 				    Accion,
--- 				    Script,
--- 				    Fecha_Reg,
--- 				    Fecha_Reg_Insercion
--- 				)
--- 				VALUES
--- 				(
--- 				    @Nombre_Tabla, -- Nombre_Tabla - varchar
--- 				    @Id_Fila, -- Id_Fila - varchar
--- 				    @Accion, -- Accion - varchar
--- 				    @Script, -- Script - varchar
--- 				    @Fecha_Reg, -- Fecha_Reg - datetime
--- 				    GETDATE() -- Fecha_Reg_Insercion - datetime
--- 				)
--- 				DELETE dbo.TMP_REGISTRO_LOG WHERE @Id=dbo.TMP_REGISTRO_LOG.Id
-
--- 				COMMIT TRANSACTION;
--- 			 END TRY  
-      
--- 			 BEGIN CATCH  
--- 				IF (XACT_STATE()) = -1  
--- 				BEGIN  
--- 				    ROLLBACK TRANSACTION; 
--- 				END;  
--- 				IF (XACT_STATE()) = 1  
--- 				BEGIN  
--- 				    COMMIT TRANSACTION;    
--- 				END;  
--- 				THROW;
--- 			 END CATCH;  
--- 	END
--- END
--- GO
 
 --Metodo de exportacion
 --exec USP_TMP_COMPROBANTE_REGISTRO_LOG_ExportarPrimerElemento 'PALERPpuquin','PALERPlink'
@@ -30561,171 +30791,7 @@ BEGIN
 	END
 END
 GO
-
- ----Introducir variables
- ----Linked SERVER
- --DECLARE @NombreLinkedServer varchar(max)= N'PALERPlink' --Por defecto
- --DECLARE @ServidorLinkedServer varchar(max)= N'reyberpalma.hopto.org' --Nombre del servidor remoto
- --DECLARE @NombreBaseDeDatos varchar(max)= (SELECT DB_NAME() AS [Base de datos actual]) --Nombre de la base de datos actual, cambiar si es otro nombre
- --DECLARE @NombreUsuarioServidor varchar(max)= N'sa' --Por defecto
- --DECLARE @NombrePassServidor varchar(max)= N'paleC0nsult0res' --Por defecto
- --exec USP_CrearLinkedServerSQLtoSQL @NombreLinkedServer,@ServidorLinkedServer,@NombreBaseDeDatos,@NombreUsuarioServidor,@NombrePassServidor
-
-
---  EXECUTE(
--- 'USE PALERP_Auditoria
--- IF EXISTS (SELECT name
--- 	   FROM   sysobjects 
--- 	   WHERE  name = N'+''''+'UTR_Auditoria_UD'+''''+'
--- 	   AND 	  type = '+''''+'TR'+''''+')
---     BEGIN
---     DROP TRIGGER UTR_Auditoria_UD
---     END'
--- )
--- GO
-
--- EXECUTE ('
--- USE PALERP_Auditoria
--- CREATE TRIGGER  UTR_Auditoria_UD 
--- ON PRI_AUDITORIA 
--- INSTEAD OF UPDATE,DELETE 
--- AS 
--- BEGIN 
--- 	 RAISERROR ('+''''+'Edicion y eliminacion no estan permitidos'+''''+', 16, 1)   
--- END 
--- ')
--- GO
-
-
--- --Pruebas
--- --SELECT * FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_Libro=14 AND ccp.Serie='B007' AND ccp.Numero='00046125' AND ccp.Cod_TipoComprobante='BE'
-
---  DECLARE @id_ComprobantePago int =404304
---  SELECT ccp.Cod_Libro,ccp.Cod_TipoComprobante,ccp.Serie,ccp.Numero, (SELECT CHECKSUM(ccp.Cod_Periodo,ccp.Cod_Caja,ccp.Cod_Turno,ccp.Cod_TipoOperacion,ccp.Cod_TipoDoc,ccp.Doc_Cliente,ccp.Nom_Cliente,ccp.Direccion_Cliente, ccp.FechaEmision, ccp.FechaVencimiento, ccp.FechaCancelacion, ccp.Glosa, ccp.TipoCambio, ccp.Cod_FormaPago, ccp.Descuento_Total, ccp.Cod_Moneda, ccp.Impuesto, ccp.Total,CONVERT(varchar(max), ccp.Obs_Comprobante), ccp.Cod_UsuarioVendedor, ccp.Cod_RegimenPercepcion, ccp.Tasa_Percepcion, ccp.Placa_Vehiculo, ccp.Otros_Cargos, ccp.Otros_Tributos, ccp.Cod_UsuarioReg) 
---  FROM dbo.CAJ_COMPROBANTE_PAGO ccp
---  WHERE ccp.id_ComprobantePago=@id_ComprobantePago) SumaCCP,
---  (SELECT checksum((SELECT CHECKSUM(ccd.id_Detalle,pp.Cod_Producto, ccd.Cod_Almacen, ccd.Cantidad, ccd.Cod_UnidadMedida, ccd.Despachado, ccd.Descripcion, ccd.PrecioUnitario, ccd.Descuento, ccd.Sub_Total, ccd.Tipo, ccd.Obs_ComprobanteD, ccd.Cod_Manguera, ccd.Flag_AplicaImpuesto, ccd.Formalizado, ccd.Valor_NoOneroso, ccd.Cod_TipoISC, ccd.Porcentaje_ISC, ccd.ISC, ccd.Cod_TipoIGV, ccd.Porcentaje_IGV, ccd.IGV, ccd.Cod_UsuarioReg )
---  FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.PRI_PRODUCTOS pp ON ccd.Id_Producto = pp.Id_Producto
---   WHERE ccd.id_ComprobantePago=@id_ComprobantePago)))SumaCCD,
---  (SELECT checksum((SELECT CHECKSUM(cfp.Item, cfp.Des_FormaPago, cfp.Cod_TipoFormaPago, cfp.Cuenta_CajaBanco, cfp.Id_Movimiento, cfp.TipoCambio, cfp.Cod_Moneda, cfp.Monto, cfp.Cod_Caja, cfp.Cod_Turno, cfp.Cod_Plantilla, CONVERT(varchar(max), cfp.Obs_FormaPago), cfp.Fecha, cfp.Cod_UsuarioReg) 
---  FROM dbo.CAJ_FORMA_PAGO cfp 
---  where cfp.id_ComprobantePago=@id_ComprobantePago))) SumaCFP,
---  (SELECT checksum((SELECT CHECKSUM(ccr.id_Detalle,ccr.Item,ccp2.Cod_Libro,ccp2.Cod_TipoComprobante,ccp2.Serie,ccp2.Numero,ccr.Cod_TipoRelacion, ccr.Valor, ccr.Obs_Relacion, ccr.Cod_UsuarioReg)
---  FROM dbo.CAJ_COMPROBANTE_RELACION ccr 
---  INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp2 ON ccr.Id_ComprobanteRelacion = ccp2.id_ComprobantePago
---  where ccr.id_ComprobantePago=@id_ComprobantePago))) SumaCCR FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE @id_ComprobantePago=ccp.id_ComprobantePago
-
--- --SELECT * FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_Libro=14 AND ccp.Serie='B007' AND ccp.Numero='00046125' AND ccp.Cod_TipoComprobante='BE'
-
---  DECLARE @id_ComprobantePago int =404304
---  SELECT CHECKSUM( ccp.Cod_Libro,ccp.Cod_TipoComprobante,ccp.Serie,ccp.Numero, 
---  (SELECT CHECKSUM(pcp.Cod_TipoDocumento, pcp.Nro_Documento, pcp.Cliente, pcp.Ap_Paterno, pcp.Ap_Materno, pcp.Nombres, pcp.Direccion, pcp.Cod_EstadoCliente, pcp.Cod_CondicionCliente, pcp.Cod_TipoCliente, pcp.RUC_Natural, pcp.Cod_TipoComprobante, pcp.Cod_Nacionalidad, pcp.Fecha_Nacimiento, pcp.Cod_Sexo, pcp.Email1, pcp.Email2, pcp.Telefono1, pcp.Telefono2, pcp.Fax, pcp.PaginaWeb, pcp.Cod_Ubigeo, pcp.Cod_FormaPago, pcp.Limite_Credito,CONVERT(varchar(max), pcp.Obs_Cliente), pcp.Num_DiaCredito, pcp.Cod_UsuarioReg) 
---  FROM dbo.PRI_CLIENTE_PROVEEDOR pcp 
---  WHERE ccp.Id_Cliente=pcp.Id_ClienteProveedor) ,
---  (SELECT CHECKSUM(ccp.Cod_Periodo,ccp.Cod_Caja,ccp.Cod_Turno,ccp.Cod_TipoOperacion,ccp.Cod_TipoDoc,ccp.Doc_Cliente,ccp.Nom_Cliente,ccp.Direccion_Cliente, ccp.FechaEmision, ccp.FechaVencimiento, ccp.FechaCancelacion, ccp.Glosa, ccp.TipoCambio, ccp.Cod_FormaPago, ccp.Descuento_Total, ccp.Cod_Moneda, ccp.Impuesto, ccp.Total,CONVERT(varchar(max), ccp.Obs_Comprobante), ccp.Cod_UsuarioVendedor, ccp.Cod_RegimenPercepcion, ccp.Tasa_Percepcion, ccp.Placa_Vehiculo, ccp.Otros_Cargos, ccp.Otros_Tributos, ccp.Cod_UsuarioReg) 
---  FROM dbo.CAJ_COMPROBANTE_PAGO ccp
---  WHERE ccp.id_ComprobantePago=@id_ComprobantePago) ,
---  (SELECT checksum((SELECT CHECKSUM(ccd.id_Detalle,pp.Cod_Producto, ccd.Cod_Almacen, ccd.Cantidad, ccd.Cod_UnidadMedida, ccd.Despachado, ccd.Descripcion, ccd.PrecioUnitario, ccd.Descuento, ccd.Sub_Total, ccd.Tipo, ccd.Obs_ComprobanteD, ccd.Cod_Manguera, ccd.Flag_AplicaImpuesto, ccd.Formalizado, ccd.Valor_NoOneroso, ccd.Cod_TipoISC, ccd.Porcentaje_ISC, ccd.ISC, ccd.Cod_TipoIGV, ccd.Porcentaje_IGV, ccd.IGV, ccd.Cod_UsuarioReg )
---  FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.PRI_PRODUCTOS pp ON ccd.Id_Producto = pp.Id_Producto
---   WHERE ccd.id_ComprobantePago=@id_ComprobantePago))),
---  (SELECT checksum((SELECT CHECKSUM(cfp.Item, cfp.Des_FormaPago, cfp.Cod_TipoFormaPago, cfp.Cuenta_CajaBanco, cfp.Id_Movimiento, cfp.TipoCambio, cfp.Cod_Moneda, cfp.Monto, cfp.Cod_Caja, cfp.Cod_Turno, cfp.Cod_Plantilla, CONVERT(varchar(max), cfp.Obs_FormaPago), cfp.Fecha, cfp.Cod_UsuarioReg) 
---  FROM dbo.CAJ_FORMA_PAGO cfp 
---  where cfp.id_ComprobantePago=@id_ComprobantePago))) ,
---  (SELECT checksum((SELECT CHECKSUM(ccr.id_Detalle,ccr.Item,ccp2.Cod_Libro,ccp2.Cod_TipoComprobante,ccp2.Serie,ccp2.Numero,ccr.Cod_TipoRelacion, ccr.Valor, ccr.Obs_Relacion, ccr.Cod_UsuarioReg)
---  FROM dbo.CAJ_COMPROBANTE_RELACION ccr 
---  INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp2 ON ccr.Id_ComprobanteRelacion = ccp2.id_ComprobantePago
---  where ccr.id_ComprobantePago=@id_ComprobantePago)))) CHECKSUM FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE @id_ComprobantePago=ccp.id_ComprobantePago
-
-
---  DECLARE @id_ComprobantePago int =394120
---  SELECT ccp.Cod_Libro,ccp.Cod_TipoComprobante,ccp.Serie,ccp.Numero, 
---  (SELECT CHECKSUM(pcp.Cod_TipoDocumento, pcp.Nro_Documento, pcp.Cliente, pcp.Ap_Paterno, pcp.Ap_Materno, pcp.Nombres, pcp.Direccion, pcp.Cod_EstadoCliente, pcp.Cod_CondicionCliente, pcp.Cod_TipoCliente, pcp.RUC_Natural, pcp.Cod_TipoComprobante, pcp.Cod_Nacionalidad, pcp.Fecha_Nacimiento, pcp.Cod_Sexo, pcp.Email1, pcp.Email2, pcp.Telefono1, pcp.Telefono2, pcp.Fax, pcp.PaginaWeb, pcp.Cod_Ubigeo, pcp.Cod_FormaPago, pcp.Limite_Credito,CONVERT(varchar(max), pcp.Obs_Cliente), pcp.Num_DiaCredito, pcp.Cod_UsuarioReg) 
---  FROM dbo.PRI_CLIENTE_PROVEEDOR pcp 
---  WHERE ccp.Id_Cliente=pcp.Id_ClienteProveedor) SumaPCP,
---  (SELECT CHECKSUM(ccp.Cod_Periodo,ccp.Cod_Caja,ccp.Cod_Turno,ccp.Cod_TipoOperacion,ccp.Cod_TipoDoc,ccp.Doc_Cliente,ccp.Nom_Cliente,ccp.Direccion_Cliente, ccp.FechaEmision, ccp.FechaVencimiento, ccp.FechaCancelacion, ccp.Glosa, ccp.TipoCambio, ccp.Cod_FormaPago, ccp.Descuento_Total, ccp.Cod_Moneda, ccp.Impuesto, ccp.Total,CONVERT(varchar(max), ccp.Obs_Comprobante), ccp.Cod_UsuarioVendedor, ccp.Cod_RegimenPercepcion, ccp.Tasa_Percepcion, ccp.Placa_Vehiculo, ccp.Otros_Cargos, ccp.Otros_Tributos, ccp.Cod_UsuarioReg) 
---  FROM dbo.CAJ_COMPROBANTE_PAGO ccp
---  WHERE ccp.id_ComprobantePago=@id_ComprobantePago) SumaCCP,
---  (SELECT checksum((SELECT CHECKSUM(ccd.id_Detalle,pp.Cod_Producto, ccd.Cod_Almacen, ccd.Cantidad, ccd.Cod_UnidadMedida, ccd.Despachado, ccd.Descripcion, ccd.PrecioUnitario, ccd.Descuento, ccd.Sub_Total, ccd.Tipo, ccd.Obs_ComprobanteD, ccd.Cod_Manguera, ccd.Flag_AplicaImpuesto, ccd.Formalizado, ccd.Valor_NoOneroso, ccd.Cod_TipoISC, ccd.Porcentaje_ISC, ccd.ISC, ccd.Cod_TipoIGV, ccd.Porcentaje_IGV, ccd.IGV, ccd.Cod_UsuarioReg )
---  FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.PRI_PRODUCTOS pp ON ccd.Id_Producto = pp.Id_Producto
---   WHERE ccd.id_ComprobantePago=@id_ComprobantePago)))SumaCCD,
---  (SELECT checksum((SELECT CHECKSUM(cfp.Item, cfp.Des_FormaPago, cfp.Cod_TipoFormaPago, cfp.Cuenta_CajaBanco, cfp.Id_Movimiento, cfp.TipoCambio, cfp.Cod_Moneda, cfp.Monto, cfp.Cod_Caja, cfp.Cod_Turno, cfp.Cod_Plantilla, CONVERT(varchar(max), cfp.Obs_FormaPago), cfp.Fecha, cfp.Cod_UsuarioReg) 
---  FROM dbo.CAJ_FORMA_PAGO cfp 
---  where cfp.id_ComprobantePago=@id_ComprobantePago))) SumaCFP,
---  (SELECT checksum((SELECT CHECKSUM(ccr.id_Detalle,ccr.Item,ccp2.Cod_Libro,ccp2.Cod_TipoComprobante,ccp2.Serie,ccp2.Numero,ccr.Cod_TipoRelacion, ccr.Valor, ccr.Obs_Relacion, ccr.Cod_UsuarioReg)
---  FROM dbo.CAJ_COMPROBANTE_RELACION ccr 
---  INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp2 ON ccr.Id_ComprobanteRelacion = ccp2.id_ComprobantePago
---  where ccr.id_ComprobantePago=@id_ComprobantePago))) SumaCCR FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE @id_ComprobantePago=ccp.id_ComprobantePago
-
  
---  DECLARE @id_ComprobantePago int =394120
---  SELECT CHECKSUM(ccp.Cod_Libro,ccp.Cod_TipoComprobante,ccp.Serie,ccp.Numero, 
---  (SELECT CHECKSUM(pcp.Cod_TipoDocumento, pcp.Nro_Documento, pcp.Cliente, pcp.Ap_Paterno, pcp.Ap_Materno, pcp.Nombres, pcp.Direccion, pcp.Cod_EstadoCliente, pcp.Cod_CondicionCliente, pcp.Cod_TipoCliente, pcp.RUC_Natural, pcp.Cod_TipoComprobante, pcp.Cod_Nacionalidad, pcp.Fecha_Nacimiento, pcp.Cod_Sexo, pcp.Email1, pcp.Email2, pcp.Telefono1, pcp.Telefono2, pcp.Fax, pcp.PaginaWeb, pcp.Cod_Ubigeo, pcp.Cod_FormaPago, pcp.Limite_Credito,CONVERT(varchar(max), pcp.Obs_Cliente), pcp.Num_DiaCredito, pcp.Cod_UsuarioReg) 
---  FROM dbo.PRI_CLIENTE_PROVEEDOR pcp 
---  WHERE ccp.Id_Cliente=pcp.Id_ClienteProveedor) ,
---  (SELECT CHECKSUM(ccp.Cod_Periodo,ccp.Cod_Caja,ccp.Cod_Turno,ccp.Cod_TipoOperacion,ccp.Cod_TipoDoc,ccp.Doc_Cliente,ccp.Nom_Cliente,ccp.Direccion_Cliente, ccp.FechaEmision, ccp.FechaVencimiento, ccp.FechaCancelacion, ccp.Glosa, ccp.TipoCambio, ccp.Cod_FormaPago, ccp.Descuento_Total, ccp.Cod_Moneda, ccp.Impuesto, ccp.Total,CONVERT(varchar(max), ccp.Obs_Comprobante), ccp.Cod_UsuarioVendedor, ccp.Cod_RegimenPercepcion, ccp.Tasa_Percepcion, ccp.Placa_Vehiculo, ccp.Otros_Cargos, ccp.Otros_Tributos, ccp.Cod_UsuarioReg) 
---  FROM dbo.CAJ_COMPROBANTE_PAGO ccp
---  WHERE ccp.id_ComprobantePago=@id_ComprobantePago) ,
---  (SELECT checksum((SELECT CHECKSUM(ccd.id_Detalle,pp.Cod_Producto, ccd.Cod_Almacen, ccd.Cantidad, ccd.Cod_UnidadMedida, ccd.Despachado, ccd.Descripcion, ccd.PrecioUnitario, ccd.Descuento, ccd.Sub_Total, ccd.Tipo, ccd.Obs_ComprobanteD, ccd.Cod_Manguera, ccd.Flag_AplicaImpuesto, ccd.Formalizado, ccd.Valor_NoOneroso, ccd.Cod_TipoISC, ccd.Porcentaje_ISC, ccd.ISC, ccd.Cod_TipoIGV, ccd.Porcentaje_IGV, ccd.IGV, ccd.Cod_UsuarioReg )
---  FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.PRI_PRODUCTOS pp ON ccd.Id_Producto = pp.Id_Producto
---   WHERE ccd.id_ComprobantePago=@id_ComprobantePago))),
---  (SELECT checksum((SELECT CHECKSUM(cfp.Item, cfp.Des_FormaPago, cfp.Cod_TipoFormaPago, cfp.Cuenta_CajaBanco, cfp.Id_Movimiento, cfp.TipoCambio, cfp.Cod_Moneda, cfp.Monto, cfp.Cod_Caja, cfp.Cod_Turno, cfp.Cod_Plantilla, CONVERT(varchar(max), cfp.Obs_FormaPago), cfp.Fecha, cfp.Cod_UsuarioReg) 
---  FROM dbo.CAJ_FORMA_PAGO cfp 
---  where cfp.id_ComprobantePago=@id_ComprobantePago))) ,
---  (SELECT checksum((SELECT CHECKSUM(ccr.id_Detalle,ccr.Item,ccp2.Cod_Libro,ccp2.Cod_TipoComprobante,ccp2.Serie,ccp2.Numero,ccr.Cod_TipoRelacion, ccr.Valor, ccr.Obs_Relacion, ccr.Cod_UsuarioReg)
---  FROM dbo.CAJ_COMPROBANTE_RELACION ccr 
---  INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp2 ON ccr.Id_ComprobanteRelacion = ccp2.id_ComprobantePago
---  where ccr.id_ComprobantePago=@id_ComprobantePago))) ) FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE @id_ComprobantePago=ccp.id_ComprobantePago
-
-
---Nuevas funciones
--- IF object_id('UFN_CAJ_COMPROBANTE_PAGO_Checksum') IS NOT NULL
--- BEGIN 
--- 	PRINT 'Dropping function'
--- 	DROP FUNCTION UFN_CAJ_COMPROBANTE_PAGO_Checksum
--- 	IF @@ERROR = 0 PRINT 'Function dropped'
--- END
--- go
-
--- CREATE FUNCTION UFN_CAJ_COMPROBANTE_PAGO_Checksum
--- (
--- 	@Cod_libro varchar(max),
--- 	@Cod_Tipo_Comprobante varchar(max),
--- 	@Serie varchar(max),
--- 	@Numero varchar(max)
--- ) 
--- RETURNS int
--- BEGIN
--- 	DECLARE @v_ret int
--- 	DECLARE @id_ComprobantePago int = (SELECT ccp.id_ComprobantePago FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.Cod_Libro=@Cod_libro AND ccp.Cod_TipoComprobante=@Cod_Tipo_Comprobante AND ccp.Serie=@Serie AND ccp.Numero=@Numero)
--- 	IF @id_ComprobantePago IS NOT NULL
--- 	BEGIN
--- 	    SET @v_ret = (SELECT CHECKSUM(ccp.Cod_Libro,ccp.Cod_TipoComprobante,ccp.Serie,ccp.Numero, 
--- 	    (SELECT CHECKSUM(pcp.Cod_TipoDocumento, pcp.Nro_Documento, pcp.Cliente, pcp.Ap_Paterno, pcp.Ap_Materno, pcp.Nombres, pcp.Direccion, pcp.Cod_EstadoCliente, pcp.Cod_CondicionCliente, pcp.Cod_TipoCliente, pcp.RUC_Natural, pcp.Cod_TipoComprobante, pcp.Cod_Nacionalidad, pcp.Fecha_Nacimiento, pcp.Cod_Sexo, pcp.Email1, pcp.Email2, pcp.Telefono1, pcp.Telefono2, pcp.Fax, pcp.PaginaWeb, pcp.Cod_Ubigeo, pcp.Cod_FormaPago, pcp.Limite_Credito,CONVERT(varchar(max), pcp.Obs_Cliente), pcp.Num_DiaCredito, pcp.Cod_UsuarioReg) 
--- 	    FROM dbo.PRI_CLIENTE_PROVEEDOR pcp 
--- 	    WHERE ccp.Id_Cliente=pcp.Id_ClienteProveedor) ,
--- 	    (SELECT CHECKSUM(ccp.Cod_Periodo,ccp.Cod_Caja,ccp.Cod_Turno,ccp.Cod_TipoOperacion,ccp.Cod_TipoDoc,ccp.Doc_Cliente,ccp.Nom_Cliente,ccp.Direccion_Cliente, ccp.FechaEmision, ccp.FechaVencimiento, ccp.FechaCancelacion, ccp.Glosa, ccp.TipoCambio, ccp.Cod_FormaPago, ccp.Descuento_Total, ccp.Cod_Moneda, ccp.Impuesto, ccp.Total,CONVERT(varchar(max), ccp.Obs_Comprobante), ccp.Cod_UsuarioVendedor, ccp.Cod_RegimenPercepcion, ccp.Tasa_Percepcion, ccp.Placa_Vehiculo, ccp.Otros_Cargos, ccp.Otros_Tributos, ccp.Cod_UsuarioReg) 
--- 	    FROM dbo.CAJ_COMPROBANTE_PAGO ccp
--- 	    WHERE ccp.id_ComprobantePago=@id_ComprobantePago) ,
--- 	    (SELECT checksum((SELECT CHECKSUM(ccd.id_Detalle,pp.Cod_Producto, ccd.Cod_Almacen, ccd.Cantidad, ccd.Cod_UnidadMedida, ccd.Despachado, ccd.Descripcion, ccd.PrecioUnitario, ccd.Descuento, ccd.Sub_Total, ccd.Tipo, ccd.Obs_ComprobanteD, ccd.Cod_Manguera, ccd.Flag_AplicaImpuesto, ccd.Formalizado, ccd.Valor_NoOneroso, ccd.Cod_TipoISC, ccd.Porcentaje_ISC, ccd.ISC, ccd.Cod_TipoIGV, ccd.Porcentaje_IGV, ccd.IGV, ccd.Cod_UsuarioReg )
--- 	    FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN dbo.PRI_PRODUCTOS pp ON ccd.Id_Producto = pp.Id_Producto
--- 		WHERE ccd.id_ComprobantePago=@id_ComprobantePago))),
--- 	    (SELECT checksum((SELECT CHECKSUM(cfp.Item, cfp.Des_FormaPago, cfp.Cod_TipoFormaPago, cfp.Cuenta_CajaBanco, cfp.Id_Movimiento, cfp.TipoCambio, cfp.Cod_Moneda, cfp.Monto, cfp.Cod_Caja, cfp.Cod_Turno, cfp.Cod_Plantilla, CONVERT(varchar(max), cfp.Obs_FormaPago), cfp.Fecha, cfp.Cod_UsuarioReg) 
--- 	    FROM dbo.CAJ_FORMA_PAGO cfp 
--- 	    where cfp.id_ComprobantePago=@id_ComprobantePago))) ,
--- 	    (SELECT checksum((SELECT CHECKSUM(ccr.id_Detalle,ccr.Item,ccp2.Cod_Libro,ccp2.Cod_TipoComprobante,ccp2.Serie,ccp2.Numero,ccr.Cod_TipoRelacion, ccr.Valor, ccr.Obs_Relacion, ccr.Cod_UsuarioReg)
--- 	    FROM dbo.CAJ_COMPROBANTE_RELACION ccr 
--- 	    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp2 ON ccr.Id_ComprobanteRelacion = ccp2.id_ComprobantePago
--- 	    where ccr.id_ComprobantePago=@id_ComprobantePago))) ) FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE @id_ComprobantePago=ccp.id_ComprobantePago)
--- 	END
--- 	ELSE
--- 	BEGIN
--- 	   SET @v_ret=0
--- 	END
--- 	RETURN @v_ret
--- END
-
--- GO
-
 --Modificamos los datos de los correos de exportacion
 IF EXISTS (SELECT vc.* FROM dbo.VIS_CORREOS vc WHERE vc.Tipo_Uso='EXPORTACION' AND vc.Estado=1)
 BEGIN
@@ -31518,265 +31584,96 @@ GO
 --    Fecha_Act = GETDATE()
 --GO
 
-
---Script de prueba para agregar la IP del servidor donde se ejecuta la accion
-----ALM_ALMACEN
---IF EXISTS (SELECT name
---	   FROM   sysobjects 
---	   WHERE  name = N'UTR_ALM_ALMACEN_IUD'
---	   AND 	  type = 'TR')
---    DROP TRIGGER UTR_ALM_ALMACEN_IUD
---GO
-
---CREATE TRIGGER UTR_ALM_ALMACEN_IUD
---ON dbo.ALM_ALMACEN
---WITH ENCRYPTION
---AFTER INSERT,UPDATE,DELETE
---AS
---BEGIN
---	--Variables de tabla primarias
---	DECLARE @Cod_Almacen varchar(32)
---	DECLARE @Fecha_Reg datetime
---	DECLARE @Fecha_Act datetime
---	DECLARE @NombreTabla varchar(max)='ALM_ALMACEN'
---	--Variables de tabla secundarias
---	DECLARE @Des_Almacen varchar(512)
---	DECLARE @Des_CortaAlmacen varchar(64)
---	DECLARE @Cod_TipoAlmacen varchar(5)
---	DECLARE @Flag_Principal bit
---	DECLARE @Cod_UsuarioReg varchar(32)
---	DECLARE @Cod_UsuarioAct varchar(32)
---	--Variables Generales
---	DECLARE @Script varchar(max)
---	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
---	DECLARE @Fecha datetime
---	DECLARE @Accion varchar(MAX)
---	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
---	DECLARE @InformacionConexion varchar(max)= (SELECT  CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) FROM sys.dm_exec_connections dec
---		WHERE dec.session_id=@@SPID)
---   --Acciones
---	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='ACTUALIZAR'
---	END
-
---	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='INSERTAR'
---	END
-
---	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
---	BEGIN
---		SET @Accion='ELIMINAR'
---	END
-
---	--Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
---	IF @Exportacion=1 AND @Accion IN ('ACTUALIZAR','INSERTAR')
---	BEGIN
---	    DECLARE cursorbd CURSOR LOCAL FOR
---		    SELECT
---		    i.Cod_Almacen,
---		    i.Fecha_Reg,
---		    i.Fecha_Act
---		    FROM INSERTED i
---	    OPEN cursorbd 
---	    FETCH NEXT FROM cursorbd INTO
---		    @Cod_Almacen,
---		    @Fecha_Reg,
---		    @Fecha_Act
---	    WHILE @@FETCH_STATUS = 0
---	    BEGIN
---			--Si esta habilitada la exportacion para almacenar en la tabla de
---			--exportaciones
---			 SELECT @Script='USP_ALM_ALMACEN_I ' +
---			 CASE WHEN aa.Cod_Almacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Cod_Almacen,'''','')+''','END+
---			 CASE WHEN aa.Des_Almacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Des_Almacen,'''','')+''','END+
---			 CASE WHEN aa.Des_CortaAlmacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Des_CortaAlmacen,'''','')+''','END+
---			 CASE WHEN aa.Cod_TipoAlmacen  IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(aa.Cod_TipoAlmacen,'''','')+''','END+
---			 CONVERT(VARCHAR(MAX),aa.Flag_Principal)+','+
---			 ''''+ REPLACE(COALESCE(Cod_UsuarioAct,Cod_UsuarioReg),'''','')+''';' 
---			 FROM INSERTED aa WHERE @Cod_Almacen=aa.Cod_Almacen
-
---		   	SET @Fecha= COALESCE(@Fecha_Act,@Fecha_Reg,GETDATE())
---			INSERT dbo.TMP_REGISTRO_LOG
---			(
---			   --Id,
---			   Nombre_Tabla,
---			   Id_Fila,
---			   Accion,
---			   Script,
---			   Fecha_Reg
---		     )
---		    VALUES
---			(
---			   --NULL, -- Id - uniqueidentifier
---			   @NombreTabla, -- Nombre_Tabla - varchar
---			   CONCAT('',@Cod_Almacen), -- Id_Fila - varchar
---			   @Accion, -- Accion - varchar
---			   @Script, -- Script - varchar
---			   @Fecha -- Fecha_Reg - datetime
---		     )
---		  FETCH NEXT FROM cursorbd INTO
---		    @Cod_Almacen,
---		    @Fecha_Reg,
---		    @Fecha_Act
---		END
---		CLOSE cursorbd;
---    	DEALLOCATE cursorbd
---    END
-
---    --Acciones de auditoria, especiales por tipo
---    --Insercion
---    IF @Accion='INSERTAR'
---	 BEGIN
---	    DECLARE cursorbd CURSOR LOCAL FOR
---		    SELECT
---			 i.Cod_Almacen,
---			 i.Des_Almacen,
---			 i.Des_CortaAlmacen,
---			 i.Cod_TipoAlmacen,
---			 i.Flag_Principal,
---			 i.Cod_UsuarioReg,
---			 i.Fecha_Reg,
---			 i.Cod_UsuarioAct,
---			 i.Fecha_Act
---		  FROM INSERTED i
---	    OPEN cursorbd 
---	    FETCH NEXT FROM cursorbd INTO 
---			 @Cod_Almacen,
---			 @Des_Almacen,
---			 @Des_CortaAlmacen,
---			 @Cod_TipoAlmacen,
---			 @Flag_Principal,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---	    WHILE @@FETCH_STATUS = 0
---	    BEGIN
---		  --Acciones
---		  SET @Script = CONCAT(
---			 @Cod_Almacen,'|' ,
---			 @Des_Almacen,'|' ,
---			 @Des_CortaAlmacen,'|' ,
---			 @Cod_TipoAlmacen,'|' ,
---			 @Flag_Principal,'|' ,
---			 @Cod_UsuarioReg,'|' ,
---			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
---			 @Cod_UsuarioAct,'|' ,
---			 CONVERT(varchar,@Fecha_Act,121), '|' , 
---			 @InformacionConexion
---		  )
-
---		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
---		  (
---		      Nombre_BD,
---		      Nombre_Tabla,
---		      Id_Fila,
---		      Accion,
---		      Valor,
---		      Fecha_Reg
---		  )
---		  VALUES
---		  (
---		      @NombreBD, -- Nombre_BD - varchar
---		      @NombreTabla, -- Nombre_Tabla - varchar
---			  CONCAT('',@Cod_Almacen), -- Id_Fila - varchar
---		      @Accion, -- Accion - varchar
---		      @Script, -- Valor - varchar
---		      GETDATE() -- Fecha_Reg - datetime
---		  )
-
---		  FETCH NEXT FROM cursorbd INTO
---			 @Cod_Almacen,
---			 @Des_Almacen,
---			 @Des_CortaAlmacen,
---			 @Cod_TipoAlmacen,
---			 @Flag_Principal,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---		END
---		CLOSE cursorbd;
---    	DEALLOCATE cursorbd
---    END
-
---    --Actualizacion y eliminacion
---    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
---	 BEGIN
---	    DECLARE cursorbd CURSOR LOCAL FOR
---		    SELECT
---			 d.Cod_Almacen,
---			 d.Des_Almacen,
---			 d.Des_CortaAlmacen,
---			 d.Cod_TipoAlmacen,
---			 d.Flag_Principal,
---			 d.Cod_UsuarioReg,
---			 d.Fecha_Reg,
---			 d.Cod_UsuarioAct,
---			 d.Fecha_Act
---		  FROM DELETED d
---	    OPEN cursorbd 
---	    FETCH NEXT FROM cursorbd INTO 
---			 @Cod_Almacen,
---			 @Des_Almacen,
---			 @Des_CortaAlmacen,
---			 @Cod_TipoAlmacen,
---			 @Flag_Principal,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---	    WHILE @@FETCH_STATUS = 0
---	    BEGIN
---		  --Acciones
---		  SET @Script = CONCAT(
---			 @Cod_Almacen,'|' ,
---			 @Des_Almacen,'|' ,
---			 @Des_CortaAlmacen,'|' ,
---			 @Cod_TipoAlmacen,'|' ,
---			 @Flag_Principal,'|' ,
---			 @Cod_UsuarioReg,'|' ,
---			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
---			 @Cod_UsuarioAct,'|' ,
---			 CONVERT(varchar,@Fecha_Act,121),  '|' , 
---			 @InformacionConexion
---		  )
-
---		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
---		  (
---		      Nombre_BD,
---		      Nombre_Tabla,
---		      Id_Fila,
---		      Accion,
---		      Valor,
---		      Fecha_Reg
---		  )
---		  VALUES
---		  (
---		      @NombreBD, -- Nombre_BD - varchar
---		      @NombreTabla, -- Nombre_Tabla - varchar
---			   CONCAT('',@Cod_Almacen), -- Id_Fila - varchar
---		      @Accion, -- Accion - varchar
---		      @Script, -- Valor - varchar
---		      GETDATE() -- Fecha_Reg - datetime
---		  )
-
---		  FETCH NEXT FROM cursorbd INTO
---			 @Cod_Almacen,
---			 @Des_Almacen,
---			 @Des_CortaAlmacen,
---			 @Cod_TipoAlmacen,
---			 @Flag_Principal,
---			 @Cod_UsuarioReg,
---			 @Fecha_Reg,
---			 @Cod_UsuarioAct,
---			 @Fecha_Act
---		END
---		CLOSE cursorbd;
---    	DEALLOCATE cursorbd
---    END
-
---END
---
+--Scripts de emergencia en caso de error
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_ALM_ALMACEN_MOV_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_ALM_ALMACEN_MOV_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_ALM_INVENTARIO_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_ALM_INVENTARIO_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_ALM_INVENTARIO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_ALM_INVENTARIO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_BAN_CUENTA_BANCARIA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_BAN_CUENTA_BANCARIA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_BAN_CUENTA_M_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_BAN_CUENTA_M_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_ARQUEOFISICO_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_ARQUEOFISICO_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_ARQUEOFISICO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_ARQUEOFISICO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_ARQUEOFISICO_SALDO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_ARQUEOFISICO_SALDO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_CAJA_ALMACEN_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_CAJA_ALMACEN_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_CAJA_MOVIMIENTOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_CAJA_MOVIMIENTOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_CAJAS_DOC_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_CAJAS_DOC_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_CAJAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_CAJAS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_COMPROBANTE_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_COMPROBANTE_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_COMPROBANTE_LOG_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_COMPROBANTE_LOG_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_COMPROBANTE_PAGO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_COMPROBANTE_PAGO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_COMPROBANTE_RELACION_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_COMPROBANTE_RELACION_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_CONCEPTO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_CONCEPTO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_FORMA_PAGO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_FORMA_PAGO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_IMPUESTOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_IMPUESTOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_MEDICION_VC_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_MEDICION_VC_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_SERIES_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_SERIES_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_TIPOCAMBIO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_TIPOCAMBIO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_TRANSFERENCIAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_TRANSFERENCIAS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_TURNO_ATENCION_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_TURNO_ATENCION_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAL_CALENDARIO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAL_CALENDARIO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAL_DOCUMENTOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAL_DOCUMENTOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CON_ASIENTO_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CON_ASIENTO_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CON_ASIENTO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CON_ASIENTO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CON_PLANTILLA_ASIENTO_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CON_PLANTILLA_ASIENTO_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CON_PLANTILLA_ASIENTO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CON_PLANTILLA_ASIENTO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CON_PLANTILLA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CON_PLANTILLA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CUE_CLIENTE_CUENTA_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CUE_CLIENTE_CUENTA_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CUE_CLIENTE_CUENTA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CUE_CLIENTE_CUENTA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CUE_CLIENTE_CUENTA_M_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CUE_CLIENTE_CUENTA_M_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CUE_TARJETAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CUE_TARJETAS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PAR_COLUMNA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PAR_COLUMNA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PAR_FILA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PAR_FILA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PAR_TABLA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PAR_TABLA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PAT_BIENES_CARACTERISTICAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PAT_BIENES_CARACTERISTICAS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PAT_BIENES_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PAT_BIENES_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PAT_BIENES_MOVIMIENTO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PAT_BIENES_MOVIMIENTO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PAT_GRUPOS_CARACTERISTICAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PAT_GRUPOS_CARACTERISTICAS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PAT_GRUPOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PAT_GRUPOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_AFP_PRIMA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_AFP_PRIMA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_ASISTENCIA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_ASISTENCIA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_BIOMETRICO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_BIOMETRICO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_BOLETA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_BOLETA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_CONCEPTOS_PLANILLA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_CONCEPTOS_PLANILLA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_CONTRATOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_CONTRATOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_HORARIOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_HORARIOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_PERSONAL_HORARIO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_PERSONAL_HORARIO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_PLANILLA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_PLANILLA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_PLANILLA_TIPO_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_PLANILLA_TIPO_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_PLANILLA_TIPO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_PLANILLA_TIPO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PLA_PLANILLA_TIPO_PERSONAL_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PLA_PLANILLA_TIPO_PERSONAL_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_ACTIVIDADES_ECONOMICAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_ACTIVIDADES_ECONOMICAS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_AREAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_AREAS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_CATEGORIA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_CATEGORIA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_CLIENTE_CONTACTO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_CLIENTE_CONTACTO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_CLIENTE_CUENTABANCARIA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_CLIENTE_CUENTABANCARIA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_CLIENTE_PRODUCTO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_CLIENTE_PRODUCTO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_CLIENTE_PROVEEDOR_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_CLIENTE_PROVEEDOR_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_CLIENTE_VEHICULOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_CLIENTE_VEHICULOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_CLIENTE_VISITAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_CLIENTE_VISITAS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_CUENTA_CONTABLE_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_CUENTA_CONTABLE_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_DESCUENTOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_DESCUENTOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_EMPRESA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_EMPRESA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_ESTABLECIMIENTOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_ESTABLECIMIENTOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_LICITACIONES_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_LICITACIONES_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_LICITACIONES_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_LICITACIONES_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_LICITACIONES_M_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_LICITACIONES_M_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_MENSAJES_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_MENSAJES_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_MODULO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_MODULO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PADRONES_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PADRONES_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PERFIL_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PERFIL_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PERFIL_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PERFIL_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PERSONAL_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PERSONAL_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PERSONAL_PARENTESCO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PERSONAL_PARENTESCO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PRODUCTO_DETALLE_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PRODUCTO_DETALLE_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PRODUCTO_IMAGEN_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PRODUCTO_IMAGEN_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PRODUCTO_PRECIO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PRODUCTO_PRECIO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PRODUCTO_STOCK_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PRODUCTO_STOCK_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PRODUCTO_TASA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PRODUCTO_TASA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_PRODUCTOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_PRODUCTOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_SUCURSAL_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_SUCURSAL_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_PRI_USUARIO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_PRI_USUARIO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_TAR_ACTIVIDADES_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_TAR_ACTIVIDADES_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_TAR_ALERTAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_TAR_ALERTAS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_TAR_CRONOMETROS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_TAR_CRONOMETROS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_TAR_PROYECTOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_TAR_PROYECTOS_I
