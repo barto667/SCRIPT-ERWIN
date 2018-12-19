@@ -257,6 +257,8 @@ BEGIN
 		Obs_GuiaRemisionRemitente varchar(max),
 		Id_GuiaRemisionRemitenteBaja int NULL,
 		Flag_Anulado bit,
+		Valor_Resumen varchar(1024),
+		Valor_Firma varchar(2048),
 		Cod_UsuarioReg varchar(32) NOT NULL,
 		Fecha_Reg datetime NOT NULL,
 		Cod_UsuarioAct varchar(32),
@@ -333,6 +335,8 @@ CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_G
 	@Obs_GuiaRemisionRemitente varchar(max),
 	@Id_GuiaRemisionRemitenteBaja int,
 	@Flag_Anulado bit,
+	@Valor_Resumen varchar(1024),
+	@Valor_Firma varchar(2048),
 	@Cod_Usuario varchar(32)
 WITH ENCRYPTION
 AS
@@ -346,7 +350,7 @@ BEGIN
 	BEGIN
 		SET @Numero = (SELECT RIGHT('00000000'+CONVERT( varchar(38), ISNULL(CONVERT(BIGint,MAX(cgrr.Numero)),0)+1), 8) 
 		FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr 
-		WHERE cgrr.Cod_TipoComprobante=@Cod_TipoComprobante AND cgrr.Serie=@Serie)
+		WHERE cgrr.Cod_TipoComprobante=@Cod_TipoComprobante AND cgrr.Serie=@Serie AND cgrr.Cod_Libro=@Cod_Libro)
 	END
 	SET @Id_GuiaRemisionRemitente = (ISNULL((SELECT TOP 1 cgrr.Id_GuiaRemisionRemitente FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
 	WHERE cgrr.Cod_TipoComprobante=@Cod_TipoComprobante AND cgrr.Serie=@Serie AND cgrr.Numero=@Numero),0))
@@ -389,6 +393,8 @@ BEGIN
 		    @Obs_GuiaRemisionRemitente, -- Obs_GuiaRemisionRemitente - varchar
 		    @Id_GuiaRemisionRemitenteBaja, -- Id_GuiaRemisionRemitenteBaja - int
 		    @Flag_Anulado, -- Flag_Anulado - bit
+			@Valor_Resumen, --Valor_Resumen - varchar
+			@Valor_Firma, --Valor_Firma - varchar
 		    @Cod_Usuario, -- Cod_UsuarioReg - varchar
 		    GETDATE(), -- Fecha_Reg - datetime
 		    NULL, -- Cod_UsuarioAct - varchar
@@ -434,6 +440,8 @@ BEGIN
 			dbo.CAJ_GUIA_REMISION_REMITENTE.Obs_GuiaRemisionRemitente = @Obs_GuiaRemisionRemitente, -- varchar
 			dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitenteBaja = @Id_GuiaRemisionRemitenteBaja, -- int
 			dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Anulado = @Flag_Anulado, -- bit
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Valor_Resumen = @Valor_Resumen, --Valor_Resumen - varchar
+			dbo.CAJ_GUIA_REMISION_REMITENTE.Valor_Firma = @Valor_Firma, --Valor_Firma - varchar
 			dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UsuarioAct = @Cod_Usuario, -- varchar
 		    dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Act = GETDATE() -- datetime
 		WHERE dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
@@ -811,7 +819,7 @@ WITH ENCRYPTION
 AS
 BEGIN
 	SELECT 
-	@IdGuiaRemisionRemitente,
+	@IdGuiaRemisionRemitente Id_GuiaRemisionRemitente,
 	cgrr.Cod_TipoComprobante,
 	vtc.Nom_TipoComprobante,
 	cgrr.Serie,	
@@ -820,7 +828,13 @@ BEGIN
 	cgrr.Fecha_TrasladoBienes, 
 	cgrr.Fecha_EntregaBienes,
 	cgrr.Direccion_Partida, 
+	vd2.Nom_Departamento Departamento_Partida,
+	vp.Nom_Provincia Provincia_Partida,
+	vd.Nom_Distrito Distrito_Partida,
 	cgrr.Direccion_LLegada,
+	vd4.Nom_Departamento Departamento_Llegada,
+	vp2.Nom_Provincia Provincia_Llegada,
+	vd3.Nom_Distrito Distrito_Llegada,
 	cgrrd.Id_Detalle, 
 	cgrrd.Cod_Almacen, 
 	cgrrd.Cod_UnidadMedida, 
@@ -830,23 +844,58 @@ BEGIN
 	cgrrd.Peso, 
 	cgrrd.Obs_Detalle, 
 	cgrr.Cod_MotivoTraslado,
+	cgrr.Obs_GuiaRemisionRemitente,
 	CASE WHEN cgrr.Cod_MotivoTraslado = '01' THEN 'VENTA' 
-	 WHEN cgrr.Cod_MotivoTraslado = '14' THEN 'VENTA SUJETA A CONFIRMACION DEL COMPRADOR' 
-	 WHEN cgrr.Cod_MotivoTraslado = '02' THEN 'COMPRA' 
-	 WHEN cgrr.Cod_MotivoTraslado = '04' THEN 'TRASLADO ENTRE ESTABLECIMIENTOS DE LA MISMA EMPRESA' 
-	 WHEN cgrr.Cod_MotivoTraslado = '18' THEN 'TRASLADO EMISOR ITINERANTE CP' 
-	 WHEN cgrr.Cod_MotivoTraslado = '08' THEN 'IMPORTACION' 
-	 WHEN cgrr.Cod_MotivoTraslado = '09' THEN 'EXPORTACION' 
-	 WHEN cgrr.Cod_MotivoTraslado = '19' THEN 'TRASLADO A ZONA PRIMARIA'
+	WHEN cgrr.Cod_MotivoTraslado = '14' THEN 'VENTA SUJETA A CONFIRMACION DEL COMPRADOR' 
+	WHEN cgrr.Cod_MotivoTraslado = '02' THEN 'COMPRA' 
+	WHEN cgrr.Cod_MotivoTraslado = '04' THEN 'TRASLADO ENTRE ESTABLECIMIENTOS DE LA MISMA EMPRESA' 
+	WHEN cgrr.Cod_MotivoTraslado = '18' THEN 'TRASLADO EMISOR ITINERANTE CP' 
+	WHEN cgrr.Cod_MotivoTraslado = '08' THEN 'IMPORTACION' 
+	WHEN cgrr.Cod_MotivoTraslado = '09' THEN 'EXPORTACION' 
+	WHEN cgrr.Cod_MotivoTraslado = '19' THEN 'TRASLADO A ZONA PRIMARIA'
 	ELSE 'OTROS' END Nom_MotivoTraslado,
 	cgrr.Flag_Anulado,
+	cgrr.Valor_Resumen,
+	cgrr.Valor_Firma,
 	cgrr.Id_ClienteTransportistaPublico,
-	cgrr.Num_PlacaTransportePrivado
+	pcp.Cliente,
+	pcp.Cod_TipoDocumento,
+	vtd.Nom_TipoDoc,
+	pcp.Nro_Documento
 	FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE_D cgrrd ON cgrr.Id_GuiaRemisionRemitente = cgrrd.Id_GuiaRemisionRemitente
 	INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON cgrr.Cod_TipoComprobante = vtc.Cod_TipoComprobante
+	INNER JOIN dbo.VIS_DISTRITOS vd ON cgrr.Cod_UbigeoPartida=vd.Cod_Ubigeo
+	INNER JOIN dbo.VIS_PROVINCIAS vp ON vd.Cod_Departamento = vp.Cod_Departamento AND vd.Cod_Provincia = vp.Cod_Provincia
+	INNER JOIN dbo.VIS_DEPARTAMENTOS vd2 ON vd.Cod_Departamento = vd2.Cod_Departamento
+	INNER JOIN dbo.VIS_DISTRITOS vd3 ON cgrr.Cod_UbigeoLlegada = vd3.Cod_Ubigeo
+	INNER JOIN dbo.VIS_PROVINCIAS vp2 ON vd3.Cod_Departamento = vp2.Cod_Departamento AND vd3.Cod_Provincia = vp2.Cod_Provincia
+	INNER JOIN dbo.VIS_DEPARTAMENTOS vd4 ON vd3.Cod_Departamento = vd4.Cod_Departamento
+	INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON cgrr.Id_ClienteDestinatario = pcp.Id_ClienteProveedor
+	INNER JOIN dbo.VIS_TIPO_DOCUMENTOS vtd ON pcp.Cod_TipoDocumento=vtd.Cod_TipoDoc
 	WHERE cgrr.Id_GuiaRemisionRemitente=@IdGuiaRemisionRemitente
 END
 GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'URP_CAJ_GUIA_REMISION_REMITENTE_InformacionTransportistaPublico' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE URP_CAJ_GUIA_REMISION_REMITENTE_InformacionTransportistaPublico
+GO
+
+CREATE PROCEDURE URP_CAJ_GUIA_REMISION_REMITENTE_InformacionTransportistaPublico
+	@IdGuiaRemisionRemitente int
+WITH ENCRYPTION
+AS
+BEGIN
+	SELECT pcp.*, cgrr.Obs_Transportista FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+	INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON cgrr.Id_ClienteTransportistaPublico = pcp.Id_ClienteProveedor
+	WHERE cgrr.Id_GuiaRemisionRemitente=@IdGuiaRemisionRemitente
+END
+GO
+
 
 -- USP_CAJ_COMPROBANTE_RELACION_TXIdComprobante 
 IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_CAJ_COMPROBANTE_RELACION_TGuiasXIdComprobante' AND type = 'P')
@@ -864,3 +913,60 @@ SET DATEFORMAT dmy;
 	WHERE cgrrr.Cod_TipoRelacion = 'GRR' AND cgrrr.Id_ComprobantePago = @id_ComprobantePago
 END
 GO
+
+--Relleno
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'URP_CAJ_GUIA_REMISION_REMITENTE_PlacasTransportistaPublico' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE URP_CAJ_GUIA_REMISION_REMITENTE_PlacasTransportistaPublico
+GO
+
+CREATE PROCEDURE URP_CAJ_GUIA_REMISION_REMITENTE_PlacasTransportistaPublico
+	@IdGuiaRemisionRemitente int
+AS
+	DECLARE @Placa varchar(20) = 'X3U-466'
+	SELECT @Placa Placa
+GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'URP_CAJ_GUIA_REMISION_REMITENTE_TransportistaPublico' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE URP_CAJ_GUIA_REMISION_REMITENTE_TransportistaPublico
+GO
+
+CREATE PROCEDURE URP_CAJ_GUIA_REMISION_REMITENTE_TransportistaPublico
+	@IdGuiaRemisionRemitente int
+AS
+	SELECT TOP 10 pcp.Id_ClienteProveedor,pcp.Nro_Documento,pcp.Cod_TipoDocumento,vtd.Nom_TipoDoc,pcp.Cliente FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
+	INNER JOIN dbo.VIS_TIPO_DOCUMENTOS vtd ON pcp.Cod_TipoDocumento=vtd.Cod_TipoDoc
+GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_NumeroXTipoSerieLibro' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_NumeroXTipoSerieLibro
+GO
+
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_NumeroXTipoSerieLibro
+	@Cod_TipoComprobante  varchar(5) ,
+    @Serie  varchar(4),
+	@Cod_Libro  varchar(4)
+WITH ENCRYPTION
+AS
+BEGIN
+	SELECT ISNULL(MAX(convert(int,Numero)) + 1, 1)  Numero_Siguiente
+	FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr 
+	WHERE cgrr.Cod_TipoComprobante=@Cod_TipoComprobante AND cgrr.Serie=@Serie AND cgrr.Cod_Libro=@Cod_Libro
+END
+GO
+
+
