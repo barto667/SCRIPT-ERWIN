@@ -3524,10 +3524,10 @@ END
 GO
 
  --Tarea de exportacion
- DECLARE @NombreTarea varchar(max)= N'Tarea Subida Comprobantes_'+(SELECT DB_NAME() AS [Base de datos actual]) 
- DECLARE @NombreUSPexportacion varchar(max)= N'USP_SubirComprobantes' --Por defecto
- DECLARE @RutaGuardadoLOG varchar(max)= ''
- exec USP_CrearTareaAgente @NombreTarea,@NombreUSPexportacion,@RutaGuardadoLOG,@NumeroIntentos= 0,@IntervaloMinutos  = 0,@RepetirCada  = 10
+--  DECLARE @NombreTarea varchar(max)= N'Tarea Subida Comprobantes_'+(SELECT DB_NAME() AS [Base de datos actual]) 
+--  DECLARE @NombreUSPexportacion varchar(max)= N'USP_SubirComprobantes' --Por defecto
+--  DECLARE @RutaGuardadoLOG varchar(max)= ''
+--  exec USP_CrearTareaAgente @NombreTarea,@NombreUSPexportacion,@RutaGuardadoLOG,@NumeroIntentos= 0,@IntervaloMinutos  = 0,@RepetirCada  = 10
 
 GO
 

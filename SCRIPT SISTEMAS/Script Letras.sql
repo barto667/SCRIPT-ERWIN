@@ -12,8 +12,8 @@ EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '010',@Columna = 'C
 EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '011',@Columna = 'Id_Comprobante',@Des_Columna = 'ID del comprobante al cual afecta dicha letra',@Tipo = 'ENTERO',@Flag_NULL = 0,@Tamano = 64,@Predeterminado = '',@Flag_PK = 1,@Cod_Usuario = 'MIGRACION'
 EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '012',@Columna = 'Cod_Estado',@Des_Columna = 'Estados de la Letra: GIRADO, VENCIDO, PAGADO, ANULADO',@Tipo = 'CADENA',@Flag_NULL = 0,@Tamano = 64,@Predeterminado = '',@Flag_PK = 0,@Cod_Usuario = 'MIGRACION'
 EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '013',@Columna = 'Nro_Referencia',@Des_Columna = 'Nro de Referencia del Pago',@Tipo = 'CADENA',@Flag_NULL = 0,@Tamano = 128,@Predeterminado = '',@Flag_PK = 0,@Cod_Usuario = 'MIGRACION'
-EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '014',@Columna = 'Monto_Base',@Des_Columna = 'Monto base de la letra',@Tipo = 'NUMERO',@Flag_NULL = 0,@Tamano = 32,@Predeterminado = '',@Flag_PK = 0,@Cod_Usuario = 'MIGRACION'
-EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '015',@Columna = 'Monto_Real',@Des_Columna = 'Monto real cancelado de la letra',@Tipo = 'NUMERO',@Flag_NULL = 0,@Tamano = 32,@Predeterminado = '',@Flag_PK = 0,@Cod_Usuario = 'MIGRACION'
+EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '014',@Columna = 'Monto_Base',@Des_Columna = 'Monto base de la letra',@Tipo = 'NUMERO',@Flag_NULL = 0,@Tamano = 2,@Predeterminado = '',@Flag_PK = 0,@Cod_Usuario = 'MIGRACION'
+EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '015',@Columna = 'Monto_Real',@Des_Columna = 'Monto real cancelado de la letra',@Tipo = 'NUMERO',@Flag_NULL = 0,@Tamano = 2,@Predeterminado = '',@Flag_PK = 0,@Cod_Usuario = 'MIGRACION'
 EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '016',@Columna = 'Observaciones',@Des_Columna = 'Observaciones adicionales de la letra',@Tipo = 'CADENA',@Flag_NULL = 0,@Tamano = 1024,@Predeterminado = '',@Flag_PK = 0,@Cod_Usuario = 'MIGRACION'
 EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '017',@Columna = 'Cod_UsuarioReg',@Des_Columna = 'Codigo de usuario registrado',@Tipo = 'CADENA',@Flag_NULL = 0,@Tamano = 32,@Predeterminado = '',@Flag_PK = 0,@Cod_Usuario = 'MIGRACION'
 EXEC dbo.USP_PAR_COLUMNA_G @Cod_Tabla = '127',@Cod_Columna = '018',@Columna = 'Fecha_Reg',@Des_Columna = 'Fecha de registro',@Tipo = 'FECHAHORA',@Flag_NULL = 0,@Tamano = 0,@Predeterminado = '',@Flag_PK = 0,@Cod_Usuario = 'MIGRACION'
@@ -457,6 +457,10 @@ WITH ENCRYPTION
 AS
 BEGIN
 	DECLARE @Id_Detalle int =(SELECT TOP 1 ccd.id_Detalle FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_Comprobante)
+	IF(@Item = 0)
+	BEGIN
+		set @Item=(SELECT ISNULL(MAX(Item),0)+1 FROM CAJ_COMPROBANTE_RELACION WHERE id_ComprobantePago=@Id_Comprobante and id_Detalle=@Id_Detalle)
+	END
 	INSERT dbo.CAJ_COMPROBANTE_RELACION
 	VALUES
 	(
