@@ -250,7 +250,8 @@ BEGIN
 	DECLARE @Fecha datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -568,7 +569,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -955,7 +957,8 @@ BEGIN
 	DECLARE @Fecha datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -1309,7 +1312,8 @@ BEGIN
 	DECLARE @Fecha datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -1626,7 +1630,8 @@ BEGIN
 	DECLARE @Fecha datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -1979,7 +1984,8 @@ BEGIN
 	DECLARE @Fecha datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -2340,7 +2346,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -2744,7 +2751,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -3080,7 +3088,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -3384,7 +3393,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -3705,7 +3715,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce) 
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -4023,7 +4034,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -4485,7 +4497,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -4814,7 +4827,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -5206,7 +5220,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -5698,7 +5713,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -6064,7 +6080,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -6749,7 +6766,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -7122,7 +7140,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -7445,7 +7464,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce) 
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -7860,7 +7880,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -8202,7 +8223,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -8478,7 +8500,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -8828,7 +8851,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -9238,7 +9262,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -9561,7 +9586,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -9899,7 +9925,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -10306,7 +10333,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -10641,7 +10669,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -10937,7 +10966,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -11185,7 +11215,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -11489,7 +11520,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -11812,7 +11844,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -12096,7 +12129,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -12420,7 +12454,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -12705,7 +12740,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
      --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -13065,7 +13101,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -13428,7 +13465,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -13752,7 +13790,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -14121,7 +14160,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -14378,7 +14418,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -14681,7 +14722,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -14954,7 +14996,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -15209,7 +15252,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -15493,7 +15537,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -15815,7 +15860,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -16079,7 +16125,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -16375,7 +16422,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -16703,7 +16751,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -17017,7 +17066,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -17316,7 +17366,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -17588,7 +17639,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -17894,7 +17946,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -18154,7 +18207,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -18429,7 +18483,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -18674,7 +18729,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -19007,7 +19063,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -19318,7 +19375,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -19624,7 +19682,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -20044,7 +20103,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -20395,7 +20455,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -20744,7 +20805,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -21259,7 +21321,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -21618,7 +21681,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -22000,7 +22064,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -22363,7 +22428,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -22740,7 +22806,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -23130,7 +23197,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -23486,7 +23554,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -23851,7 +23920,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -24223,7 +24293,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -24569,7 +24640,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -24898,7 +24970,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -25141,7 +25214,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -25480,7 +25554,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -25714,7 +25789,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -26005,7 +26081,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -26601,7 +26678,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -26957,7 +27035,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -27289,7 +27368,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -27533,7 +27613,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -27875,7 +27956,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -28261,7 +28343,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -28624,7 +28707,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -29067,7 +29151,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -29427,7 +29512,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -29702,7 +29788,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -29973,7 +30060,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -30248,7 +30336,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
@@ -30512,7 +30601,8 @@ BEGIN
 	DECLARE @FechaReg datetime
 	DECLARE @Accion varchar(MAX)
 	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
-	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT('Nombre del equipo: ',HOST_NAME(),' IP/Direccion Origen: ',dec.client_net_address,' Fecha/Hora Conexion : ',CONVERT(varchar,dec.connect_time,121)) 
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
 	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
    --Acciones
 	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)

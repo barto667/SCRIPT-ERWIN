@@ -105,7 +105,7 @@ BEGIN
 		ON ccp.Cod_TipoComprobante=vtc.Cod_TipoComprobante INNER JOIN dbo.VIS_TIPO_DOCUMENTOS vtd
 		ON ccp.Cod_TipoDoc=vtd.Cod_TipoDoc INNER JOIN dbo.VIS_MONEDAS vm
 		ON ccp.Cod_Moneda = vm.Cod_Moneda
-		WHERE ccp.Doc_Cliente=@NumeroDocumento
+		WHERE ccp.Doc_Cliente=@NumeroDocumento AND ccp.Cod_Libro<>''
 		ORDER BY convert(datetime,convert(date,ccp.FechaEmision)) DESC
 	END
 
@@ -200,7 +200,7 @@ BEGIN
 		ON ccp.Cod_TipoComprobante=vtc.Cod_TipoComprobante INNER JOIN dbo.VIS_TIPO_DOCUMENTOS vtd
 		ON ccp.Cod_TipoDoc=vtd.Cod_TipoDoc INNER JOIN dbo.VIS_MONEDAS vm
 		ON ccp.Cod_Moneda = vm.Cod_Moneda
-		WHERE ccp.Nom_Cliente like '%'+@NombreCliente+'%' 
+		WHERE ccp.Nom_Cliente like '%'+@NombreCliente+'%'  AND ccp.Cod_Libro<>''
 		ORDER BY convert(datetime,convert(date,ccp.FechaEmision)) DESC
 	END
 END
@@ -908,11 +908,12 @@ AS
 BEGIN
 SET DATEFORMAT dmy;
 	SELECT DISTINCT vtc.Cod_Sunat Cod_TipoComprobante,cgrr.Serie+'-'+cgrr.Numero Comprobante
-	FROM dbo.CAJ_GUIA_REMISION_REMITENTE_RELACION cgrrr INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE cgrr ON cgrrr.Id_GuiaRemisionRemitente = cgrr.Id_GuiaRemisionRemitente
+	FROM dbo.CAJ_COMPROBANTE_RELACION ccr INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE cgrr ON ccr.Id_ComprobanteRelacion = cgrr.Id_GuiaRemisionRemitente
 	INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON cgrr.Cod_TipoComprobante = vtc.Cod_TipoComprobante
-	WHERE cgrrr.Cod_TipoRelacion = 'GRR' AND cgrrr.Id_ComprobantePago = @id_ComprobantePago
+	WHERE ccr.Cod_TipoRelacion = 'GR' AND ccr.Id_ComprobantePago = @id_ComprobantePago
 END
 GO
+
 
 --Relleno
 IF EXISTS (
