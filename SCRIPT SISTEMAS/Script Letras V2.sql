@@ -62,10 +62,109 @@ IF
              @Cod_Usuario = 'MIGRACION';
         EXEC dbo.USP_PAR_TABLA_GENERADOR_VISTAS 
              @Cod_Tabla = '127';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '001', 
+             @Cod_Fila = 1, 
+             @Cadena = N'001', 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 0, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '002', 
+             @Cod_Fila = 1, 
+             @Cadena = N'EMITIDO', 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 0, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '003', 
+             @Cod_Fila = 1, 
+             @Cadena = NULL, 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 1, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '001', 
+             @Cod_Fila = 2, 
+             @Cadena = N'002', 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 0, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '002', 
+             @Cod_Fila = 2, 
+             @Cadena = N'PAGADO', 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 0, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '003', 
+             @Cod_Fila = 2, 
+             @Cadena = NULL, 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 1, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '001', 
+             @Cod_Fila = 3, 
+             @Cadena = N'003', 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 0, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '002', 
+             @Cod_Fila = 3, 
+             @Cadena = N'CANCELADO', 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 0, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '003', 
+             @Cod_Fila = 3, 
+             @Cadena = NULL, 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 1, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
 END;
 GO
 
---Creacion de la tabla
+--Creamos las tabla letras
 IF NOT EXISTS
 (
     SELECT name
@@ -75,7 +174,8 @@ IF NOT EXISTS
 )
     BEGIN
         CREATE TABLE CAJ_LETRA_CAMBIO
-        (Id_Letra          INT NOT NULL IDENTITY(1, 1) PRIMARY KEY, 
+        (Id                INT IDENTITY(1, 1) NOT NULL, 
+         Id_Letra          INT NOT NULL, 
          Nro_Letra         VARCHAR(32) NOT NULL, 
          Cod_Libro         VARCHAR(2) NOT NULL, 
          Ref_Girador       VARCHAR(1024) NOT NULL, 
@@ -94,10 +194,13 @@ IF NOT EXISTS
          Cod_UsuarioReg    VARCHAR(32) NOT NULL, 
          Fecha_Reg         DATETIME NOT NULL, 
          Cod_UsuarioAct    VARCHAR(32), 
-         Fecha_Act         DATETIME
+         Fecha_Act         DATETIME, 
+         PRIMARY KEY(Id, Id_Letra, Nro_Letra, Cod_Libro, Cod_Cuenta, Cod_Moneda)
         );
 END;
 GO
+
+--Traer cuentas bancarias
 IF EXISTS
 (
     SELECT *
@@ -123,7 +226,8 @@ AS
               AND bcb.Cod_Sucursal = @Cod_Sucursal;
     END;
 GO
-GO
+
+--Obtener letras por libro,moneda y cuenta
 IF EXISTS
 (
     SELECT *
@@ -140,13 +244,64 @@ WITH ENCRYPTION
 AS
     BEGIN
         SELECT DISTINCT 
-               clc.*
+               clc.Id, 
+               clc.Id_Letra, 
+               CAST(clc.Nro_Letra AS BIGINT) AS Nro_Letra, 
+               clc.Cod_Libro, 
+               clc.Ref_Girador, 
+               clc.Fecha_Girado, 
+               clc.Fecha_Vencimiento, 
+               clc.Fecha_Pago, 
+               clc.Cod_Cuenta, 
+               clc.Nro_Operacion, 
+               clc.Cod_Moneda, 
+               clc.Id_Comprobante, 
+               clc.Cod_Estado, 
+               clc.Nro_Referencia, 
+               clc.Monto_Base, 
+               clc.Monto_Real, 
+               clc.Observaciones, 
+               clc.Cod_UsuarioReg, 
+               clc.Fecha_Reg, 
+               clc.Cod_UsuarioAct, 
+               clc.Fecha_Act
         FROM dbo.CAJ_LETRA_CAMBIO clc
         WHERE clc.Cod_Libro = @Cod_Libro
+              AND clc.Cod_Moneda = @Cod_Moneda
+              AND clc.Cod_Cuenta = @Cod_Cuenta
+        ORDER BY clc.Id_Letra, 
+                 CAST(clc.Nro_Letra AS BIGINT);
+    END;
+GO
+
+--Obtener letras por id_letra,libro,moneda y cuenta
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_LETRA_CAMBIO_TraerXIdLetraCodLibroCodMonedaCodCuenta'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_TraerXIdLetraCodLibroCodMonedaCodCuenta;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_TraerXIdLetraCodLibroCodMonedaCodCuenta @Id_letra   INT, 
+                                                                              @Cod_Libro  VARCHAR(32), 
+                                                                              @Cod_Moneda VARCHAR(32), 
+                                                                              @Cod_Cuenta VARCHAR(128)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT 
+               clc.*
+        FROM dbo.CAJ_LETRA_CAMBIO clc
+        WHERE clc.Id_Letra = @Id_Letra
+              AND clc.Cod_Libro = @Cod_Libro
               AND clc.Cod_Moneda = @Cod_Moneda
               AND clc.Cod_Cuenta = @Cod_Cuenta;
     END;
 GO
+
+--Traer comprobantes por nuemro de docuemnto, libro y moneda
 IF EXISTS
 (
     SELECT name
@@ -247,6 +402,8 @@ AS
         END;
     END;
 GO
+
+--Traer comprobantes por nombre de cliente, libro y moneda
 IF EXISTS
 (
     SELECT name
@@ -347,6 +504,8 @@ AS
         END;
     END;
 GO
+
+--Guardar 
 IF EXISTS
 (
     SELECT *
@@ -356,7 +515,8 @@ IF EXISTS
 )
     DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_G;
 GO
-CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_G @Id_Letra          INT, --PK 0 si no se sabe
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_G @Id                INT, 
+                                        @Id_Letra          INT, --PK 0 si no se sabe
                                         @Nro_Letra         VARCHAR(128), --PK  opcional, si es '' o NULL se genera uno nuevo
                                         @Cod_Libro         VARCHAR(32), --PK Obligatorio
                                         @Ref_Girador       VARCHAR(1024), 
@@ -378,21 +538,27 @@ AS
     BEGIN
         IF @Id_Letra = 0
             BEGIN
+                SET @Id_Letra = ISNULL(
+                (
+                    SELECT MAX(clc.Id_Letra)
+                    FROM dbo.CAJ_LETRA_CAMBIO clc
+                ), 0) + 1;
                 IF @Nro_Letra = ''
                    OR @Nro_Letra IS NULL
                     BEGIN
                         --Obtenemos la letra en base a la moneda,libro y cuenta
                         SET @Nro_Letra =
                         (
-                            SELECT CAST((ISNULL(MAX(CAST(vlc.Nro_Letra AS BIGINT)), 0) + 1) AS VARCHAR(128))
-                            FROM dbo.VIS_LETRAS_CAMBIO vlc
-                            WHERE vlc.Cod_Moneda = @Cod_Moneda
-                                  AND vlc.Cod_Libro = @Cod_Libro
-                                  AND vlc.Cod_Cuenta = @Cod_Cuenta
+                            SELECT CAST((ISNULL(MAX(CAST(clc.Nro_Letra AS BIGINT)), 0) + 1) AS VARCHAR(128))
+                            FROM dbo.CAJ_LETRA_CAMBIO clc
+                            WHERE clc.Cod_Moneda = @Cod_Moneda
+                                  AND clc.Cod_Libro = @Cod_Libro
+                                  AND clc.Cod_Cuenta = @Cod_Cuenta
                         );
                         INSERT INTO dbo.CAJ_LETRA_CAMBIO
                         VALUES
-                        (@Nro_Letra, -- Nro_Letra - VARCHAR
+                        (@Id_Letra, --Id_Letra - int
+                         @Nro_Letra, -- Nro_Letra - VARCHAR
                          @Cod_Libro, -- Cod_Libro - VARCHAR
                          @Ref_Girador, -- Ref_Girador - VARCHAR
                          @Fecha_Girado, -- Fecha_Girado - DATETIME
@@ -412,6 +578,7 @@ AS
                          NULL, -- Cod_UsuarioAct - VARCHAR
                          NULL -- Fecha_Act - DATETIME
                         );
+                        SET @Id = @@IDENTITY;
                 END;
                     ELSE
                     BEGIN
@@ -420,7 +587,8 @@ AS
                         (
                             SELECT clc.*
                             FROM dbo.CAJ_LETRA_CAMBIO clc
-                            WHERE clc.Nro_Letra = @Nro_Letra
+                            WHERE clc.Id_Letra = @Id_Letra
+                                  AND clc.Nro_Letra = @Nro_Letra
                                   AND clc.Cod_Libro = @Cod_Libro
                                   AND clc.Cod_Cuenta = @Cod_Cuenta
                                   AND clc.Cod_Moneda = @Cod_Moneda
@@ -428,7 +596,8 @@ AS
                             BEGIN
                                 INSERT INTO dbo.CAJ_LETRA_CAMBIO
                                 VALUES
-                                (@Nro_Letra, -- Nro_Letra - VARCHAR
+                                (@Id_Letra, --Id_Letra - int
+                                 @Nro_Letra, -- Nro_Letra - VARCHAR
                                  @Cod_Libro, -- Cod_Libro - VARCHAR
                                  @Ref_Girador, -- Ref_Girador - VARCHAR
                                  @Fecha_Girado, -- Fecha_Girado - DATETIME
@@ -448,6 +617,7 @@ AS
                                  NULL, -- Cod_UsuarioAct - VARCHAR
                                  NULL -- Fecha_Act - DATETIME
                                 );
+                                SET @Id = @@IDENTITY;
                         END;
                             ELSE
                             BEGIN
@@ -468,51 +638,43 @@ AS
                                       dbo.CAJ_LETRA_CAMBIO.Observaciones = @Observaciones, -- VARCHAR
                                       dbo.CAJ_LETRA_CAMBIO.Cod_UsuarioAct = @Cod_Usuario, -- VARCHAR
                                       dbo.CAJ_LETRA_CAMBIO.Fecha_Act = GETDATE() -- DATETIME
-                                WHERE dbo.CAJ_LETRA_CAMBIO.Nro_Letra = @Nro_Letra
+                                WHERE dbo.CAJ_LETRA_CAMBIO.Id_Letra = @Id_Letra
+                                      AND dbo.CAJ_LETRA_CAMBIO.Nro_Letra = @Nro_Letra
                                       AND dbo.CAJ_LETRA_CAMBIO.Cod_Libro = @Cod_Libro
                                       AND dbo.CAJ_LETRA_CAMBIO.Cod_Cuenta = @Cod_Cuenta
                                       AND dbo.CAJ_LETRA_CAMBIO.Cod_Moneda = @Cod_Moneda;
+                                SET @Id =
+                                (
+                                    SELECT clc.Id
+                                    FROM dbo.CAJ_LETRA_CAMBIO clc
+                                    WHERE clc.Id_Letra = @Id_Letra
+                                          AND clc.Nro_Letra = @Nro_Letra
+                                          AND clc.Cod_Libro = @Cod_Libro
+                                          AND clc.Cod_Cuenta = @Cod_Cuenta
+                                          AND clc.Cod_Moneda = @Cod_Moneda
+                                );
                         END;
                 END;
         END;
             ELSE
             BEGIN
-                IF NOT EXISTS
-                (
-                    SELECT clc.*
-                    FROM dbo.CAJ_LETRA_CAMBIO clc
-                    WHERE clc.Id_Letra = @Id_Letra
-                )
+                IF @Nro_Letra = ''
+                   OR @Nro_Letra IS NULL
                     BEGIN
-                        --Actualizamos
-                        UPDATE dbo.CAJ_LETRA_CAMBIO
-                          SET
-                        --Id_Letra - column value is auto-generated
-                              dbo.CAJ_LETRA_CAMBIO.Nro_Letra = @Nro_Letra, -- VARCHAR
-                              dbo.CAJ_LETRA_CAMBIO.Cod_Libro = @Cod_Libro, -- VARCHAR
-                              dbo.CAJ_LETRA_CAMBIO.Ref_Girador = @Ref_Girador, -- VARCHAR
-                              dbo.CAJ_LETRA_CAMBIO.Fecha_Girado = @Fecha_Girado, -- DATETIME
-                              dbo.CAJ_LETRA_CAMBIO.Fecha_Vencimiento = @Fecha_Vencimiento, -- DATETIME
-                              dbo.CAJ_LETRA_CAMBIO.Fecha_Pago = @Fecha_Pago, -- DATETIME
-                              dbo.CAJ_LETRA_CAMBIO.Cod_Cuenta = @Cod_Cuenta, -- VARCHAR
-                              dbo.CAJ_LETRA_CAMBIO.Nro_Operacion = @Nro_Operacion, -- VARCHAR
-                              dbo.CAJ_LETRA_CAMBIO.Cod_Moneda = @Cod_Moneda, -- VARCHAR
-                              dbo.CAJ_LETRA_CAMBIO.Id_Comprobante = @Id_Comprobante, -- INT
-                              dbo.CAJ_LETRA_CAMBIO.Cod_Estado = @Cod_Estado, -- VARCHAR
-                              dbo.CAJ_LETRA_CAMBIO.Nro_Referencia = @Nro_Referencia, -- VARCHAR
-                              dbo.CAJ_LETRA_CAMBIO.Monto_Base = @Monto_Base, -- NUMERIC
-                              dbo.CAJ_LETRA_CAMBIO.Monto_Real = @Monto_Real, -- NUMERIC
-                              dbo.CAJ_LETRA_CAMBIO.Observaciones = @Observaciones, -- VARCHAR
-                              dbo.CAJ_LETRA_CAMBIO.Cod_UsuarioAct = @Cod_Usuario, -- VARCHAR
-                              dbo.CAJ_LETRA_CAMBIO.Fecha_Act = GETDATE() -- DATETIME
-                        WHERE dbo.CAJ_LETRA_CAMBIO.Id_Letra = @Id_Letra;
-                END;
-                    ELSE
-                    BEGIN
-                        --Insertamos
+                        --Se le genera una letra
+                        SET @Nro_Letra =
+                        (
+                            SELECT CAST((ISNULL(MAX(CAST(clc.Nro_Letra AS BIGINT)), 0) + 1) AS VARCHAR(128))
+                            FROM dbo.CAJ_LETRA_CAMBIO clc
+                            WHERE clc.Id_Letra = @Id_Letra
+                                  AND clc.Cod_Moneda = @Cod_Moneda
+                                  AND clc.Cod_Libro = @Cod_Libro
+                                  AND clc.Cod_Cuenta = @Cod_Cuenta
+                        );
                         INSERT INTO dbo.CAJ_LETRA_CAMBIO
                         VALUES
-                        (@Nro_Letra, -- Nro_Letra - VARCHAR
+                        (@Id_Letra, --Id_Letra - int
+                         @Nro_Letra, -- Nro_Letra - VARCHAR
                          @Cod_Libro, -- Cod_Libro - VARCHAR
                          @Ref_Girador, -- Ref_Girador - VARCHAR
                          @Fecha_Girado, -- Fecha_Girado - DATETIME
@@ -532,6 +694,529 @@ AS
                          NULL, -- Cod_UsuarioAct - VARCHAR
                          NULL -- Fecha_Act - DATETIME
                         );
+                        SET @Id = @@IDENTITY;
+                END;
+                    ELSE
+                    BEGIN
+                        --Puede ser que se dee guardar o actualizar
+                        IF NOT EXISTS
+                        (
+                            SELECT clc.*
+                            FROM dbo.CAJ_LETRA_CAMBIO clc
+                            WHERE clc.Id_Letra = @Id_Letra
+                                  AND clc.Nro_Letra = @Nro_Letra
+                                  AND clc.Cod_Libro = @Cod_Libro
+                                  AND clc.Cod_Cuenta = @Cod_Cuenta
+                                  AND clc.Cod_Moneda = @Cod_Moneda
+                        )
+                            BEGIN
+                                INSERT INTO dbo.CAJ_LETRA_CAMBIO
+                                VALUES
+                                (@Id_Letra, --Id_Letra - int
+                                 @Nro_Letra, -- Nro_Letra - VARCHAR
+                                 @Cod_Libro, -- Cod_Libro - VARCHAR
+                                 @Ref_Girador, -- Ref_Girador - VARCHAR
+                                 @Fecha_Girado, -- Fecha_Girado - DATETIME
+                                 @Fecha_Vencimiento, -- Fecha_Vencimiento - DATETIME
+                                 @Fecha_Pago, -- Fecha_Pago - DATETIME
+                                 @Cod_Cuenta, -- Cod_Cuenta - VARCHAR
+                                 @Nro_Operacion, -- Nro_Operacion - VARCHAR
+                                 @Cod_Moneda, -- Cod_Moneda - VARCHAR
+                                 @Id_Comprobante, -- Id_Comprobante - INT
+                                 @Cod_Estado, -- Cod_Estado - VARCHAR
+                                 @Nro_Referencia, -- Nro_Referencia - VARCHAR
+                                 @Monto_Base, -- Monto_Base - NUMERIC
+                                 @Monto_Real, -- Monto_Real - NUMERIC
+                                 @Observaciones, -- Observaciones - VARCHAR
+                                 @Cod_Usuario, -- Cod_UsuarioReg - VARCHAR
+                                 GETDATE(), -- Fecha_Reg - DATETIME
+                                 NULL, -- Cod_UsuarioAct - VARCHAR
+                                 NULL -- Fecha_Act - DATETIME
+                                );
+                                SET @Id = @@IDENTITY;
+                        END;
+                            ELSE
+                            BEGIN
+                                --Actualizamos
+                                UPDATE dbo.CAJ_LETRA_CAMBIO
+                                  SET
+                                --Id_Letra - column value is auto-generated
+                                      dbo.CAJ_LETRA_CAMBIO.Ref_Girador = @Ref_Girador, -- VARCHAR
+                                      dbo.CAJ_LETRA_CAMBIO.Fecha_Girado = @Fecha_Girado, -- DATETIME
+                                      dbo.CAJ_LETRA_CAMBIO.Fecha_Vencimiento = @Fecha_Vencimiento, -- DATETIME
+                                      dbo.CAJ_LETRA_CAMBIO.Fecha_Pago = @Fecha_Pago, -- DATETIME
+                                      dbo.CAJ_LETRA_CAMBIO.Nro_Operacion = @Nro_Operacion, -- VARCHAR
+                                      dbo.CAJ_LETRA_CAMBIO.Id_Comprobante = @Id_Comprobante, -- INT
+                                      dbo.CAJ_LETRA_CAMBIO.Cod_Estado = @Cod_Estado, -- VARCHAR
+                                      dbo.CAJ_LETRA_CAMBIO.Nro_Referencia = @Nro_Referencia, -- VARCHAR
+                                      dbo.CAJ_LETRA_CAMBIO.Monto_Base = @Monto_Base, -- NUMERIC
+                                      dbo.CAJ_LETRA_CAMBIO.Monto_Real = @Monto_Real, -- NUMERIC
+                                      dbo.CAJ_LETRA_CAMBIO.Observaciones = @Observaciones, -- VARCHAR
+                                      dbo.CAJ_LETRA_CAMBIO.Cod_UsuarioAct = @Cod_Usuario, -- VARCHAR
+                                      dbo.CAJ_LETRA_CAMBIO.Fecha_Act = GETDATE() -- DATETIME
+                                WHERE dbo.CAJ_LETRA_CAMBIO.Id_Letra = @Id_Letra
+                                      AND dbo.CAJ_LETRA_CAMBIO.Nro_Letra = @Nro_Letra
+                                      AND dbo.CAJ_LETRA_CAMBIO.Cod_Libro = @Cod_Libro
+                                      AND dbo.CAJ_LETRA_CAMBIO.Cod_Cuenta = @Cod_Cuenta
+                                      AND dbo.CAJ_LETRA_CAMBIO.Cod_Moneda = @Cod_Moneda;
+                                SET @Id =
+                                (
+                                    SELECT clc.Id
+                                    FROM dbo.CAJ_LETRA_CAMBIO clc
+                                    WHERE clc.Id_Letra = @Id_Letra
+                                          AND clc.Nro_Letra = @Nro_Letra
+                                          AND clc.Cod_Libro = @Cod_Libro
+                                          AND clc.Cod_Cuenta = @Cod_Cuenta
+                                          AND clc.Cod_Moneda = @Cod_Moneda
+                                );
+                        END;
                 END;
         END;
+        SELECT @Id Id, 
+               @Id_Letra Id_Letra, 
+               @Nro_Letra Nro_Letra, 
+               @Cod_Libro Cod_Libro, 
+               @Ref_Girador Ref_Girador, 
+               @Fecha_Girado Fecha_Girado, 
+               @Fecha_Vencimiento Fecha_Vencimiento, 
+               @Fecha_Pago Fecha_Pago, 
+               @Cod_Cuenta Cod_Cuenta, 
+               @Nro_Operacion Nro_Operacion, 
+               @Cod_Moneda Cod_Moneda, 
+               @Id_Comprobante Id_Comprobante, 
+               @Cod_Estado Cod_Estado, 
+               @Nro_Referencia Nro_Referencia, 
+               @Monto_Base Monto_Base, 
+               @Monto_Real Monto_Real, 
+               @Observaciones Observaciones, 
+               @Cod_Usuario Cod_Usuario;
+    END;
+GO
+
+--Obtiene las letras por id_letra
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'URP_CAJ_LETRA_CAMBIO_TraerLetrasXIdLetraCodMonedaCodLibroCodCuenta'
+          AND type = 'P'
+)
+    DROP PROCEDURE URP_CAJ_LETRA_CAMBIO_TraerLetrasXIdLetraCodMonedaCodLibroCodCuenta;
+GO
+CREATE PROCEDURE URP_CAJ_LETRA_CAMBIO_TraerLetrasXIdLetraCodMonedaCodLibroCodCuenta @Id_Letra INT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT clc.Id_Letra, 
+               clc.Nro_Letra, 
+               clc.Cod_Libro, 
+               clc.Ref_Girador, 
+               clc.Fecha_Girado, 
+               clc.Fecha_Vencimiento, 
+               clc.Fecha_Pago, 
+               clc.Cod_Cuenta, 
+               bcb.Des_CuentaBancaria, 
+               clc.Nro_Operacion, 
+               clc.Cod_Moneda, 
+               vm.Nom_Moneda, 
+               clc.Id_Comprobante, 
+               clc.Cod_Estado, 
+               clc.Nro_Referencia, 
+               clc.Monto_Base, 
+               clc.Monto_Real, 
+               dbo.UFN_ConvertirNumeroLetra(clc.Monto_Base) Letra_MontoBase, 
+               dbo.UFN_ConvertirNumeroLetra(clc.Monto_Real) Letra_MontoReal, 
+               clc.Observaciones
+        FROM dbo.CAJ_LETRA_CAMBIO clc
+             INNER JOIN dbo.VIS_MONEDAS vm ON clc.Cod_Moneda = vm.Cod_Moneda
+             INNER JOIN dbo.BAN_CUENTA_BANCARIA bcb ON vm.Cod_Moneda = bcb.Cod_Moneda
+        WHERE clc.Id_Letra = @Id_Letra;
+    END;
+GO
+--
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_LETRA_CAMBIO_E'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_E;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_E @Id_Letra   INT, --PK 0 si no se sabe
+                                        @Nro_Letra  VARCHAR(128), --PK  opcional, si es '' o NULL se genera uno nuevo
+                                        @Cod_Libro  VARCHAR(32), --PK Obligatorio
+                                        @Cod_Cuenta VARCHAR(128) OUTPUT, --PK Obligatorio
+                                        @Cod_Moneda VARCHAR(32) OUTPUT --PK Obligatorio
+WITH ENCRYPTION
+AS
+    BEGIN
+        DELETE dbo.CAJ_LETRA_CAMBIO
+        WHERE dbo.CAJ_LETRA_CAMBIO.Id_Letra = @Id_Letra
+              AND dbo.CAJ_LETRA_CAMBIO.Nro_Letra = @Nro_letra
+              AND dbo.CAJ_LETRA_CAMBIO.Cod_Libro = @Cod_Libro
+              AND dbo.CAJ_LETRA_CAMBIO.Cod_Cuenta = @Cod_Cuenta
+              AND dbo.CAJ_LETRA_CAMBIO.Cod_Moneda = @Cod_Moneda;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_LETRA_CAMBIO_TXPK'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_TXPK;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_TXPK @Id_Letra   INT, --PK 0 si no se sabe
+                                           @Nro_Letra  VARCHAR(128), --PK  opcional, si es '' o NULL se genera uno nuevo
+                                           @Cod_Libro  VARCHAR(32), --PK Obligatorio
+                                           @Cod_Cuenta VARCHAR(128) OUTPUT, --PK Obligatorio
+                                           @Cod_Moneda VARCHAR(32) OUTPUT --PK Obligatorio
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT clc.*
+        FROM dbo.CAJ_LETRA_CAMBIO clc
+        WHERE clc.Id_Letra = @Id_Letra
+              AND clc.Nro_Letra = @Nro_Letra
+              AND clc.Cod_Libro = @Cod_Libro
+              AND clc.Cod_Cuenta = @Cod_Cuenta
+              AND clc.Cod_Moneda = @Cod_Moneda;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'URP_CAJ_LETRA_CAMBIO_TraerLetrasXIdLetraNroLetraCodMonedaCodLibroCodCuenta'
+          AND type = 'P'
+)
+    DROP PROCEDURE URP_CAJ_LETRA_CAMBIO_TraerLetrasXIdLetraNroLetraCodMonedaCodLibroCodCuenta;
+GO
+CREATE PROCEDURE URP_CAJ_LETRA_CAMBIO_TraerLetrasXIdLetraNroLetraCodMonedaCodLibroCodCuenta @Id_Letra   INT, 
+                                                                                            @Nro_Letra  VARCHAR(128), 
+                                                                                            @Cod_Moneda VARCHAR(32), 
+                                                                                            @Cod_Libro  VARCHAR(32), 
+                                                                                            @Cod_Cuenta VARCHAR(128)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT clc.Id_Letra, 
+               clc.Nro_Letra, 
+               clc.Cod_Libro, 
+               clc.Ref_Girador, 
+               clc.Fecha_Girado, 
+               clc.Fecha_Vencimiento, 
+               clc.Fecha_Pago, 
+               clc.Cod_Cuenta, 
+               bcb.Des_CuentaBancaria, 
+               clc.Nro_Operacion, 
+               clc.Cod_Moneda, 
+               vm.Nom_Moneda, 
+               clc.Id_Comprobante, 
+               clc.Cod_Estado, 
+               clc.Nro_Referencia, 
+               clc.Monto_Base, 
+               clc.Monto_Real, 
+               dbo.UFN_ConvertirNumeroLetra(clc.Monto_Base) Letra_MontoBase, 
+               dbo.UFN_ConvertirNumeroLetra(clc.Monto_Real) Letra_MontoReal, 
+               clc.Observaciones, 
+               pcp.Cliente, 
+               ccp.Direccion_Cliente, 
+               pcp.Nro_Documento, 
+               pcp.Telefono1, 
+               pcp.Telefono2
+        FROM dbo.CAJ_LETRA_CAMBIO clc
+             INNER JOIN dbo.VIS_MONEDAS vm ON clc.Cod_Moneda = vm.Cod_Moneda
+             INNER JOIN dbo.BAN_CUENTA_BANCARIA bcb ON bcb.Cod_CuentaBancaria = clc.Cod_Cuenta
+             INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON clc.Id_Comprobante = ccp.id_ComprobantePago
+             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON ccp.Id_Cliente = pcp.Id_ClienteProveedor
+        WHERE clc.Id_Letra = @Id_Letra
+              AND clc.Nro_Letra = @Nro_Letra
+              AND clc.Cod_Moneda = @Cod_Moneda
+              AND clc.Cod_Libro = @Cod_Libro
+              AND clc.Cod_Cuenta = @Cod_Cuenta;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'URP_CAJ_LETRA_CAMBIO_TraerLetrasXCodMonedaCodLibroCodCuenta'
+          AND type = 'P'
+)
+    DROP PROCEDURE URP_CAJ_LETRA_CAMBIO_TraerLetrasXCodMonedaCodLibroCodCuenta;
+GO
+CREATE PROCEDURE URP_CAJ_LETRA_CAMBIO_TraerLetrasXCodMonedaCodLibroCodCuenta @Cod_Moneda VARCHAR(32), 
+                                                                             @Cod_Libro  VARCHAR(32), 
+                                                                             @Cod_Cuenta VARCHAR(128)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT clc.Id_Letra, 
+               clc.Nro_Letra, 
+               clc.Cod_Libro, 
+               clc.Ref_Girador, 
+               clc.Fecha_Girado, 
+               clc.Fecha_Vencimiento, 
+               clc.Fecha_Pago, 
+               clc.Cod_Cuenta, 
+               bcb.Des_CuentaBancaria, 
+               clc.Nro_Operacion, 
+               clc.Cod_Moneda, 
+               vm.Nom_Moneda, 
+               clc.Id_Comprobante, 
+               clc.Cod_Estado, 
+               clc.Nro_Referencia, 
+               clc.Monto_Base, 
+               clc.Monto_Real, 
+               dbo.UFN_ConvertirNumeroLetra(clc.Monto_Base) Letra_MontoBase, 
+               dbo.UFN_ConvertirNumeroLetra(clc.Monto_Real) Letra_MontoReal, 
+               clc.Observaciones
+        FROM dbo.CAJ_LETRA_CAMBIO clc
+             INNER JOIN dbo.VIS_MONEDAS vm ON clc.Cod_Moneda = vm.Cod_Moneda
+             INNER JOIN dbo.BAN_CUENTA_BANCARIA bcb ON bcb.Cod_CuentaBancaria = clc.Cod_Cuenta
+        WHERE clc.Cod_Moneda = @Cod_Moneda
+              AND clc.Cod_Libro = @Cod_Libro
+              AND clc.Cod_Cuenta = @Cod_Cuenta;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_LETRA_CAMBIO_GuardarRelacion'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_GuardarRelacion;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_GuardarRelacion @Id_Comprobante INT, 
+                                                      @Item           INT, 
+                                                      @Id_Referencia  INT, 
+                                                      @Valor          NUMERIC(38, 6), 
+                                                      @Cod_Usuario    VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        DECLARE @Id_Detalle INT=
+        (
+            SELECT TOP 1 ccd.id_Detalle
+            FROM dbo.CAJ_COMPROBANTE_D ccd
+            WHERE ccd.id_ComprobantePago = @Id_Comprobante
+        );
+        IF(@Item = 0)
+            BEGIN
+                SET @Item =
+                (
+                    SELECT ISNULL(MAX(Item), 0) + 1
+                    FROM CAJ_COMPROBANTE_RELACION
+                    WHERE id_ComprobantePago = @Id_Comprobante
+                          AND id_Detalle = @Id_Detalle
+                );
+        END;
+        INSERT INTO dbo.CAJ_COMPROBANTE_RELACION
+        VALUES
+        (@Id_Comprobante, -- id_ComprobantePago - int
+         @Id_Detalle, -- id_Detalle - int
+         @Item, -- Item - int
+         @Id_Referencia, -- Id_ComprobanteRelacion - int
+         'LET', -- Cod_TipoRelacion - varchar
+         @Valor, -- Valor - numeric
+         '', -- Obs_Relacion - varchar
+         1, -- Id_DetalleRelacion - int
+         @Cod_Usuario, -- Cod_UsuarioReg - varchar
+         GETDATE(), -- Fecha_Reg - datetime
+         NULL, -- Cod_UsuarioAct - varchar
+         NULL -- Fecha_Act - datetime
+        );
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_LETRA_CAMBIO_GuardarFormaPago'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_GuardarFormaPago;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_GuardarFormaPago @Id_Comprobante INT, 
+                                                       @Cod_Cuenta     VARCHAR(128), 
+                                                       @Id_Referencia  INT, 
+                                                       @Cod_Moneda     VARCHAR(5), 
+                                                       @Monto          NUMERIC(38, 2), 
+                                                       @Cod_Caja       VARCHAR(5), 
+                                                       @Cod_Turno      VARCHAR(32), 
+                                                       @Cod_Usuario    VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        DECLARE @Item INT=
+        (
+            SELECT ISNULL(MAX(cfp.Item), 0) + 1
+            FROM dbo.CAJ_FORMA_PAGO cfp
+            WHERE cfp.id_ComprobantePago = @Id_Comprobante
+        );
+        INSERT INTO dbo.CAJ_FORMA_PAGO
+        VALUES
+        (@Id_Comprobante, -- id_ComprobantePago - int
+         @Item, -- Item - int
+         'LETRA DE CAMBIO', -- Des_FormaPago - varchar
+         '001', -- Cod_TipoFormaPago - varchar
+         @Cod_Cuenta, -- Cuenta_CajaBanco - varchar
+         @Id_Referencia, -- Id_Movimiento - int
+         1, -- TipoCambio - numeric
+         @Cod_Moneda, -- Cod_Moneda - varchar
+         @Monto, -- Monto - numeric
+         @Cod_Caja, -- Cod_Caja - varchar
+         @Cod_Turno, -- Cod_Turno - varchar
+         '', -- Cod_Plantilla - varchar
+         NULL, -- Obs_FormaPago - xml
+         GETDATE(), -- Fecha - datetime
+         @Cod_Usuario, -- Cod_UsuarioReg - varchar
+         GETDATE(), -- Fecha_Reg - datetime
+         NULL, -- Cod_UsuarioAct - varchar
+         NULL -- Fecha_Act - datetime
+        );
+    END;
+GO
+--Metodo que trae las letras usando los filtros requeridos
+--  EXEC dbo.URP_CAJ_LETRA_CAMBIO_TraerLetraXCodMonedaCodCuentaIdClienteFechasCodEstadoCodLibro
+-- 	@CodMoneda = NULL,
+-- 	@CodCuenta = NULL,
+-- 	@IdCliente = NULL,
+-- 	@FechaInicio = NULL,
+-- 	@FechaFin = NULL,
+-- 	@CodEstado = NULL,
+-- 	@CodLibro = NULL 
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'URP_CAJ_LETRA_CAMBIO_TraerLetraXCodMonedaCodCuentaIdClienteFechasCodEstadoCodLibro'
+          AND type = 'P'
+)
+    DROP PROCEDURE URP_CAJ_LETRA_CAMBIO_TraerLetraXCodMonedaCodCuentaIdClienteFechasCodEstadoCodLibro;
+GO
+CREATE PROCEDURE URP_CAJ_LETRA_CAMBIO_TraerLetraXCodMonedaCodCuentaIdClienteFechasCodEstadoCodLibro @CodMoneda   VARCHAR(5)   = NULL, 
+                                                                                                    @CodCuenta   VARCHAR(128) = NULL, 
+                                                                                                    @IdCliente   INT          = NULL, 
+                                                                                                    @FechaInicio DATETIME     = NULL, 
+                                                                                                    @FechaFin    DATETIME     = NULL, 
+                                                                                                    @CodEstado   VARCHAR(10)  = NULL, 
+                                                                                                    @CodLibro    VARCHAR(10)  = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT 
+               clc.Id, 
+               clc.Id_Letra, 
+               CAST(clc.Nro_Letra AS BIGINT) Nro_Letra, 
+               clc.Cod_Libro, 
+               clc.Ref_Girador, 
+               clc.Fecha_Girado, 
+               clc.Fecha_Vencimiento,
+               CASE
+                   WHEN clc.Cod_Estado = '001'
+                   THEN DATEDIFF(dd, GETDATE(), clc.Fecha_Vencimiento)
+                   ELSE 0
+               END Diferencia, 
+               clc.Fecha_Pago,
+               CASE
+                   WHEN clc.Cod_Estado = '001'
+                   THEN clc.Monto_Base
+                   ELSE 0
+               END Monto_Base, 
+               clc.Cod_Cuenta, 
+               clc.Nro_Operacion, 
+               clc.Cod_Moneda, 
+               vm.Nom_Moneda, 
+               clc.Id_Comprobante, 
+               clc.Cod_Estado, 
+               vel.Des_Estado, 
+               clc.Nro_Referencia, 
+               clc.Monto_Base, 
+               clc.Monto_Real, 
+               clc.Observaciones, 
+               ccp.Id_Cliente, 
+               vtd.Nom_TipoDoc, 
+               ccp.Cod_TipoDoc, 
+               ccp.Doc_Cliente, 
+               ccp.Nom_Cliente, 
+               ccp.Cod_TipoComprobante, 
+               vtc.Nom_TipoComprobante, 
+               ccp.Serie + '-' + ccp.Numero SerieNumero
+        FROM dbo.CAJ_LETRA_CAMBIO clc
+             INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccp.id_ComprobantePago = clc.Id_Comprobante
+             INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON ccp.Cod_TipoComprobante = vtc.Cod_TipoComprobante
+             INNER JOIN dbo.VIS_MONEDAS vm ON clc.Cod_Moneda = vm.Cod_Moneda
+             INNER JOIN dbo.VIS_ESTADOS_LETRA vel ON clc.Cod_Estado = vel.Cod_Estado
+             INNER JOIN dbo.VIS_TIPO_DOCUMENTOS vtd ON ccp.Cod_TipoDoc = vtd.Cod_TipoDoc
+        WHERE(@CodMoneda IS NULL
+              OR clc.Cod_Moneda = @CodMoneda)
+             AND (@CodCuenta IS NULL
+                  OR clc.Cod_Cuenta = @CodCuenta)
+             AND (@IdCliente IS NULL
+                  OR ccp.Id_Cliente = @IdCliente)
+             AND (CONVERT(DATETIME, CONVERT(VARCHAR(32), clc.Fecha_Girado, 103)) BETWEEN CONVERT(DATETIME, @FechaInicio) AND CONVERT(DATETIME, @FechaFin)
+                  OR @FechaInicio IS NULL)
+             AND (@CodEstado IS NULL
+                  OR clc.Cod_Estado = @CodEstado)
+             AND (@CodLibro IS NULL
+                  OR clc.Cod_Libro = @CodLibro)
+        ORDER BY clc.Id_Letra, 
+                 CAST(clc.Nro_Letra AS BIGINT), 
+                 clc.Fecha_Girado;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_LETRA_CAMBIO_ModificarMontoRealFechaPagoEstadoXId'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_ModificarMontoRealFechaPagoEstadoXId;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_ModificarMontoRealFechaPagoEstadoXId @Id         INT, 
+                                                                           @MontoReal  NUMERIC(38, 3), 
+                                                                           @FechaPago  DATETIME, 
+                                                                           @CodEstado  VARCHAR(5), 
+                                                                           @CodUsuario VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        UPDATE dbo.CAJ_LETRA_CAMBIO
+          SET 
+              dbo.CAJ_LETRA_CAMBIO.Monto_Real = @MontoReal, 
+              dbo.CAJ_LETRA_CAMBIO.Fecha_Pago = @FechaPago, 
+              dbo.CAJ_LETRA_CAMBIO.Cod_Estado = @CodEstado, 
+              dbo.CAJ_LETRA_CAMBIO.Cod_UsuarioAct = @CodUsuario, 
+              dbo.CAJ_LETRA_CAMBIO.Fecha_Act = GETDATE()
+        WHERE dbo.CAJ_LETRA_CAMBIO.Id = @Id;
+    END;
+	GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_LETRA_CAMBIO_ModificarEstadoXId'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_ModificarEstadoXId;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_ModificarEstadoXId @Id         INT, 
+                                                         @CodEstado  VARCHAR(5), 
+                                                         @CodUsuario VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        UPDATE dbo.CAJ_LETRA_CAMBIO
+          SET 
+              dbo.CAJ_LETRA_CAMBIO.Cod_Estado = @CodEstado, 
+              dbo.CAJ_LETRA_CAMBIO.Cod_UsuarioAct = @CodUsuario, 
+              dbo.CAJ_LETRA_CAMBIO.Fecha_Act = GETDATE()
+        WHERE dbo.CAJ_LETRA_CAMBIO.Id = @Id;
     END;
