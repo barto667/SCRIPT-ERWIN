@@ -1198,6 +1198,7 @@ AS
         WHERE dbo.CAJ_LETRA_CAMBIO.Id = @Id;
     END;
 	GO
+    
 IF EXISTS
 (
     SELECT *
@@ -1207,16 +1208,160 @@ IF EXISTS
 )
     DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_ModificarEstadoXId;
 GO
-CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_ModificarEstadoXId @Id         INT, 
-                                                         @CodEstado  VARCHAR(5), 
-                                                         @CodUsuario VARCHAR(32)
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_ModificarEstadoXId @Id            INT, 
+                                                         @CodEstado     VARCHAR(5), 
+                                                         @Justificacion VARCHAR(250), 
+                                                         @CodUsuario    VARCHAR(32)
 WITH ENCRYPTION
 AS
     BEGIN
+        DECLARE @Documento VARCHAR(MAX)=
+        (
+            SELECT CONCAT(clc.Cod_Libro, '-', clc.Nro_Letra)
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Id = @Id
+        );
+        DECLARE @Proveedor VARCHAR(MAX)=
+        (
+            SELECT CONCAT(ccp.Cod_TipoDoc, ':', ccp.Doc_Cliente, '-', ccp.Nom_Cliente)
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+                 INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON clc.Id_Comprobante = ccp.id_ComprobantePago
+            WHERE clc.Id = @Id
+        );
+        DECLARE @Detalle VARCHAR(MAX)=
+        (
+            SELECT CONCAT(clc.Cod_Estado, '|', clc.Monto_Base, '|', clc.Monto_Real)
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Id = @Id
+        );
+        DECLARE @FechaEmision DATETIME=
+        (
+            SELECT clc.Fecha_Reg
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Id = @Id
+        );
         UPDATE dbo.CAJ_LETRA_CAMBIO
           SET 
               dbo.CAJ_LETRA_CAMBIO.Cod_Estado = @CodEstado, 
               dbo.CAJ_LETRA_CAMBIO.Cod_UsuarioAct = @CodUsuario, 
               dbo.CAJ_LETRA_CAMBIO.Fecha_Act = GETDATE()
         WHERE dbo.CAJ_LETRA_CAMBIO.Id = @Id;
+
+        --Editamos la forma de pago en 0
+        UPDATE cfp
+          SET 
+              cfp.Monto = 0
+        FROM dbo.CAJ_FORMA_PAGO cfp
+             INNER JOIN dbo.CAJ_LETRA_CAMBIO clc ON cfp.id_ComprobantePago = clc.Id_Comprobante
+        WHERE clc.Id = @Id;
+
+        --Guardamos la jsutificacion
+
+        DECLARE @FechaActual DATETIME= GETDATE();
+        DECLARE @id_Fila INT=
+        (
+            SELECT ISNULL(COUNT(*) / 9, 1) + 1
+            FROM PAR_FILA
+            WHERE Cod_Tabla = '079'
+        );
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '001', 
+             @id_Fila, 
+             @Documento, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '002', 
+             @id_Fila, 
+             'CAJ_LETRA_CAMBIO', 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '003', 
+             @id_Fila, 
+             @Proveedor, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '004', 
+             @id_Fila, 
+             @Detalle, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '005', 
+             @id_Fila, 
+             NULL, 
+             NULL, 
+             NULL, 
+             @FechaEmision, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '006', 
+             @id_Fila, 
+             NULL, 
+             NULL, 
+             NULL, 
+             @FechaActual, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '007', 
+             @id_Fila, 
+             @CodUsuario, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '008', 
+             @id_Fila, 
+             @Justificacion, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '009', 
+             @id_Fila, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             1, 
+             'MIGRACION';
     END;
+GO
