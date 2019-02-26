@@ -143,7 +143,7 @@ IF
              @Cod_Tabla = '127', 
              @Cod_Columna = '002', 
              @Cod_Fila = 3, 
-             @Cadena = N'CANCELADO', 
+             @Cadena = N'ANULADO', 
              @Numero = NULL, 
              @Entero = NULL, 
              @FechaHora = NULL, 
@@ -1130,6 +1130,7 @@ AS
                    ELSE 0
                END Monto_Base, 
                clc.Cod_Cuenta, 
+			   bcb.Des_CuentaBancaria,
                clc.Nro_Operacion, 
                clc.Cod_Moneda, 
                vm.Nom_Moneda, 
@@ -1147,13 +1148,14 @@ AS
                ccp.Nom_Cliente, 
                ccp.Cod_TipoComprobante, 
                vtc.Nom_TipoComprobante, 
-               ccp.Serie + '-' + ccp.Numero SerieNumero
+               ccp.Cod_TipoComprobante+':'+ccp.Serie + '-' + ccp.Numero SerieNumero
         FROM dbo.CAJ_LETRA_CAMBIO clc
              INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccp.id_ComprobantePago = clc.Id_Comprobante
              INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON ccp.Cod_TipoComprobante = vtc.Cod_TipoComprobante
              INNER JOIN dbo.VIS_MONEDAS vm ON clc.Cod_Moneda = vm.Cod_Moneda
              INNER JOIN dbo.VIS_ESTADOS_LETRA vel ON clc.Cod_Estado = vel.Cod_Estado
              INNER JOIN dbo.VIS_TIPO_DOCUMENTOS vtd ON ccp.Cod_TipoDoc = vtd.Cod_TipoDoc
+			 INNER JOIN dbo.BAN_CUENTA_BANCARIA bcb ON clc.Cod_Cuenta=bcb.Cod_CuentaBancaria
         WHERE(@CodMoneda IS NULL
               OR clc.Cod_Moneda = @CodMoneda)
              AND (@CodCuenta IS NULL
