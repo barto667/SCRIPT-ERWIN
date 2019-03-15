@@ -143,7 +143,7 @@ IF
              @Cod_Tabla = '127', 
              @Cod_Columna = '002', 
              @Cod_Fila = 3, 
-             @Cadena = N'ANULADO', 
+             @Cadena = N'PROTESTO', 
              @Numero = NULL, 
              @Entero = NULL, 
              @FechaHora = NULL, 

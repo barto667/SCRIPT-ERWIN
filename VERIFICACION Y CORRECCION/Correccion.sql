@@ -114,10 +114,6 @@ BEGIN
 END
 go
 
-
-
-
-
 --actualiza todos los documentos rechazados
 DECLARE @id_ComprobantePago INT
 DECLARE product_cursor CURSOR FOR   

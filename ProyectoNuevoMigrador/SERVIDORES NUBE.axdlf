@@ -1,21 +1,52 @@
 ﻿<DatabaseList Name="SERVIDORES NUBE">
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPandeanexclusive" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPandree" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPandres" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPasperu" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPayaviri2018" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPccoylloritty" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPchincheros" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPcomprobantes" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPcormanu" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPdata" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPdelcarpio" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPdemo" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPdonandres" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPdonquilly" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPeder" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPelsalvador" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPeric" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPgasoil" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPgrifoccoylloritti" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPgrifolajoya" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPgrifotambopata" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPgrupoat" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPijc" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPinversionesfameva" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPirmacruz" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPjhoan" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPjkf" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPlapampilla" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPlasvegas" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPlosapus" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPmafer1" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPmaki" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPmaster" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPmisky" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPmym" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPnuevaesperanza" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPoromanu" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPpale" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPpericos" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPpetroselva" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPprueba" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPsamueljaher" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPsancarlos" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPsanjeronimo" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPsanmartin" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPsantaines" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPsherman" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
   <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPsurco" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
-  <Database ServerName="petrourubamba.sytes.net" DatabaseName="PALERPurubamba" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
-  <Database ServerName="qosqomaki.ddns.net" DatabaseName="PALERPmaki" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
-  <Database ServerName="grifolatino.hopto.org" DatabaseName="PALERPlatino" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPterres" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
+  <Database ServerName="reyberpalma.hopto.org" DatabaseName="PALERPtodaunavida" Checked="True" TrustedConnection="False" Login="sa" StoreEncryptedPassword="True" Password="yJt5B89kf2ZJgPz8qQd6yQ==" />
 </DatabaseList>
