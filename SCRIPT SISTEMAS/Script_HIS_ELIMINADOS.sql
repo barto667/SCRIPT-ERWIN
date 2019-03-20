@@ -16,7 +16,7 @@ IF NOT EXISTS
          Fecha_Emision     DATETIME NOT NULL, 
          Fecha_Eliminacion DATETIME NOT NULL, 
          Responsable       VARCHAR(64) NOT NULL, 
-         Justifcacion      VARCHAR(MAX) NOT NULL, 
+         Justificacion      VARCHAR(MAX) NOT NULL, 
          Cod_UsuarioReg    VARCHAR(32) NOT NULL, 
          Fecha_Reg         DATETIME NOT NULL, 
          Cod_UsuarioAct    VARCHAR(32), 
@@ -111,7 +111,7 @@ AS
                               dbo.HIS_ELIMINADOS.Fecha_Emision = @Fecha_Emision, -- DATETIME
                               dbo.HIS_ELIMINADOS.Fecha_Eliminacion = @Fecha_Eliminacion, -- DATETIME
                               dbo.HIS_ELIMINADOS.Responsable = @Responsable, -- VARCHAR
-                              dbo.HIS_ELIMINADOS.Justifcacion = @Justificacion, -- VARCHAR
+                              dbo.HIS_ELIMINADOS.Justificacion = @Justificacion, -- VARCHAR
                               dbo.HIS_ELIMINADOS.Cod_UsuarioAct = @Cod_Usuario, -- VARCHAR
                               dbo.HIS_ELIMINADOS.Fecha_Act = GETDATE() -- DATETIME
                         WHERE dbo.HIS_ELIMINADOS.Id = @Id;

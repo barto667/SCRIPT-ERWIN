@@ -249,6 +249,7 @@ IF OBJECT_ID('CAJ_GUIA_REMISION_REMITENTE', 'U') IS NULL
          Cod_Turno                      VARCHAR(32) FOREIGN KEY REFERENCES dbo.CAJ_TURNO_ATENCION(Cod_Turno), 
          Cod_TipoComprobante            VARCHAR(5) NOT NULL, 
          Cod_Libro                      VARCHAR(2) NOT NULL, --Indica si la guia es para emitir o para registrar (similar a venta-compra)
+         Cod_Periodo                    VARCHAR(8) not NULL,
          Serie                          VARCHAR(5) NOT NULL, 
          Numero                         VARCHAR(30) NOT NULL, 
          Fecha_Emision                  DATETIME NOT NULL, 
@@ -331,6 +332,7 @@ CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_G @Id_GuiaRemisionRemitente    
                                                    @Cod_Turno                      VARCHAR(32), 
                                                    @Cod_TipoComprobante            VARCHAR(5), 
                                                    @Cod_Libro                      VARCHAR(2), 
+                                                   @Cod_Periodo                    VARCHAR(8),
                                                    @Serie                          VARCHAR(5), 
                                                    @Numero                         VARCHAR(30), 
                                                    @Fecha_Emision                  DATETIME, 
@@ -410,6 +412,7 @@ AS
                 @Cod_Turno, -- Cod_Turno - VARCHAR
                 @Cod_TipoComprobante, -- Cod_TipoComprobante - VARCHAR
                 @Cod_Libro, -- Cod_Libro - VARCHAR
+                @Cod_Periodo,
                 @Serie, -- Serie - VARCHAR
                 @Numero, -- Numero - VARCHAR
                 @Fecha_Emision, -- Fecha_Emision - DATETIME
@@ -462,6 +465,7 @@ AS
                       dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Turno = @Cod_Turno, -- VARCHAR
                       dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoComprobante = @Cod_TipoComprobante, -- VARCHAR
                       dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Libro = @Cod_Libro, -- VARCHAR
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Periodo = @Cod_Periodo,
                       dbo.CAJ_GUIA_REMISION_REMITENTE.Serie = @Serie, -- VARCHAR
                       dbo.CAJ_GUIA_REMISION_REMITENTE.Numero = @Numero, -- VARCHAR
                       dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Emision = @Fecha_Emision, -- DATETIME
