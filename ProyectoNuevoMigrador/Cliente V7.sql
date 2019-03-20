@@ -8350,6 +8350,7 @@ BEGIN
 			  CASE WHEN i.Cod_UbigeoPartida IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_UbigeoPartida,'''','')+''',' END +
 			  CASE WHEN i.Direccion_Partida IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Direccion_Partida,'''','')+''',' END +
 			  CASE WHEN i.Cod_UbigeoLlegada IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_UbigeoLlegada,'''','')+''',' END +
+			  CASE WHEN i.Direccion_LLegada IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Direccion_LLegada,'''','')+''',' END +
 			  CONVERT(VARCHAR(MAX),i.Flag_Transbordo)+','+ 
 			  CASE WHEN i.Peso_Bruto IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),i.Peso_Bruto)+','END+
 			  CASE WHEN i.Nro_Contenedor IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Nro_Contenedor,'''','')+''',' END +
@@ -8357,10 +8358,14 @@ BEGIN
 			  CASE WHEN i.Nro_Bulltos IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),i.Nro_Bulltos)+','END+
 			  CASE WHEN i.Cod_EstadoGuia IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_EstadoGuia,'''','')+''',' END +
 			  CASE WHEN i.Obs_GuiaRemisionRemitente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Obs_GuiaRemisionRemitente,'''','')+''',' END +
-			  CASE WHEN i.Id_GuiaRemisionRemitenteBaja=0 OR i.Id_GuiaRemisionRemitenteBaja IS NULL THEN '' ELSE ''''+REPLACE(ISNULL((SELECT TOP 1 cgrr.Cod_TipoComprobante FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente),''),'''','')+''',' END +
-			  CASE WHEN i.Id_GuiaRemisionRemitenteBaja=0 OR i.Id_GuiaRemisionRemitenteBaja IS NULL THEN '' ELSE ''''+REPLACE(ISNULL((SELECT TOP 1 cgrr.Cod_Libro FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente),''),'''','')+''',' END +
-			  CASE WHEN i.Id_GuiaRemisionRemitenteBaja=0 OR i.Id_GuiaRemisionRemitenteBaja IS NULL THEN '' ELSE ''''+REPLACE(ISNULL((SELECT TOP 1 cgrr.Serie FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente),''),'''','')+''',' END +
-			  CASE WHEN i.Id_GuiaRemisionRemitenteBaja=0 OR i.Id_GuiaRemisionRemitenteBaja IS NULL THEN '' ELSE ''''+REPLACE(ISNULL((SELECT TOP 1 cgrr.Numero FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente),''),'''','')+''',' END +
+			  CASE WHEN i.Id_GuiaRemisionRemitenteBaja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
+			  (CASE WHEN i.Id_GuiaRemisionRemitenteBaja=0  THEN '' ELSE ISNULL((SELECT TOP 1 cgrr.Cod_TipoComprobante FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Id_GuiaRemisionRemitente=i.Id_GuiaRemisionRemitenteBaja),'') END )),'''','')+''',' END+
+			  CASE WHEN i.Id_GuiaRemisionRemitenteBaja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
+			  (CASE WHEN i.Id_GuiaRemisionRemitenteBaja=0  THEN '' ELSE ISNULL((SELECT TOP 1 cgrr.Cod_Libro FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Id_GuiaRemisionRemitente=i.Id_GuiaRemisionRemitenteBaja),'') END )),'''','')+''',' END+
+			  CASE WHEN i.Id_GuiaRemisionRemitenteBaja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
+			  (CASE WHEN i.Id_GuiaRemisionRemitenteBaja=0  THEN '' ELSE ISNULL((SELECT TOP 1 cgrr.Serie FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Id_GuiaRemisionRemitente=i.Id_GuiaRemisionRemitenteBaja),'') END )),'''','')+''',' END+
+			  CASE WHEN i.Id_GuiaRemisionRemitenteBaja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
+			  (CASE WHEN i.Id_GuiaRemisionRemitenteBaja=0  THEN '' ELSE ISNULL((SELECT TOP 1 cgrr.Numero FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr WHERE cgrr.Id_GuiaRemisionRemitente=i.Id_GuiaRemisionRemitenteBaja),'') END )),'''','')+''',' END+
 			  CONVERT(VARCHAR(MAX),i.Flag_Anulado)+','+ 
 			  'NULL,'+
 			  'NULL,'+
@@ -8898,8 +8903,6 @@ BEGIN
 			  CASE WHEN cgrr.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Cod_Libro,'''','')+''',' END +
 			  CASE WHEN cgrr.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Serie,'''','')+''',' END +
 			  CASE WHEN cgrr.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Numero,'''','')+''',' END +	
-			  CASE WHEN pcp.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','')+''',' END +	
-			  CASE WHEN pcp.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Nro_Documento,'''','')+''',' END +	
 			  CONVERT(VARCHAR(MAX),i.id_Detalle)+','+ 
 			  CASE WHEN i.Cod_Almacen IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_Almacen,'''','')+''',' END +
 			  CASE WHEN i.Cod_UnidadMedida IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_UnidadMedida,'''','')+''',' END +
@@ -8911,7 +8914,6 @@ BEGIN
 			  CASE WHEN i.Cod_ProductoSunat IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_ProductoSunat,'''','')+''',' END +
 			  ''''+REPLACE(COALESCE(i.Cod_UsuarioAct,i.Cod_UsuarioReg),'''','')+ ''';' 	 
 			  FROM            INSERTED   i INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE cgrr  ON i.Id_GuiaRemisionRemitente=cgrr.Id_GuiaRemisionRemitente
-			  INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON cgrr.Id_ClienteDestinatario=pcp.Id_ClienteProveedor
 			  INNER JOIN dbo.PRI_PRODUCTOS pp ON pp.Id_Producto=i.Id_Producto
 			  WHERE i.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND i.Id_Detalle = @Id_Detalle
 
@@ -8963,19 +8965,16 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			 SELECT @Script= 'USP_CAJ_GUIA_REMISION_REMITENTE_D '+ 
+			 SELECT @Script= 'USP_CAJ_GUIA_REMISION_REMITENTE_D_D '+ 
 			 CASE WHEN cgrr.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Cod_TipoComprobante,'''','')+''',' END +
 			  CASE WHEN cgrr.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Cod_Libro,'''','')+''',' END +
 			  CASE WHEN cgrr.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Serie,'''','')+''',' END +
 			  CASE WHEN cgrr.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Numero,'''','')+''',' END +	
-			  CASE WHEN pcp.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','')+''',' END +	
-			  CASE WHEN pcp.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Nro_Documento,'''','')+''',' END +	
 			  CONVERT(VARCHAR(MAX),d.id_Detalle)+','+ 
 			 ''''+'TRIGGER'+''',' +
 			 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 	 
 			 FROM            DELETED  d INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE cgrr  ON d.Id_GuiaRemisionRemitente=cgrr.Id_GuiaRemisionRemitente
-			  INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON cgrr.Id_ClienteDestinatario=pcp.Id_ClienteProveedor
-			 WHERE d.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
+			 WHERE d.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND d.Id_Detalle = @Id_Detalle
 		   	    SET @FechaReg= GETDATE()
 			    INSERT dbo.TMP_REGISTRO_LOG
 			    (
@@ -9280,8 +9279,6 @@ BEGIN
 			  CASE WHEN cgrr.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Cod_Libro,'''','')+''',' END +
 			  CASE WHEN cgrr.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Serie,'''','')+''',' END +
 			  CASE WHEN cgrr.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Numero,'''','')+''',' END +	
-			  CASE WHEN pcp.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','')+''',' END +	
-			  CASE WHEN pcp.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Nro_Documento,'''','')+''',' END +	
 			  CONVERT(VARCHAR(MAX),i.Item)+','+ 
 			  CASE WHEN i.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_TipoDocumento,'''','')+''',' END +
 			  CASE WHEN i.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Serie,'''','')+''',' END +
@@ -9289,7 +9286,6 @@ BEGIN
 			  CASE WHEN i.Observacion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Observacion,'''','')+''',' END +
 			  ''''+REPLACE(COALESCE(i.Cod_UsuarioAct,i.Cod_UsuarioReg),'''','')+ ''';' 	 
 			  FROM            INSERTED   i INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE cgrr  ON i.Id_GuiaRemisionRemitente=cgrr.Id_GuiaRemisionRemitente
-			  INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON cgrr.Id_ClienteDestinatario=pcp.Id_ClienteProveedor
 			  WHERE i.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND i.Item = @Item
 
 		   	SET @FechaReg= GETDATE()
@@ -9345,14 +9341,11 @@ BEGIN
 			  CASE WHEN cgrr.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Cod_Libro,'''','')+''',' END +
 			  CASE WHEN cgrr.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Serie,'''','')+''',' END +
 			  CASE WHEN cgrr.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Numero,'''','')+''',' END +	
-			  CASE WHEN pcp.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','')+''',' END +	
-			  CASE WHEN pcp.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Nro_Documento,'''','')+''',' END +	
 			  CONVERT(VARCHAR(MAX),d.Item)+','+ 
 			 ''''+'TRIGGER'+''',' +
 			 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 	 
 			 FROM  DELETED  d INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE cgrr  ON d.Id_GuiaRemisionRemitente=cgrr.Id_GuiaRemisionRemitente
-			  INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON cgrr.Id_ClienteDestinatario=pcp.Id_ClienteProveedor
-			 WHERE d.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
+			 WHERE d.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND d.Item=@Item
 		   	    SET @FechaReg= GETDATE()
 			    INSERT dbo.TMP_REGISTRO_LOG
 			    (
@@ -9628,8 +9621,6 @@ BEGIN
 			  CASE WHEN cgrr.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Cod_Libro,'''','')+''',' END +
 			  CASE WHEN cgrr.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Serie,'''','')+''',' END +
 			  CASE WHEN cgrr.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Numero,'''','')+''',' END +	
-			  CASE WHEN pcp.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','')+''',' END +	
-			  CASE WHEN pcp.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Nro_Documento,'''','')+''',' END +	
 			  CONVERT(VARCHAR(MAX),i.Item)+','+ 
 			  CASE WHEN i.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_TipoDocumento,'''','')+''',' END +
 			  CASE WHEN i.Numero_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Numero_Documento,'''','')+''',' END +
@@ -9640,7 +9631,6 @@ BEGIN
 			  CASE WHEN i.Observaciones IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Observaciones,'''','')+''',' END +
 			  ''''+REPLACE(COALESCE(i.Cod_UsuarioAct,i.Cod_UsuarioReg),'''','')+ ''';' 	 
 			  FROM            INSERTED   i INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE cgrr  ON i.Id_GuiaRemisionRemitente=cgrr.Id_GuiaRemisionRemitente
-			  INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON cgrr.Id_ClienteDestinatario=pcp.Id_ClienteProveedor
 			  WHERE i.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND i.Item = @Item
 
 		   	SET @FechaReg= GETDATE()
@@ -9696,14 +9686,11 @@ BEGIN
 			  CASE WHEN cgrr.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Cod_Libro,'''','')+''',' END +
 			  CASE WHEN cgrr.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Serie,'''','')+''',' END +
 			  CASE WHEN cgrr.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Numero,'''','')+''',' END +	
-			  CASE WHEN pcp.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','')+''',' END +	
-			  CASE WHEN pcp.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Nro_Documento,'''','')+''',' END +	
 			  CONVERT(VARCHAR(MAX),d.Item)+','+ 			
 			   ''''+'TRIGGER'+''',' +
 			 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 	 
 			 FROM  DELETED  d INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE cgrr  ON d.Id_GuiaRemisionRemitente=cgrr.Id_GuiaRemisionRemitente
-			  INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON cgrr.Id_ClienteDestinatario=pcp.Id_ClienteProveedor
-			 WHERE d.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente
+			 WHERE d.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente and d.Item = @Item 
 		   	    SET @FechaReg= GETDATE()
 			    INSERT dbo.TMP_REGISTRO_LOG
 			    (
@@ -9999,8 +9986,6 @@ BEGIN
 			  CASE WHEN cgrr.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Cod_Libro,'''','')+''',' END +
 			  CASE WHEN cgrr.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Serie,'''','')+''',' END +
 			  CASE WHEN cgrr.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Numero,'''','')+''',' END +	
-			  CASE WHEN pcp.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','')+''',' END +	
-			  CASE WHEN pcp.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Nro_Documento,'''','')+''',' END +	
 			  CONVERT(VARCHAR(MAX),i.Item)+','+ 
 			  CASE WHEN i.Placa IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Placa,'''','')+''',' END +
 			  CASE WHEN i.Certificado_Inscripcion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Certificado_Inscripcion,'''','')+''',' END +
@@ -10008,7 +9993,6 @@ BEGIN
 			  CASE WHEN i.Observaciones IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Observaciones,'''','')+''',' END +
 			  ''''+REPLACE(COALESCE(i.Cod_UsuarioAct,i.Cod_UsuarioReg),'''','')+ ''';' 	 
 			  FROM            INSERTED   i INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE cgrr  ON i.Id_GuiaRemisionRemitente=cgrr.Id_GuiaRemisionRemitente
-			  INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON cgrr.Id_ClienteDestinatario=pcp.Id_ClienteProveedor
 			  WHERE i.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND i.Item = @Item
 
 
@@ -10065,13 +10049,10 @@ BEGIN
 			  CASE WHEN cgrr.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Cod_Libro,'''','')+''',' END +
 			  CASE WHEN cgrr.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Serie,'''','')+''',' END +
 			  CASE WHEN cgrr.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(cgrr.Numero,'''','')+''',' END +	
-			  CASE WHEN pcp.Cod_TipoDocumento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Cod_TipoDocumento,'''','')+''',' END +	
-			  CASE WHEN pcp.Nro_Documento IS NULL THEN 'NULL,' ELSE ''''+REPLACE(pcp.Nro_Documento,'''','')+''',' END +	
 			  CONVERT(VARCHAR(MAX),d.Item)+','+ 
 			 ''''+'TRIGGER'+''',' +
 			 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 	 
 			 FROM            DELETED  d INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE cgrr  ON d.Id_GuiaRemisionRemitente=cgrr.Id_GuiaRemisionRemitente
-			  INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON cgrr.Id_ClienteDestinatario=pcp.Id_ClienteProveedor
 			  WHERE d.Id_GuiaRemisionRemitente=@Id_GuiaRemisionRemitente AND d.Item = @Item
 		   	    SET @FechaReg= GETDATE()
 			    INSERT dbo.TMP_REGISTRO_LOG
@@ -10348,8 +10329,7 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			SELECT @Script= 'USP_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_I '+ 
-			  CASE WHEN i.Id IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),i.Id)+','END+
+			SELECT @Script= 'USP_CAJ_LETRA_CAMBIO_I '+ 
 			  CASE WHEN i.Id_Letra IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),i.Id_Letra)+','END+
 			  CASE WHEN i.Nro_Letra IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Nro_Letra,'''','')+''',' END +
 			  CASE WHEN i.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_Libro,'''','')+''',' END +
@@ -10841,7 +10821,7 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			 SELECT @Script= 'USP_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_D '+ 
+			 SELECT @Script= 'USP_CAJ_RESUMEN_DIARIO_D '+ 
 			  CASE WHEN d.Fecha_Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(d.Fecha_Serie,'''','')+''',' END +
 			  CASE WHEN d.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(d.Numero,'''','')+''',' END +
 			 ''''+'TRIGGER'+''',' +
@@ -11114,7 +11094,7 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			SELECT @Script= 'USP_CAJ_RESUMEN_DIARIO_I '+ 
+			SELECT @Script= 'USP_HIS_ELIMINADOS_I '+ 
 			  CASE WHEN i.Cod_Eliminado IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cod_Eliminado,'''','')+''',' END +
 			  CASE WHEN i.Tabla IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Tabla,'''','')+''',' END +
 			  CASE WHEN i.Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(i.Cliente,'''','')+''',' END +
@@ -11171,7 +11151,7 @@ BEGIN
 	    BEGIN
 			--Si esta habilitada la exportacion para almacenar en la tabla de
 			--exportaciones
-			 SELECT @Script= 'USP_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_D '+ 
+			 SELECT @Script= 'USP_HIS_ELIMINADOS_D '+ 
 			  CASE WHEN d.Cod_Eliminado IS NULL THEN 'NULL,' ELSE ''''+REPLACE(d.Cod_Eliminado,'''','')+''',' END +
 			  CASE WHEN d.Tabla IS NULL THEN 'NULL,' ELSE ''''+REPLACE(d.Tabla,'''','')+''',' END +
 			  CASE WHEN d.Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(d.Cliente,'''','')+''',' END +
@@ -35260,15 +35240,33 @@ GO
 --	Cod_UsuarioAct = 'MIGRACION',
 --    Fecha_Act = GETDATE()
 --GO
+--UPDATE dbo.CAJ_LETRA_CAMBIO
+--SET
+--	Cod_UsuarioAct = 'MIGRACION',
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.CAJ_RESUMEN_DIARIO
+--SET
+--	Cod_UsuarioAct = 'MIGRACION',
+--    Fecha_Act = GETDATE()
+--GO
+--UPDATE dbo.HIS_ELIMINADOS
+--SET
+--	Cod_UsuarioAct = 'MIGRACION',
+--    Fecha_Act = GETDATE()
+--GO
 
 
 --Scripts de emergencia en caso de error
--- IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_REMITENTE_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_REMITENTE_IUD
--- IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_REMITENTE_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_REMITENTE_D_IUD
--- IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS_IUD
--- IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS_IUD
--- IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_REMITENTE_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_REMITENTE_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_REMITENTE_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_REMITENTE_D_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_IUD
 --IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_COMUNICACION_BAJA_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_COMUNICACION_BAJA_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_HIS_ELIMINADOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_HIS_ELIMINADOS_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_LETRA_CAMBIO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_LETRA_CAMBIO_IUD
+--IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_CAJ_RESUMEN_DIARIO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_CAJ_RESUMEN_DIARIO_IUD
 --IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_ALM_ALMACEN_MOV_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_ALM_ALMACEN_MOV_IUD
 --IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_ALM_INVENTARIO_D_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_ALM_INVENTARIO_D_IUD
 --IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_ALM_INVENTARIO_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_ALM_INVENTARIO_IUD
@@ -35361,3 +35359,4 @@ GO
 --IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_TAR_ALERTAS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_TAR_ALERTAS_IUD
 --IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_TAR_CRONOMETROS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_TAR_CRONOMETROS_IUD
 --IF EXISTS (SELECT name  FROM   sysobjects WHERE  name ='UTR_TAR_PROYECTOS_IUD' AND 	  type = 'TR') DROP TRIGGER UTR_TAR_PROYECTOS_I
+

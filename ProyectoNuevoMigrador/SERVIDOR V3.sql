@@ -4286,407 +4286,6 @@ AS
     END;
 GO
 
--- Guadar
-IF EXISTS
-(
-    SELECT name
-    FROM sysobjects
-    WHERE name = 'USP_CAJ_COMUNICACION_BAJA_I'
-          AND type = 'P'
-)
-    DROP PROCEDURE USP_CAJ_COMUNICACION_BAJA_I;
-GO
-CREATE PROCEDURE USP_CAJ_COMUNICACION_BAJA_I @Cod_TipoComprobante VARCHAR(8), 
-                                             @Serie               VARCHAR(5), 
-                                             @Numero              VARCHAR(32), 
-                                             @Fecha_Emision       DATETIME, 
-                                             @Numero_Comunicado   VARCHAR(16), 
-                                             @Justificacion       VARCHAR(MAX), 
-                                             @Fecha_Comunicacion  DATETIME, 
-                                             @Ticket              VARCHAR(64), 
-                                             @Mensaje_Respuesta   VARCHAR(MAX), 
-                                             @Cod_Estado          VARCHAR(32), 
-                                             @Cod_Usuario         VARCHAR(64), 
-                                             @Cod_UsuarioReg      VARCHAR(32)
-WITH ENCRYPTION
-AS
-    BEGIN
-        SET DATEFORMAT YMD;
-        IF NOT EXISTS
-        (
-            SELECT ccb.*
-            FROM dbo.CAJ_COMUNICACION_BAJA ccb
-            WHERE ccb.Cod_TipoComprobante = @Cod_TipoComprobante
-                  AND ccb.Serie = @Serie
-                  AND ccb.Numero = @Numero
-        )
-            BEGIN
-                INSERT INTO dbo.CAJ_COMUNICACION_BAJA
-                VALUES
-                (@Cod_TipoComprobante, -- Cod_TipoComprobante - varchar
-                 @Serie, -- Serie - varchar
-                 @Numero, -- Numero - varchar
-                 @Fecha_Emision, -- Fecha_Emision - datetime
-                 @Numero_Comunicado, -- Numero_Comunicado - varchar
-                 @Justificacion, -- Justificacion - varchar
-                 @Fecha_Comunicacion, -- Fecha_Comunicacion - datetime
-                 @Ticket, -- Ticket - varchar
-                 @Mensaje_Respuesta, -- Mensaje_Respuesta - varchar
-                 @Cod_Estado, -- Cod_Estado - varchar
-                 @Cod_Usuario, -- Cod_Usuario - varchar
-                 @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
-                 GETDATE(), -- Fecha_Reg - datetime
-                 NULL, -- Cod_UsuarioAct - varchar
-                 NULL -- Fecha_Act - datetime
-                );
-        END;
-            ELSE
-            BEGIN
-                UPDATE dbo.CAJ_COMUNICACION_BAJA
-                  SET 
-                      dbo.CAJ_COMUNICACION_BAJA.Fecha_Emision = @Fecha_Emision, -- datetime
-                      dbo.CAJ_COMUNICACION_BAJA.Numero_Comunicado = @Numero_Comunicado, -- varchar
-                      dbo.CAJ_COMUNICACION_BAJA.Justificacion = @Justificacion, -- varchar
-                      dbo.CAJ_COMUNICACION_BAJA.Fecha_Comunicacion = @Fecha_Comunicacion, -- datetime
-                      dbo.CAJ_COMUNICACION_BAJA.Ticket = @Ticket, -- varchar
-                      dbo.CAJ_COMUNICACION_BAJA.Mensaje_Respuesta = @Mensaje_Respuesta, -- varchar
-                      dbo.CAJ_COMUNICACION_BAJA.Cod_Estado = @Cod_Estado, -- varchar
-                      dbo.CAJ_COMUNICACION_BAJA.Cod_Usuario = @Cod_Usuario, -- varchar
-                      dbo.CAJ_COMUNICACION_BAJA.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
-                      dbo.CAJ_COMUNICACION_BAJA.Fecha_Act = GETDATE() -- datetime
-                WHERE dbo.CAJ_COMUNICACION_BAJA.Cod_TipoComprobante = @Cod_TipoComprobante
-                      AND dbo.CAJ_COMUNICACION_BAJA.Serie = @Serie
-                      AND dbo.CAJ_COMUNICACION_BAJA.Numero = @Numero;
-        END;
-    END;
-GO
-
--- Guadar
-IF EXISTS
-(
-    SELECT name
-    FROM sysobjects
-    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_I'
-          AND type = 'P'
-)
-    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_I;
-GO
-CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_I @Cod_Caja                  VARCHAR(32), 
-                                                   @Cod_Turno                 VARCHAR(32), 
-                                                   @Cod_TipoComprobante       VARCHAR(5), 
-                                                   @Cod_Libro                 VARCHAR(2), 
-                                                   @Cod_Periodo               VARCHAR(8), 
-                                                   @Serie                     VARCHAR(5), 
-                                                   @Numero                    VARCHAR(30), 
-                                                   @Fecha_Emision             DATETIME, 
-                                                   @Fecha_TrasladoBienes      DATETIME, 
-                                                   @Fecha_EntregaBienes       DATETIME, 
-                                                   @Cod_MotivoTraslado        VARCHAR(5), 
-                                                   @Des_MotivoTraslado        VARCHAR(MAX), 
-                                                   @Cod_ModalidadTraslado     VARCHAR(5), 
-                                                   @Cod_UnidadMedida          VARCHAR(5), 
-                                                   @Cod_TipoDocumento         VARCHAR(3), 
-                                                   @Nro_Documento             VARCHAR(32), 
-                                                   @Cod_UbigeoPartida         VARCHAR(8), 
-                                                   @Direccion_Partida         VARCHAR(MAX), 
-                                                   @Cod_UbigeoLlegada         VARCHAR(8), 
-                                                   @Direccion_LLegada         VARCHAR(MAX), 
-                                                   @Flag_Transbordo           BIT, 
-                                                   @Peso_Bruto                NUMERIC(38, 6), 
-                                                   @Nro_Contenedor            VARCHAR(64), 
-                                                   @Cod_Puerto                VARCHAR(64), 
-                                                   @Nro_Bulltos               INT, 
-                                                   @Cod_EstadoGuia            VARCHAR(8), 
-                                                   @Obs_GuiaRemisionRemitente VARCHAR(MAX), 
-                                                   @Cod_TipoComprobanteBaja   VARCHAR(5), 
-                                                   @Cod_LibroBaja             VARCHAR(2), 
-                                                   @SerieBaja                 VARCHAR(5), 
-                                                   @NumeroBaja                VARCHAR(30), 
-                                                   @Flag_Anulado              BIT, 
-                                                   @Valor_Resumen             VARCHAR(1024), 
-                                                   @Valor_Firma               VARCHAR(2048), 
-                                                   @Cod_UsuarioReg            VARCHAR(32)
-WITH ENCRYPTION
-AS
-    BEGIN
-        SET DATEFORMAT YMD;
-        DECLARE @Id_GuiaRemisionRemitente INT=
-        (
-            SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
-            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
-            WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
-                  AND cgrr.Cod_Libro = @Cod_Libro
-                  AND cgrr.Serie = @Serie
-                  AND cgrr.Numero = @Numero
-        );
-        DECLARE @Id_ClienteDestinatario INT=
-        (
-            SELECT TOP 1 pcp.Id_ClienteProveedor
-            FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
-            WHERE pcp.Cod_TipoDocumento = @Cod_TipoDocumento
-                  AND pcp.Nro_Documento = @Nro_Documento
-        );
-        DECLARE @Id_GuiaRemisionRemitenteBaja INT=
-        (
-            SELECT TOP 1 cgrr.Id_GuiaRemisionRemitente
-            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
-            WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobanteBaja
-                  AND cgrr.Cod_Libro = @Cod_LibroBaja
-                  AND cgrr.Serie = @SerieBaja
-                  AND cgrr.Numero = @NumeroBaja
-        );
-        IF NOT EXISTS
-        (
-            SELECT cgrr.*
-            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
-            WHERE cgrr.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
-        )
-            BEGIN
-                INSERT INTO dbo.CAJ_GUIA_REMISION_REMITENTE
-                VALUES
-                (
-                -- Id_GuiaRemisionRemitente - int
-                @Cod_Caja, -- Cod_Caja - varchar
-                @Cod_Turno, -- Cod_Turno - varchar
-                @Cod_TipoComprobante, -- Cod_TipoComprobante - varchar
-                @Cod_Libro, -- Cod_Libro - varchar
-                @Cod_Periodo, -- Cod_Periodo - varchar
-                @Serie, -- Serie - varchar
-                @Numero, -- Numero - varchar
-                CONVERT(DATETIME, @Fecha_Emision, 121), -- Fecha_Emision - datetime
-                CONVERT(DATETIME, @Fecha_TrasladoBienes, 121), -- Fecha_TrasladoBienes - datetime
-                CONVERT(DATETIME, @Fecha_EntregaBienes, 121), -- Fecha_EntregaBienes - datetime
-                @Cod_MotivoTraslado, -- Cod_MotivoTraslado - varchar
-                @Des_MotivoTraslado, -- Des_MotivoTraslado - varchar
-                @Cod_ModalidadTraslado, -- Cod_ModalidadTraslado - varchar
-                @Cod_UnidadMedida, -- Cod_UnidadMedida - varchar
-                @Id_ClienteDestinatario, -- Id_ClienteDestinatario - int
-                @Cod_UbigeoPartida, -- Cod_UbigeoPartida - varchar
-                @Direccion_Partida, -- Direccion_Partida - varchar
-                @Cod_UbigeoLlegada, -- Cod_UbigeoLlegada - varchar
-                @Direccion_LLegada, -- Direccion_LLegada - varchar
-                @Flag_Transbordo, -- Flag_Transbordo - bit
-                @Peso_Bruto, -- Peso_Bruto - numeric
-                @Nro_Contenedor, -- Nro_Contenedor - varchar
-                @Cod_Puerto, -- Cod_Puerto - varchar
-                @Nro_Bulltos, -- Nro_Bulltos - int
-                @Cod_EstadoGuia, -- Cod_EstadoGuia - varchar
-                @Obs_GuiaRemisionRemitente, -- Obs_GuiaRemisionRemitente - varchar
-                @Id_GuiaRemisionRemitenteBaja, -- Id_GuiaRemisionRemitenteBaja - int
-                @Flag_Anulado, -- Flag_Anulado - bit
-                @Valor_Resumen, -- Valor_Resumen - varchar
-                @Valor_Firma, -- Valor_Firma - varchar
-                @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
-                GETDATE(), -- Fecha_Reg - datetime
-                NULL, -- Cod_UsuarioAct - varchar
-                NULL -- Fecha_Act - datetime
-                );
-        END;
-            ELSE
-            BEGIN
-                UPDATE dbo.CAJ_GUIA_REMISION_REMITENTE
-                  SET
-                --Id_GuiaRemisionRemitente - column value is auto-generated
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Caja = @Cod_Caja, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Turno = @Cod_Turno, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoComprobante = @Cod_TipoComprobante, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Libro = @Cod_Libro, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Periodo = @Cod_Periodo, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Serie = @Serie, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Numero = @Numero, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Emision = CONVERT(DATETIME, @Fecha_Emision, 121), -- datetime
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_TrasladoBienes = CONVERT(DATETIME, @Fecha_TrasladoBienes, 121), -- datetime
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_EntregaBienes = CONVERT(DATETIME, @Fecha_EntregaBienes, 121), -- datetime
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_MotivoTraslado = @Cod_MotivoTraslado, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Des_MotivoTraslado = @Des_MotivoTraslado, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_ModalidadTraslado = @Cod_ModalidadTraslado, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UnidadMedida = @Cod_UnidadMedida, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Id_ClienteDestinatario = @Id_ClienteDestinatario, -- int
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UbigeoPartida = @Cod_UbigeoPartida, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Direccion_Partida = @Direccion_Partida, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UbigeoLlegada = @Cod_UbigeoLlegada, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Direccion_LLegada = @Direccion_LLegada, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Transbordo = @Flag_Transbordo, -- bit
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Peso_Bruto = @Peso_Bruto, -- numeric
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Nro_Contenedor = @Nro_Contenedor, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Puerto = @Cod_Puerto, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Nro_Bulltos = @Nro_Bulltos, -- int
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_EstadoGuia = @Cod_EstadoGuia, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Obs_GuiaRemisionRemitente = @Obs_GuiaRemisionRemitente, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitenteBaja = @Id_GuiaRemisionRemitenteBaja, -- int
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Anulado = @Flag_Anulado, -- bit
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Valor_Resumen = @Valor_Resumen, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Valor_Firma = @Valor_Firma, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Act = GETDATE() -- datetime
-                WHERE dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente;
-        END;
-    END;
-GO
-
--- Guadar
-IF EXISTS
-(
-    SELECT name
-    FROM sysobjects
-    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_I'
-          AND type = 'P'
-)
-    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_I;
-GO
-CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_I @Cod_Caja                  VARCHAR(32), 
-                                                   @Cod_Turno                 VARCHAR(32), 
-                                                   @Cod_TipoComprobante       VARCHAR(5), 
-                                                   @Cod_Libro                 VARCHAR(2), 
-                                                   @Cod_Periodo               VARCHAR(8), 
-                                                   @Serie                     VARCHAR(5), 
-                                                   @Numero                    VARCHAR(30), 
-                                                   @Fecha_Emision             DATETIME, 
-                                                   @Fecha_TrasladoBienes      DATETIME, 
-                                                   @Fecha_EntregaBienes       DATETIME, 
-                                                   @Cod_MotivoTraslado        VARCHAR(5), 
-                                                   @Des_MotivoTraslado        VARCHAR(MAX), 
-                                                   @Cod_ModalidadTraslado     VARCHAR(5), 
-                                                   @Cod_UnidadMedida          VARCHAR(5), 
-                                                   @Cod_TipoDocumento         VARCHAR(3), 
-                                                   @Nro_Documento             VARCHAR(32), 
-                                                   @Cod_UbigeoPartida         VARCHAR(8), 
-                                                   @Direccion_Partida         VARCHAR(MAX), 
-                                                   @Cod_UbigeoLlegada         VARCHAR(8), 
-                                                   @Direccion_LLegada         VARCHAR(MAX), 
-                                                   @Flag_Transbordo           BIT, 
-                                                   @Peso_Bruto                NUMERIC(38, 6), 
-                                                   @Nro_Contenedor            VARCHAR(64), 
-                                                   @Cod_Puerto                VARCHAR(64), 
-                                                   @Nro_Bulltos               INT, 
-                                                   @Cod_EstadoGuia            VARCHAR(8), 
-                                                   @Obs_GuiaRemisionRemitente VARCHAR(MAX), 
-                                                   @Cod_TipoComprobanteBaja   VARCHAR(5), 
-                                                   @Cod_LibroBaja             VARCHAR(2), 
-                                                   @SerieBaja                 VARCHAR(5), 
-                                                   @NumeroBaja                VARCHAR(30), 
-                                                   @Flag_Anulado              BIT, 
-                                                   @Valor_Resumen             VARCHAR(1024), 
-                                                   @Valor_Firma               VARCHAR(2048), 
-                                                   @Cod_UsuarioReg            VARCHAR(32)
-WITH ENCRYPTION
-AS
-    BEGIN
-        SET DATEFORMAT YMD;
-        DECLARE @Id_GuiaRemisionRemitente INT=
-        (
-            SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
-            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
-            WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
-                  AND cgrr.Cod_Libro = @Cod_Libro
-                  AND cgrr.Serie = @Serie
-                  AND cgrr.Numero = @Numero
-        );
-        DECLARE @Id_ClienteDestinatario INT=
-        (
-            SELECT TOP 1 pcp.Id_ClienteProveedor
-            FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
-            WHERE pcp.Cod_TipoDocumento = @Cod_TipoDocumento
-                  AND pcp.Nro_Documento = @Nro_Documento
-        );
-        DECLARE @Id_GuiaRemisionRemitenteBaja INT=
-        (
-            SELECT TOP 1 cgrr.Id_GuiaRemisionRemitente
-            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
-            WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobanteBaja
-                  AND cgrr.Cod_Libro = @Cod_LibroBaja
-                  AND cgrr.Serie = @SerieBaja
-                  AND cgrr.Numero = @NumeroBaja
-        );
-        IF NOT EXISTS
-        (
-            SELECT cgrr.*
-            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
-            WHERE cgrr.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
-        )
-            BEGIN
-                INSERT INTO dbo.CAJ_GUIA_REMISION_REMITENTE
-                VALUES
-                (
-                -- Id_GuiaRemisionRemitente - int
-                @Cod_Caja, -- Cod_Caja - varchar
-                @Cod_Turno, -- Cod_Turno - varchar
-                @Cod_TipoComprobante, -- Cod_TipoComprobante - varchar
-                @Cod_Libro, -- Cod_Libro - varchar
-                @Cod_Periodo, -- Cod_Periodo - varchar
-                @Serie, -- Serie - varchar
-                @Numero, -- Numero - varchar
-                CONVERT(DATETIME, @Fecha_Emision, 121), -- Fecha_Emision - datetime
-                CONVERT(DATETIME, @Fecha_TrasladoBienes, 121), -- Fecha_TrasladoBienes - datetime
-                CONVERT(DATETIME, @Fecha_EntregaBienes, 121), -- Fecha_EntregaBienes - datetime
-                @Cod_MotivoTraslado, -- Cod_MotivoTraslado - varchar
-                @Des_MotivoTraslado, -- Des_MotivoTraslado - varchar
-                @Cod_ModalidadTraslado, -- Cod_ModalidadTraslado - varchar
-                @Cod_UnidadMedida, -- Cod_UnidadMedida - varchar
-                @Id_ClienteDestinatario, -- Id_ClienteDestinatario - int
-                @Cod_UbigeoPartida, -- Cod_UbigeoPartida - varchar
-                @Direccion_Partida, -- Direccion_Partida - varchar
-                @Cod_UbigeoLlegada, -- Cod_UbigeoLlegada - varchar
-                @Direccion_LLegada, -- Direccion_LLegada - varchar
-                @Flag_Transbordo, -- Flag_Transbordo - bit
-                @Peso_Bruto, -- Peso_Bruto - numeric
-                @Nro_Contenedor, -- Nro_Contenedor - varchar
-                @Cod_Puerto, -- Cod_Puerto - varchar
-                @Nro_Bulltos, -- Nro_Bulltos - int
-                @Cod_EstadoGuia, -- Cod_EstadoGuia - varchar
-                @Obs_GuiaRemisionRemitente, -- Obs_GuiaRemisionRemitente - varchar
-                @Id_GuiaRemisionRemitenteBaja, -- Id_GuiaRemisionRemitenteBaja - int
-                @Flag_Anulado, -- Flag_Anulado - bit
-                @Valor_Resumen, -- Valor_Resumen - varchar
-                @Valor_Firma, -- Valor_Firma - varchar
-                @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
-                GETDATE(), -- Fecha_Reg - datetime
-                NULL, -- Cod_UsuarioAct - varchar
-                NULL -- Fecha_Act - datetime
-                );
-        END;
-            ELSE
-            BEGIN
-                UPDATE dbo.CAJ_GUIA_REMISION_REMITENTE
-                  SET
-                --Id_GuiaRemisionRemitente - column value is auto-generated
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Caja = @Cod_Caja, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Turno = @Cod_Turno, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoComprobante = @Cod_TipoComprobante, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Libro = @Cod_Libro, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Periodo = @Cod_Periodo, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Serie = @Serie, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Numero = @Numero, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Emision = CONVERT(DATETIME, @Fecha_Emision, 121), -- datetime
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_TrasladoBienes = CONVERT(DATETIME, @Fecha_TrasladoBienes, 121), -- datetime
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_EntregaBienes = CONVERT(DATETIME, @Fecha_EntregaBienes, 121), -- datetime
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_MotivoTraslado = @Cod_MotivoTraslado, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Des_MotivoTraslado = @Des_MotivoTraslado, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_ModalidadTraslado = @Cod_ModalidadTraslado, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UnidadMedida = @Cod_UnidadMedida, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Id_ClienteDestinatario = @Id_ClienteDestinatario, -- int
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UbigeoPartida = @Cod_UbigeoPartida, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Direccion_Partida = @Direccion_Partida, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UbigeoLlegada = @Cod_UbigeoLlegada, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Direccion_LLegada = @Direccion_LLegada, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Transbordo = @Flag_Transbordo, -- bit
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Peso_Bruto = @Peso_Bruto, -- numeric
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Nro_Contenedor = @Nro_Contenedor, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Puerto = @Cod_Puerto, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Nro_Bulltos = @Nro_Bulltos, -- int
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_EstadoGuia = @Cod_EstadoGuia, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Obs_GuiaRemisionRemitente = @Obs_GuiaRemisionRemitente, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitenteBaja = @Id_GuiaRemisionRemitenteBaja, -- int
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Anulado = @Flag_Anulado, -- bit
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Valor_Resumen = @Valor_Resumen, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Valor_Firma = @Valor_Firma, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
-                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Act = GETDATE() -- datetime
-                WHERE dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente;
-        END;
-    END;
-GO
-
 -- metodo que marca un comprobante como recibido correctamente
 IF EXISTS
 (
@@ -7324,6 +6923,1032 @@ AS
             COMMIT TRANSACTION;
     END;
 GO
+-- Guadar
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_I'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_I;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_I @Cod_Caja                  VARCHAR(32), 
+                                                   @Cod_Turno                 VARCHAR(32), 
+                                                   @Cod_TipoComprobante       VARCHAR(5), 
+                                                   @Cod_Libro                 VARCHAR(2), 
+                                                   @Cod_Periodo               VARCHAR(8), 
+                                                   @Serie                     VARCHAR(5), 
+                                                   @Numero                    VARCHAR(30), 
+                                                   @Fecha_Emision             VARCHAR(32), 
+                                                   @Fecha_TrasladoBienes      VARCHAR(32), 
+                                                   @Fecha_EntregaBienes       VARCHAR(32), 
+                                                   @Cod_MotivoTraslado        VARCHAR(5), 
+                                                   @Des_MotivoTraslado        VARCHAR(MAX), 
+                                                   @Cod_ModalidadTraslado     VARCHAR(5), 
+                                                   @Cod_UnidadMedida          VARCHAR(5), 
+                                                   @Cod_TipoDocumento         VARCHAR(3), 
+                                                   @Nro_Documento             VARCHAR(32), 
+                                                   @Cod_UbigeoPartida         VARCHAR(8), 
+                                                   @Direccion_Partida         VARCHAR(MAX), 
+                                                   @Cod_UbigeoLlegada         VARCHAR(8), 
+                                                   @Direccion_LLegada         VARCHAR(MAX), 
+                                                   @Flag_Transbordo           BIT, 
+                                                   @Peso_Bruto                NUMERIC(38, 6), 
+                                                   @Nro_Contenedor            VARCHAR(64), 
+                                                   @Cod_Puerto                VARCHAR(64), 
+                                                   @Nro_Bulltos               INT, 
+                                                   @Cod_EstadoGuia            VARCHAR(8), 
+                                                   @Obs_GuiaRemisionRemitente VARCHAR(MAX), 
+                                                   @Cod_TipoComprobanteBaja   VARCHAR(5), 
+                                                   @Cod_LibroBaja             VARCHAR(2), 
+                                                   @SerieBaja                 VARCHAR(5), 
+                                                   @NumeroBaja                VARCHAR(30), 
+                                                   @Flag_Anulado              BIT, 
+                                                   @Valor_Resumen             VARCHAR(1024), 
+                                                   @Valor_Firma               VARCHAR(2048), 
+                                                   @Cod_UsuarioReg            VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT YMD;
+        DECLARE @Id_GuiaRemisionRemitente INT=
+        (
+            SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+            WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
+                  AND cgrr.Cod_Libro = @Cod_Libro
+                  AND cgrr.Serie = @Serie
+                  AND cgrr.Numero = @Numero
+        );
+        DECLARE @Id_ClienteDestinatario INT=
+        (
+            SELECT TOP 1 pcp.Id_ClienteProveedor
+            FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
+            WHERE pcp.Cod_TipoDocumento = @Cod_TipoDocumento
+                  AND pcp.Nro_Documento = @Nro_Documento
+        );
+        DECLARE @Id_GuiaRemisionRemitenteBaja INT=
+        (
+            SELECT TOP 1 cgrr.Id_GuiaRemisionRemitente
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+            WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobanteBaja
+                  AND cgrr.Cod_Libro = @Cod_LibroBaja
+                  AND cgrr.Serie = @SerieBaja
+                  AND cgrr.Numero = @NumeroBaja
+        );
+        IF NOT EXISTS
+        (
+            SELECT cgrr.*
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+            WHERE cgrr.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+        )
+            BEGIN
+                INSERT INTO dbo.CAJ_GUIA_REMISION_REMITENTE
+                VALUES
+                (
+                -- Id_GuiaRemisionRemitente - int
+                @Cod_Caja, -- Cod_Caja - varchar
+                @Cod_Turno, -- Cod_Turno - varchar
+                @Cod_TipoComprobante, -- Cod_TipoComprobante - varchar
+                @Cod_Libro, -- Cod_Libro - varchar
+                @Cod_Periodo, -- Cod_Periodo - varchar
+                @Serie, -- Serie - varchar
+                @Numero, -- Numero - varchar
+                CONVERT(DATETIME, @Fecha_Emision, 121), -- Fecha_Emision - datetime
+                CONVERT(DATETIME, @Fecha_TrasladoBienes, 121), -- Fecha_TrasladoBienes - datetime
+                CONVERT(DATETIME, @Fecha_EntregaBienes, 121), -- Fecha_EntregaBienes - datetime
+                @Cod_MotivoTraslado, -- Cod_MotivoTraslado - varchar
+                @Des_MotivoTraslado, -- Des_MotivoTraslado - varchar
+                @Cod_ModalidadTraslado, -- Cod_ModalidadTraslado - varchar
+                @Cod_UnidadMedida, -- Cod_UnidadMedida - varchar
+                @Id_ClienteDestinatario, -- Id_ClienteDestinatario - int
+                @Cod_UbigeoPartida, -- Cod_UbigeoPartida - varchar
+                @Direccion_Partida, -- Direccion_Partida - varchar
+                @Cod_UbigeoLlegada, -- Cod_UbigeoLlegada - varchar
+                @Direccion_LLegada, -- Direccion_LLegada - varchar
+                @Flag_Transbordo, -- Flag_Transbordo - bit
+                @Peso_Bruto, -- Peso_Bruto - numeric
+                @Nro_Contenedor, -- Nro_Contenedor - varchar
+                @Cod_Puerto, -- Cod_Puerto - varchar
+                @Nro_Bulltos, -- Nro_Bulltos - int
+                @Cod_EstadoGuia, -- Cod_EstadoGuia - varchar
+                @Obs_GuiaRemisionRemitente, -- Obs_GuiaRemisionRemitente - varchar
+                @Id_GuiaRemisionRemitenteBaja, -- Id_GuiaRemisionRemitenteBaja - int
+                @Flag_Anulado, -- Flag_Anulado - bit
+                @Valor_Resumen, -- Valor_Resumen - varchar
+                @Valor_Firma, -- Valor_Firma - varchar
+                @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
+                GETDATE(), -- Fecha_Reg - datetime
+                NULL, -- Cod_UsuarioAct - varchar
+                NULL -- Fecha_Act - datetime
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.CAJ_GUIA_REMISION_REMITENTE
+                  SET
+                --Id_GuiaRemisionRemitente - column value is auto-generated
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Caja = @Cod_Caja, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Turno = @Cod_Turno, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoComprobante = @Cod_TipoComprobante, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Libro = @Cod_Libro, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Periodo = @Cod_Periodo, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Serie = @Serie, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Numero = @Numero, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Emision = CONVERT(DATETIME, @Fecha_Emision, 121), -- datetime
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_TrasladoBienes = CONVERT(DATETIME, @Fecha_TrasladoBienes, 121), -- datetime
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_EntregaBienes = CONVERT(DATETIME, @Fecha_EntregaBienes, 121), -- datetime
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_MotivoTraslado = @Cod_MotivoTraslado, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Des_MotivoTraslado = @Des_MotivoTraslado, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_ModalidadTraslado = @Cod_ModalidadTraslado, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UnidadMedida = @Cod_UnidadMedida, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Id_ClienteDestinatario = @Id_ClienteDestinatario, -- int
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UbigeoPartida = @Cod_UbigeoPartida, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Direccion_Partida = @Direccion_Partida, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UbigeoLlegada = @Cod_UbigeoLlegada, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Direccion_LLegada = @Direccion_LLegada, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Transbordo = @Flag_Transbordo, -- bit
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Peso_Bruto = @Peso_Bruto, -- numeric
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Nro_Contenedor = @Nro_Contenedor, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Puerto = @Cod_Puerto, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Nro_Bulltos = @Nro_Bulltos, -- int
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_EstadoGuia = @Cod_EstadoGuia, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Obs_GuiaRemisionRemitente = @Obs_GuiaRemisionRemitente, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitenteBaja = @Id_GuiaRemisionRemitenteBaja, -- int
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Flag_Anulado = @Flag_Anulado, -- bit
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Valor_Resumen = @Valor_Resumen, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Valor_Firma = @Valor_Firma, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE.Fecha_Act = GETDATE() -- datetime
+                WHERE dbo.CAJ_GUIA_REMISION_REMITENTE.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente;
+        END;
+    END;
+GO
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_D'
+          AND type = 'P'
+)
+    DROP PROCEDURE dbo.USP_CAJ_GUIA_REMISION_REMITENTE_D;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_D @Cod_Libro           VARCHAR(8), 
+                                                   @Cod_TipoComprobante VARCHAR(8), 
+                                                   @Serie               VARCHAR(5), 
+                                                   @Numero              VARCHAR(32), 
+                                                   @Cod_Usuario         VARCHAR(32), 
+                                                   @Motivo              VARCHAR(MAX)
+WITH ENCRYPTION
+AS
+    BEGIN
+        BEGIN TRANSACTION;
+        BEGIN TRY
+            DELETE dbo.CAJ_GUIA_REMISION_REMITENTE
+            WHERE dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Libro = @Cod_Libro
+                  AND dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoComprobante = @Cod_TipoComprobante
+                  AND dbo.CAJ_GUIA_REMISION_REMITENTE.Serie = @Serie
+                  AND dbo.CAJ_GUIA_REMISION_REMITENTE.Numero = @Numero;
+        END TRY
+        BEGIN CATCH
+            SELECT ERROR_NUMBER() AS ErrorNumber, 
+                   ERROR_SEVERITY() AS ErrorSeverity, 
+                   ERROR_STATE() AS ErrorState, 
+                   ERROR_PROCEDURE() AS ErrorProcedure, 
+                   ERROR_LINE() AS ErrorLine, 
+                   ERROR_MESSAGE() AS ErrorMessage;
+            IF @@TRANCOUNT > 0
+                ROLLBACK TRANSACTION;
+        END CATCH;
+        IF @@TRANCOUNT > 0
+            COMMIT TRANSACTION;
+    END;
+GO
+
+-- Guadar
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_D_I'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_D_I;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_D_I @Cod_TipoComprobante VARCHAR(5), 
+                                                     @Cod_Libro           VARCHAR(2), 
+                                                     @Serie               VARCHAR(5), 
+                                                     @Numero              VARCHAR(30), 
+                                                     @Id_Detalle          INT, 
+                                                     @Cod_Almacen         VARCHAR(32), 
+                                                     @Cod_UnidadMedida    VARCHAR(5), 
+                                                     @Cod_Producto        VARCHAR(64), 
+                                                     @Cantidad            NUMERIC(38, 10), 
+                                                     @Descripcion         VARCHAR(MAX), 
+                                                     @Peso                NUMERIC(38, 6), 
+                                                     @Obs_Detalle         VARCHAR(MAX), 
+                                                     @Cod_ProductoSunat   VARCHAR(32), 
+                                                     @Cod_UsuarioReg      VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT YMD;
+        DECLARE @Id_GuiaRemisionRemitente INT=
+        (
+            SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+            WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
+                  AND cgrr.Cod_Libro = @Cod_Libro
+                  AND cgrr.Serie = @Serie
+                  AND cgrr.Numero = @Numero
+        );
+        DECLARE @Id_Producto INT=
+        (
+            SELECT  pp.Id_Producto
+            FROM dbo.PRI_PRODUCTOS pp
+            WHERE pp.Cod_Producto = @Cod_Producto
+        );
+        IF NOT EXISTS
+        (
+            SELECT cgrrd.*
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE_D cgrrd
+            WHERE cgrrd.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                  AND cgrrd.Id_Detalle = @Id_Detalle
+        )
+            BEGIN
+                INSERT INTO dbo.CAJ_GUIA_REMISION_REMITENTE_D
+                VALUES
+                (@Id_GuiaRemisionRemitente, -- Id_GuiaRemisionRemitente - int
+                 @Id_Detalle, -- Id_Detalle - int
+                 @Cod_Almacen, -- Cod_Almacen - varchar
+                 @Cod_UnidadMedida, -- Cod_UnidadMedida - varchar
+                 @Id_Producto, -- Id_Producto - int
+                 @Cantidad, -- Cantidad - numeric
+                 @Descripcion, -- Descripcion - varchar
+                 @Peso, -- Peso - numeric
+                 @Obs_Detalle, -- Obs_Detalle - varchar
+                 @Cod_ProductoSunat, -- Cod_ProductoSunat - varchar
+                 @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
+                 GETDATE(), -- Fecha_Reg - datetime
+                 NULL, -- Cod_UsuarioAct - varchar
+                 NULL -- Fecha_Act - datetime
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.CAJ_GUIA_REMISION_REMITENTE_D
+                  SET 
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_D.Cod_Almacen = @Cod_Almacen, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_D.Cod_UnidadMedida = @Cod_UnidadMedida, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_D.Id_Producto = @Id_Producto, -- int
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_D.Cantidad = @Cantidad, -- numeric
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_D.Descripcion = @Descripcion, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_D.Peso = @Peso, -- numeric
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_D.Obs_Detalle = @Obs_Detalle, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_D.Cod_ProductoSunat = @Cod_ProductoSunat, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_D.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_D.Fecha_Act = GETDATE() -- datetime
+                WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_D.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                      AND dbo.CAJ_GUIA_REMISION_REMITENTE_D.Id_Detalle = @Id_Detalle;
+        END;
+    END;
+GO
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_D_D'
+          AND type = 'P'
+)
+    DROP PROCEDURE dbo.USP_CAJ_GUIA_REMISION_REMITENTE_D_D;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_D_D @Cod_TipoComprobante VARCHAR(8), 
+                                                     @Cod_Libro           VARCHAR(2), 
+                                                     @Serie               VARCHAR(5), 
+                                                     @Numero              VARCHAR(32), 
+                                                     @Id_Detalle          INT, 
+                                                     @Cod_Usuario         VARCHAR(32), 
+                                                     @Motivo              VARCHAR(MAX)
+WITH ENCRYPTION
+AS
+    BEGIN
+        BEGIN TRANSACTION;
+        BEGIN TRY
+            DECLARE @Id_GuiaRemisionRemitente INT=
+            (
+                SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
+                FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+                WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
+                      AND cgrr.Cod_Libro = @Cod_Libro
+                      AND cgrr.Serie = @Serie
+                      AND cgrr.Numero = @Numero
+            );
+            DELETE dbo.CAJ_GUIA_REMISION_REMITENTE_D
+            WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_D.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                  AND dbo.CAJ_GUIA_REMISION_REMITENTE_D.Id_Detalle = @Id_Detalle;
+        END TRY
+        BEGIN CATCH
+            SELECT ERROR_NUMBER() AS ErrorNumber, 
+                   ERROR_SEVERITY() AS ErrorSeverity, 
+                   ERROR_STATE() AS ErrorState, 
+                   ERROR_PROCEDURE() AS ErrorProcedure, 
+                   ERROR_LINE() AS ErrorLine, 
+                   ERROR_MESSAGE() AS ErrorMessage;
+            IF @@TRANCOUNT > 0
+                ROLLBACK TRANSACTION;
+        END CATCH;
+        IF @@TRANCOUNT > 0
+            COMMIT TRANSACTION;
+    END;
+GO
+-- Guadar
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS_I'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS_I;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS_I @Cod_TipoComprobante VARCHAR(5), 
+                                                                @Cod_Libro           VARCHAR(2), 
+                                                                @Serie               VARCHAR(5), 
+                                                                @Numero              VARCHAR(30), 
+                                                                @Item                INT, 
+                                                                @Cod_TipoDocumento   VARCHAR(5), 
+                                                                @SerieRelacionado               VARCHAR(32), 
+                                                                @NumeroRelacionado            VARCHAR(128), 
+                                                                @Observacion         VARCHAR(MAX), 
+                                                                @Cod_UsuarioReg      VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT YMD;
+        DECLARE @Id_GuiaRemisionRemitente INT=
+        (
+            SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+            WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
+                  AND cgrr.Cod_Libro = @Cod_Libro
+                  AND cgrr.Serie = @Serie
+                  AND cgrr.Numero = @Numero
+        );
+        IF NOT EXISTS
+        (
+            SELECT cgrrr.*
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS cgrrr
+            WHERE cgrrr.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                  AND cgrrr.Item = @Item
+        )
+            BEGIN
+                INSERT INTO dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS
+                VALUES
+                (@Id_GuiaRemisionRemitente, -- Id_GuiaRemisionRemitente - int
+                 @Item, -- Item - int
+                 @Cod_TipoDocumento, -- Cod_TipoDocumento - varchar
+                 @SerieRelacionado, -- Serie - varchar
+                 @NumeroRelacionado, -- Numero - varchar
+                 @Observacion, -- Observacion - varchar
+                 @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
+                 GETDATE(), -- Fecha_Reg - datetime
+                 NULL, -- Cod_UsuarioAct - varchar
+                 NULL -- Fecha_Act - datetime
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS
+                  SET 
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS.Cod_TipoDocumento = @Cod_TipoDocumento, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS.Serie = @SerieRelacionado, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS.Numero = @NumeroRelacionado, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS.Observacion = @Observacion, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS.Fecha_Act = GETDATE() -- datetime
+                WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                      AND dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS.Id_GuiaRemisionRemitente = @Item;
+        END;
+    END;
+GO
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS_D'
+          AND type = 'P'
+)
+    DROP PROCEDURE dbo.USP_CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS_D;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS_D @Cod_TipoComprobante VARCHAR(8), 
+                                                                @Cod_Libro           VARCHAR(2), 
+                                                                @Serie               VARCHAR(5), 
+                                                                @Numero              VARCHAR(32), 
+                                                                @Item                INT, 
+                                                                @Cod_Usuario         VARCHAR(32), 
+                                                                @Motivo              VARCHAR(MAX)
+WITH ENCRYPTION
+AS
+    BEGIN
+        BEGIN TRANSACTION;
+        BEGIN TRY
+            DECLARE @Id_GuiaRemisionRemitente INT=
+            (
+                SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
+                FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+                WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
+                      AND cgrr.Cod_Libro = @Cod_Libro
+                      AND cgrr.Serie = @Serie
+                      AND cgrr.Numero = @Numero
+            );
+            DELETE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS
+            WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                  AND dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS.Item = @Item;
+        END TRY
+        BEGIN CATCH
+            SELECT ERROR_NUMBER() AS ErrorNumber, 
+                   ERROR_SEVERITY() AS ErrorSeverity, 
+                   ERROR_STATE() AS ErrorState, 
+                   ERROR_PROCEDURE() AS ErrorProcedure, 
+                   ERROR_LINE() AS ErrorLine, 
+                   ERROR_MESSAGE() AS ErrorMessage;
+            IF @@TRANCOUNT > 0
+                ROLLBACK TRANSACTION;
+        END CATCH;
+        IF @@TRANCOUNT > 0
+            COMMIT TRANSACTION;
+    END;
+GO
+-- Guadar
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS_I'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS_I;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS_I @Cod_TipoComprobante     VARCHAR(5), 
+                                                                  @Cod_Libro               VARCHAR(2), 
+                                                                  @Serie                   VARCHAR(5), 
+                                                                  @Numero                  VARCHAR(30), 
+                                                                  @Item                    INT, 
+                                                                  @Cod_TipoDocumento       VARCHAR(5), 
+                                                                  @Numero_Documento        VARCHAR(64), 
+                                                                  @Nombres                 VARCHAR(MAX), 
+                                                                  @Direccion               VARCHAR(MAX), 
+                                                                  @Cod_ModalidadTransporte VARCHAR(5), 
+                                                                  @Licencia                VARCHAR(64), 
+                                                                  @Observaciones           VARCHAR(MAX), 
+                                                                  @Cod_UsuarioReg          VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT YMD;
+        DECLARE @Id_GuiaRemisionRemitente INT=
+        (
+            SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+            WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
+                  AND cgrr.Cod_Libro = @Cod_Libro
+                  AND cgrr.Serie = @Serie
+                  AND cgrr.Numero = @Numero
+        );
+        IF NOT EXISTS
+        (
+            SELECT cgrrt.*
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS cgrrt
+            WHERE cgrrt.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                  AND cgrrt.Item = @Item
+        )
+            BEGIN
+                INSERT INTO dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS
+                VALUES
+                (@Id_GuiaRemisionRemitente, -- Id_GuiaRemisionRemitente - int
+                 @Item, -- Item - int
+                 @Cod_TipoDocumento, -- Cod_TipoDocumento - varchar
+                 @Numero_Documento, -- Numero_Documento - varchar
+                 @Nombres, -- Nombres - varchar
+                 @Direccion, -- Direccion - varchar
+                 @Cod_ModalidadTransporte, -- Cod_ModalidadTransporte - varchar
+                 @Licencia, -- Licencia - varchar
+                 @Observaciones, -- Observaciones - varchar
+                 @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
+                 GETDATE(), -- Fecha_Reg - datetime
+                 NULL, -- Cod_UsuarioAct - varchar
+                 NULL -- Fecha_Act - datetime
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS
+                  SET 
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Cod_TipoDocumento = @Cod_TipoDocumento, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Numero_Documento = @Numero_Documento, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Nombres = @Nombres, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Direccion = @Direccion, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Cod_ModalidadTransporte = @Cod_ModalidadTransporte, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Licencia = @Licencia, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Observaciones = @Observaciones, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Fecha_Act = GETDATE() -- datetime
+                WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                      AND dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Item = @Item;
+        END;
+    END;
+GO
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS_D'
+          AND type = 'P'
+)
+    DROP PROCEDURE dbo.USP_CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS_D;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS_D @Cod_TipoComprobante VARCHAR(8), 
+                                                                  @Cod_Libro           VARCHAR(2), 
+                                                                  @Serie               VARCHAR(5), 
+                                                                  @Numero              VARCHAR(32), 
+                                                                  @Item                INT, 
+                                                                  @Cod_Usuario         VARCHAR(32), 
+                                                                  @Motivo              VARCHAR(MAX)
+WITH ENCRYPTION
+AS
+    BEGIN
+        BEGIN TRANSACTION;
+        BEGIN TRY
+            DECLARE @Id_GuiaRemisionRemitente INT=
+            (
+                SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
+                FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+                WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
+                      AND cgrr.Cod_Libro = @Cod_Libro
+                      AND cgrr.Serie = @Serie
+                      AND cgrr.Numero = @Numero
+            );
+            DELETE dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS
+            WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                  AND dbo.CAJ_GUIA_REMISION_REMITENTE_TRANSPORTISTAS.Item = @Item;
+        END TRY
+        BEGIN CATCH
+            SELECT ERROR_NUMBER() AS ErrorNumber, 
+                   ERROR_SEVERITY() AS ErrorSeverity, 
+                   ERROR_STATE() AS ErrorState, 
+                   ERROR_PROCEDURE() AS ErrorProcedure, 
+                   ERROR_LINE() AS ErrorLine, 
+                   ERROR_MESSAGE() AS ErrorMessage;
+            IF @@TRANCOUNT > 0
+                ROLLBACK TRANSACTION;
+        END CATCH;
+        IF @@TRANCOUNT > 0
+            COMMIT TRANSACTION;
+    END;
+GO
+-- Guadar
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_I'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_I;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_I @Cod_TipoComprobante      VARCHAR(5), 
+                                                             @Cod_Libro                VARCHAR(2), 
+                                                             @Serie                    VARCHAR(5), 
+                                                             @Numero                   VARCHAR(30), 
+                                                             @Item                     INT, 
+                                                             @Placa                    VARCHAR(64), 
+                                                             @Certificado_Inscripcion  VARCHAR(1024), 
+                                                             @Certificado_Habilitacion VARCHAR(1024), 
+                                                             @Observaciones            VARCHAR(MAX), 
+                                                             @Cod_UsuarioReg           VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT YMD;
+        DECLARE @Id_GuiaRemisionRemitente INT=
+        (
+            SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+            WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
+                  AND cgrr.Cod_Libro = @Cod_Libro
+                  AND cgrr.Serie = @Serie
+                  AND cgrr.Numero = @Numero
+        );
+        IF NOT EXISTS
+        (
+            SELECT cgrrv.*
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS cgrrv
+            WHERE cgrrv.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                  AND cgrrv.Item = @Item
+        )
+            BEGIN
+                INSERT INTO dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS
+                VALUES
+                (@Id_GuiaRemisionRemitente, -- Id_GuiaRemisionRemitente - int
+                 @Item, -- Item - int
+                 @Placa, -- Placa - varchar
+                 @Certificado_Inscripcion, -- Certificado_Inscripcion - varchar
+                 @Certificado_Habilitacion, -- Certificado_Habilitacion - varchar
+                 @Observaciones, -- Observaciones - varchar
+                 @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
+                 GETDATE(), -- Fecha_Reg - datetime
+                 NULL, -- Cod_UsuarioAct - varchar
+                 NULL -- Fecha_Act - datetime
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS
+                  SET 
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS.Placa = @Placa, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS.Certificado_Inscripcion = @Certificado_Inscripcion, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS.Certificado_Habilitacion = @Certificado_Habilitacion, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS.Observaciones = @Observaciones, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
+                      dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS.Fecha_Act = GETDATE() -- datetime
+                WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                      AND dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS.Item = @Item;
+        END;
+    END;
+GO
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_D'
+          AND type = 'P'
+)
+    DROP PROCEDURE dbo.USP_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_D;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_VEHICULOS_D @Cod_TipoComprobante VARCHAR(8), 
+                                                             @Cod_Libro           VARCHAR(2), 
+                                                             @Serie               VARCHAR(5), 
+                                                             @Numero              VARCHAR(32), 
+                                                             @Item                INT, 
+                                                             @Cod_Usuario         VARCHAR(32), 
+                                                             @Motivo              VARCHAR(MAX)
+WITH ENCRYPTION
+AS
+    BEGIN
+        BEGIN TRANSACTION;
+        BEGIN TRY
+            DECLARE @Id_GuiaRemisionRemitente INT=
+            (
+                SELECT ISNULL(cgrr.Id_GuiaRemisionRemitente, 0)
+                FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+                WHERE cgrr.Cod_TipoComprobante = @Cod_TipoComprobante
+                      AND cgrr.Cod_Libro = @Cod_Libro
+                      AND cgrr.Serie = @Serie
+                      AND cgrr.Numero = @Numero
+            );
+            DELETE dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS
+            WHERE dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS.Id_GuiaRemisionRemitente = @Id_GuiaRemisionRemitente
+                  AND dbo.CAJ_GUIA_REMISION_REMITENTE_VEHICULOS.Item = @Item;
+        END TRY
+        BEGIN CATCH
+            SELECT ERROR_NUMBER() AS ErrorNumber, 
+                   ERROR_SEVERITY() AS ErrorSeverity, 
+                   ERROR_STATE() AS ErrorState, 
+                   ERROR_PROCEDURE() AS ErrorProcedure, 
+                   ERROR_LINE() AS ErrorLine, 
+                   ERROR_MESSAGE() AS ErrorMessage;
+            IF @@TRANCOUNT > 0
+                ROLLBACK TRANSACTION;
+        END CATCH;
+        IF @@TRANCOUNT > 0
+            COMMIT TRANSACTION;
+    END;
+GO
+-- Guadar
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_LETRA_CAMBIO_I'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_I;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_I @Id_Letra             INT, 
+                                        @Nro_Letra            VARCHAR(32), 
+                                        @Cod_Libro            VARCHAR(2), 
+                                        @Ref_Girador          VARCHAR(1024), 
+                                        @Fecha_Girado         VARCHAR(32), 
+                                        @Fecha_Vencimiento    VARCHAR(32), 
+                                        @Fecha_Pago           VARCHAR(32), 
+                                        @Cod_Cuenta           VARCHAR(64), 
+                                        @Nro_Operacion        VARCHAR(32), 
+                                        @Cod_Moneda           VARCHAR(5), 
+                                        @Cod_LibroComprobante VARCHAR(2), 
+                                        @Cod_TipoComprobante  VARCHAR(5), 
+                                        @Serie                VARCHAR(5), 
+                                        @Numero               VARCHAR(30), 
+                                        @Cod_Estado           VARCHAR(32), 
+                                        @Nro_Referencia       VARCHAR(32), 
+                                        @Monto_Base           NUMERIC(32, 3), 
+                                        @Monto_Real           NUMERIC(32, 3), 
+                                        @Observaciones        VARCHAR(MAX), 
+                                        @Cod_UsuarioReg       VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT YMD;
+        DECLARE @Id INT=
+        (
+            SELECT clc.Id
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Nro_Letra = @Nro_Letra
+                  AND clc.Cod_Libro = @Cod_Libro
+                  AND clc.Cod_Cuenta = @Cod_Cuenta
+                  AND clc.Cod_Moneda = @Cod_Moneda
+        );
+        DECLARE @Id_Comprobante INT=
+        (
+            SELECT ISNULL(ccp.id_ComprobantePago, 0)
+            FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+            WHERE ccp.Cod_TipoComprobante = @Cod_TipoComprobante
+                  AND ccp.Cod_Libro = @Cod_LibroComprobante
+                  AND ccp.Serie = @Serie
+                  AND ccp.Numero = @Numero
+        );
+        IF NOT EXISTS
+        (
+            SELECT clc.*
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Id = @Id
+        )
+            BEGIN
+                INSERT INTO dbo.CAJ_LETRA_CAMBIO
+                VALUES
+                (
+                -- Id - int
+                @Id_Letra, -- Id_Letra - int
+                @Nro_Letra, -- Nro_Letra - varchar
+                @Cod_Libro, -- Cod_Libro - varchar
+                @Ref_Girador, -- Ref_Girador - varchar
+                CONVERT(DATETIME, @Fecha_Girado, 121), -- Fecha_Girado - datetime
+                CONVERT(DATETIME, @Fecha_Vencimiento, 121), -- Fecha_Vencimiento - datetime
+                CONVERT(DATETIME, @Fecha_Pago, 121), -- Fecha_Pago - datetime
+                @Cod_Cuenta, -- Cod_Cuenta - varchar
+                @Nro_Operacion, -- Nro_Operacion - varchar
+                @Cod_Moneda, -- Cod_Moneda - varchar
+                @Id_Comprobante, -- Id_Comprobante - int
+                @Cod_Estado, -- Cod_Estado - varchar
+                @Nro_Referencia, -- Nro_Referencia - varchar
+                @Monto_Base, -- Monto_Base - numeric
+                @Monto_Real, -- Monto_Real - numeric
+                @Observaciones, -- Observaciones - varchar
+                @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
+                GETDATE(), -- Fecha_Reg - datetime
+                NULL, -- Cod_UsuarioAct - varchar
+                NULL -- Fecha_Act - datetime
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.CAJ_LETRA_CAMBIO
+                  SET
+                --Id - column value is auto-generated
+                      dbo.CAJ_LETRA_CAMBIO.Id_Letra = @Id_Letra, -- int
+                      dbo.CAJ_LETRA_CAMBIO.Nro_Letra = @Nro_Letra, -- varchar
+                      dbo.CAJ_LETRA_CAMBIO.Cod_Libro = @Cod_Libro, -- varchar
+                      dbo.CAJ_LETRA_CAMBIO.Ref_Girador = @Ref_Girador, -- varchar
+                      dbo.CAJ_LETRA_CAMBIO.Fecha_Girado = CONVERT(DATETIME, @Fecha_Girado, 121), -- datetime
+                      dbo.CAJ_LETRA_CAMBIO.Fecha_Vencimiento = CONVERT(DATETIME, @Fecha_Vencimiento, 121), -- datetime
+                      dbo.CAJ_LETRA_CAMBIO.Fecha_Pago = CONVERT(DATETIME, @Fecha_Pago, 121), -- datetime
+                      dbo.CAJ_LETRA_CAMBIO.Cod_Cuenta = @Cod_Cuenta, -- varchar
+                      dbo.CAJ_LETRA_CAMBIO.Nro_Operacion = @Nro_Operacion, -- varchar
+                      dbo.CAJ_LETRA_CAMBIO.Cod_Moneda = @Cod_Moneda, -- varchar
+                      dbo.CAJ_LETRA_CAMBIO.Id_Comprobante = @Id_Comprobante, -- int
+                      dbo.CAJ_LETRA_CAMBIO.Cod_Estado = @Cod_Estado, -- varchar
+                      dbo.CAJ_LETRA_CAMBIO.Nro_Referencia = @Nro_Referencia, -- varchar
+                      dbo.CAJ_LETRA_CAMBIO.Monto_Base = @Monto_Base, -- numeric
+                      dbo.CAJ_LETRA_CAMBIO.Monto_Real = @Monto_Real, -- numeric
+                      dbo.CAJ_LETRA_CAMBIO.Observaciones = @Observaciones, -- varchar
+                      dbo.CAJ_LETRA_CAMBIO.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
+                      dbo.CAJ_LETRA_CAMBIO.Fecha_Act = GETDATE() -- datetime
+                WHERE dbo.CAJ_LETRA_CAMBIO.Id = @Id;
+        END;
+    END;
+GO
+
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_LETRA_CAMBIO_D'
+          AND type = 'P'
+)
+    DROP PROCEDURE dbo.USP_CAJ_LETRA_CAMBIO_D;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_D @Id_Letra    INT, 
+                                        @Nro_Letra   VARCHAR(32), 
+                                        @Cod_Libro   VARCHAR(2), 
+                                        @Cod_Cuenta  VARCHAR(64), 
+                                        @Cod_Moneda  VARCHAR(5), 
+                                        @Cod_Usuario VARCHAR(32), 
+                                        @Motivo      VARCHAR(MAX)
+WITH ENCRYPTION
+AS
+    BEGIN
+        BEGIN TRANSACTION;
+        BEGIN TRY
+            DELETE dbo.CAJ_LETRA_CAMBIO
+            WHERE dbo.CAJ_LETRA_CAMBIO.Id_Letra = @Id_Letra
+                  AND dbo.CAJ_LETRA_CAMBIO.Nro_Letra = @Nro_Letra
+                  AND dbo.CAJ_LETRA_CAMBIO.Cod_Libro = @Cod_Libro
+                  AND dbo.CAJ_LETRA_CAMBIO.Cod_Moneda = @Cod_Moneda;
+        END TRY
+        BEGIN CATCH
+            SELECT ERROR_NUMBER() AS ErrorNumber, 
+                   ERROR_SEVERITY() AS ErrorSeverity, 
+                   ERROR_STATE() AS ErrorState, 
+                   ERROR_PROCEDURE() AS ErrorProcedure, 
+                   ERROR_LINE() AS ErrorLine, 
+                   ERROR_MESSAGE() AS ErrorMessage;
+            IF @@TRANCOUNT > 0
+                ROLLBACK TRANSACTION;
+        END CATCH;
+        IF @@TRANCOUNT > 0
+            COMMIT TRANSACTION;
+    END;
+GO
+
+-- Guadar
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_RESUMEN_DIARIO_I'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_RESUMEN_DIARIO_I;
+GO
+CREATE PROCEDURE USP_CAJ_RESUMEN_DIARIO_I @Fecha_Serie    VARCHAR(16), 
+                                          @Numero         VARCHAR(8), 
+                                          @Ticket         VARCHAR(64), 
+                                          @Nom_Estado     VARCHAR(64), 
+                                          @Fecha_Envio    DATETIME, 
+                                          @Total_Resumen  NUMERIC(38, 4), 
+                                          @Cod_UsuarioReg VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT YMD;
+        IF NOT EXISTS
+        (
+            SELECT crd.*
+            FROM dbo.CAJ_RESUMEN_DIARIO crd
+            WHERE crd.Fecha_Serie = @Fecha_Serie
+                  AND crd.Numero = @Numero
+        )
+            BEGIN
+                INSERT INTO dbo.CAJ_RESUMEN_DIARIO
+                VALUES
+                (@Fecha_Serie, -- Fecha_Serie - varchar
+                 @Numero, -- Numero - varchar
+                 @Ticket, -- Ticket - varchar
+                 @Nom_Estado, -- Nom_Estado - varchar
+                 CONVERT(DATETIME, @Fecha_Envio, 121), -- Fecha_Envio - datetime
+                 @Total_Resumen, -- Total_Resumen - numeric
+                 @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
+                 GETDATE(), -- Fecha_Reg - datetime
+                 NULL, -- Cod_UsuarioAct - varchar
+                 NULL -- Fecha_Act - datetime
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.CAJ_RESUMEN_DIARIO
+                  SET 
+                      dbo.CAJ_RESUMEN_DIARIO.Ticket = @Ticket, -- varchar
+                      dbo.CAJ_RESUMEN_DIARIO.Nom_Estado = @Nom_Estado, -- varchar
+                      dbo.CAJ_RESUMEN_DIARIO.Fecha_Envio = CONVERT(DATETIME, @Fecha_Envio, 121), -- datetime
+                      dbo.CAJ_RESUMEN_DIARIO.Total_Resumen = @Total_Resumen, -- numeric
+                      dbo.CAJ_RESUMEN_DIARIO.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
+                      dbo.CAJ_RESUMEN_DIARIO.Fecha_Act = GETDATE() -- datetime
+                WHERE dbo.CAJ_RESUMEN_DIARIO.Fecha_Serie = @Fecha_Serie
+                      AND dbo.CAJ_RESUMEN_DIARIO.Numero = @Numero;
+        END;
+    END;
+GO
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_RESUMEN_DIARIO_D'
+          AND type = 'P'
+)
+    DROP PROCEDURE dbo.USP_CAJ_RESUMEN_DIARIO_D;
+GO
+CREATE PROCEDURE USP_CAJ_RESUMEN_DIARIO_D @Fecha_Serie VARCHAR(16), 
+                                          @Numero      VARCHAR(8), 
+                                          @Cod_Usuario VARCHAR(32), 
+                                          @Motivo      VARCHAR(MAX)
+WITH ENCRYPTION
+AS
+    BEGIN
+        BEGIN TRANSACTION;
+        BEGIN TRY
+            DELETE dbo.CAJ_RESUMEN_DIARIO
+            WHERE dbo.CAJ_RESUMEN_DIARIO.Fecha_Serie = @Fecha_Serie
+                  AND dbo.CAJ_RESUMEN_DIARIO.Numero = @Numero;
+        END TRY
+        BEGIN CATCH
+            SELECT ERROR_NUMBER() AS ErrorNumber, 
+                   ERROR_SEVERITY() AS ErrorSeverity, 
+                   ERROR_STATE() AS ErrorState, 
+                   ERROR_PROCEDURE() AS ErrorProcedure, 
+                   ERROR_LINE() AS ErrorLine, 
+                   ERROR_MESSAGE() AS ErrorMessage;
+            IF @@TRANCOUNT > 0
+                ROLLBACK TRANSACTION;
+        END CATCH;
+        IF @@TRANCOUNT > 0
+            COMMIT TRANSACTION;
+    END;
+GO
+
+-- Guadar
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_CAJ_COMUNICACION_BAJA_I'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_COMUNICACION_BAJA_I;
+GO
+CREATE PROCEDURE USP_CAJ_COMUNICACION_BAJA_I @Cod_TipoComprobante VARCHAR(8), 
+                                             @Serie               VARCHAR(5), 
+                                             @Numero              VARCHAR(32), 
+                                             @Fecha_Emision       DATETIME, 
+                                             @Numero_Comunicado   VARCHAR(16), 
+                                             @Justificacion       VARCHAR(MAX), 
+                                             @Fecha_Comunicacion  DATETIME, 
+                                             @Ticket              VARCHAR(64), 
+                                             @Mensaje_Respuesta   VARCHAR(MAX), 
+                                             @Cod_Estado          VARCHAR(32), 
+                                             @Cod_Usuario         VARCHAR(64), 
+                                             @Cod_UsuarioReg      VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT YMD;
+        IF NOT EXISTS
+        (
+            SELECT ccb.*
+            FROM dbo.CAJ_COMUNICACION_BAJA ccb
+            WHERE ccb.Cod_TipoComprobante = @Cod_TipoComprobante
+                  AND ccb.Serie = @Serie
+                  AND ccb.Numero = @Numero
+        )
+            BEGIN
+                INSERT INTO dbo.CAJ_COMUNICACION_BAJA
+                VALUES
+                (@Cod_TipoComprobante, -- Cod_TipoComprobante - varchar
+                 @Serie, -- Serie - varchar
+                 @Numero, -- Numero - varchar
+                 CONVERT(DATETIME, @Fecha_Emision, 121), -- Fecha_Emision - datetime
+                 @Numero_Comunicado, -- Numero_Comunicado - varchar
+                 @Justificacion, -- Justificacion - varchar
+                 CONVERT(DATETIME, @Fecha_Comunicacion, 121), -- Fecha_Comunicacion - datetime
+                 @Ticket, -- Ticket - varchar
+                 @Mensaje_Respuesta, -- Mensaje_Respuesta - varchar
+                 @Cod_Estado, -- Cod_Estado - varchar
+                 @Cod_Usuario, -- Cod_Usuario - varchar
+                 @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
+                 GETDATE(), -- Fecha_Reg - datetime
+                 NULL, -- Cod_UsuarioAct - varchar
+                 NULL -- Fecha_Act - datetime
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.CAJ_COMUNICACION_BAJA
+                  SET 
+                      dbo.CAJ_COMUNICACION_BAJA.Fecha_Emision = CONVERT(DATETIME, @Fecha_Emision, 121), -- datetime
+                      dbo.CAJ_COMUNICACION_BAJA.Numero_Comunicado = @Numero_Comunicado, -- varchar
+                      dbo.CAJ_COMUNICACION_BAJA.Justificacion = @Justificacion, -- varchar
+                      dbo.CAJ_COMUNICACION_BAJA.Fecha_Comunicacion = CONVERT(DATETIME, @Fecha_Comunicacion, 121), -- datetime
+                      dbo.CAJ_COMUNICACION_BAJA.Ticket = @Ticket, -- varchar
+                      dbo.CAJ_COMUNICACION_BAJA.Mensaje_Respuesta = @Mensaje_Respuesta, -- varchar
+                      dbo.CAJ_COMUNICACION_BAJA.Cod_Estado = @Cod_Estado, -- varchar
+                      dbo.CAJ_COMUNICACION_BAJA.Cod_Usuario = @Cod_Usuario, -- varchar
+                      dbo.CAJ_COMUNICACION_BAJA.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
+                      dbo.CAJ_COMUNICACION_BAJA.Fecha_Act = GETDATE() -- datetime
+                WHERE dbo.CAJ_COMUNICACION_BAJA.Cod_TipoComprobante = @Cod_TipoComprobante
+                      AND dbo.CAJ_COMUNICACION_BAJA.Serie = @Serie
+                      AND dbo.CAJ_COMUNICACION_BAJA.Numero = @Numero;
+        END;
+    END;
+GO
 IF EXISTS
 (
     SELECT name
@@ -7362,31 +7987,121 @@ AS
             COMMIT TRANSACTION;
     END;
 GO
+
+-- Guadar
 IF EXISTS
 (
     SELECT name
     FROM sysobjects
-    WHERE name = 'USP_CAJ_GUIA_REMISION_REMITENTE_D'
+    WHERE name = 'USP_HIS_ELIMINADOS_I'
           AND type = 'P'
 )
-    DROP PROCEDURE dbo.USP_CAJ_GUIA_REMISION_REMITENTE_D;
+    DROP PROCEDURE USP_HIS_ELIMINADOS_I;
 GO
-CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_D @Cod_Libro           VARCHAR(8), 
-                                                   @Cod_TipoComprobante VARCHAR(8), 
-                                                   @Serie               VARCHAR(5), 
-                                                   @Numero              VARCHAR(32), 
-                                                   @Cod_Usuario         VARCHAR(32), 
-                                                   @Motivo              VARCHAR(MAX)
+CREATE PROCEDURE USP_HIS_ELIMINADOS_I @Cod_Eliminado     VARCHAR(128), 
+                                      @Tabla             VARCHAR(256), 
+                                      @Cliente           VARCHAR(MAX), 
+                                      @Detalle           VARCHAR(MAX), 
+                                      @Fecha_Emision     VARCHAR(32), 
+                                      @Fecha_Eliminacion VARCHAR(32), 
+                                      @Responsable       VARCHAR(64), 
+                                      @Justificacion     VARCHAR(MAX), 
+                                      @Cod_UsuarioReg    VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT YMD;
+        IF NOT EXISTS
+        (
+            SELECT he.*
+            FROM dbo.HIS_ELIMINADOS he
+            WHERE he.Cod_Eliminado = @Cod_Eliminado
+                  AND he.Tabla = @Tabla
+                  AND he.Cliente = @Cliente
+                  AND he.Detalle = @Detalle
+                  AND he.Fecha_Emision = CONVERT(DATETIME, @Fecha_Emision, 121)
+                  AND he.Fecha_Eliminacion = CONVERT(DATETIME, @Fecha_Eliminacion, 121)
+                  AND he.Responsable = @Responsable
+                  AND he.Justificacion = @Justificacion
+        )
+            BEGIN
+                INSERT INTO dbo.HIS_ELIMINADOS
+                VALUES
+                (
+                -- Id - int
+                @Cod_Eliminado, -- Cod_Eliminado - varchar
+                @Tabla, -- Tabla - varchar
+                @Cliente, -- Cliente - varchar
+                @Detalle, -- Detalle - varchar
+                CONVERT(DATETIME, @Fecha_Emision, 121), -- Fecha_Emision - datetime
+                CONVERT(DATETIME, @Fecha_Eliminacion, 121), -- Fecha_Eliminacion - datetime
+                @Responsable, -- Responsable - varchar
+                @Justificacion, -- Justificacion - varchar
+                @Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
+                GETDATE(), -- Fecha_Reg - datetime
+                NULL, -- Cod_UsuarioAct - varchar
+                NULL -- Fecha_Act - datetime
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.HIS_ELIMINADOS
+                  SET
+                --Id - column value is auto-generated
+                      dbo.HIS_ELIMINADOS.Cod_Eliminado = @Cod_Eliminado, -- varchar
+                      dbo.HIS_ELIMINADOS.Tabla = @Tabla, -- varchar
+                      dbo.HIS_ELIMINADOS.Cliente = @Cliente, -- varchar
+                      dbo.HIS_ELIMINADOS.Detalle = @Detalle, -- varchar
+                      dbo.HIS_ELIMINADOS.Fecha_Emision = CONVERT(DATETIME, @Fecha_Emision, 121), -- datetime
+                      dbo.HIS_ELIMINADOS.Fecha_Eliminacion = CONVERT(DATETIME, @Fecha_Eliminacion, 121), -- datetime
+                      dbo.HIS_ELIMINADOS.Responsable = @Responsable, -- varchar
+                      dbo.HIS_ELIMINADOS.Justificacion = @Justificacion, -- varchar
+                      dbo.HIS_ELIMINADOS.Cod_UsuarioAct = @Cod_UsuarioReg, -- varchar
+                      dbo.HIS_ELIMINADOS.Fecha_Act = GETDATE() -- datetime
+                WHERE dbo.HIS_ELIMINADOS.Cod_Eliminado = @Cod_Eliminado
+                      AND dbo.HIS_ELIMINADOS.Tabla = @Tabla
+                      AND dbo.HIS_ELIMINADOS.Cliente = @Cliente
+                      AND dbo.HIS_ELIMINADOS.Detalle = @Detalle
+                      AND dbo.HIS_ELIMINADOS.Fecha_Emision = CONVERT(DATETIME, @Fecha_Emision, 121)
+                      AND dbo.HIS_ELIMINADOS.Fecha_Eliminacion = CONVERT(DATETIME, @Fecha_Eliminacion, 121)
+                      AND dbo.HIS_ELIMINADOS.Responsable = @Responsable
+                      AND dbo.HIS_ELIMINADOS.Justificacion = @Justificacion;
+        END;
+    END;
+GO
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_HIS_ELIMINADOS_D'
+          AND type = 'P'
+)
+    DROP PROCEDURE dbo.USP_HIS_ELIMINADOS_D;
+GO
+CREATE PROCEDURE USP_HIS_ELIMINADOS_D @Cod_Eliminado     VARCHAR(128), 
+                                      @Tabla             VARCHAR(256), 
+                                      @Cliente           VARCHAR(MAX), 
+                                      @Detalle           VARCHAR(MAX), 
+                                      @Fecha_Emision     VARCHAR(32), 
+                                      @Fecha_Eliminacion VARCHAR(32), 
+                                      @Responsable       VARCHAR(64), 
+                                      @Justificacion     VARCHAR(MAX), 
+                                      @Cod_Usuario       VARCHAR(32), 
+                                      @Motivo            VARCHAR(MAX)
 WITH ENCRYPTION
 AS
     BEGIN
         BEGIN TRANSACTION;
         BEGIN TRY
-            DELETE dbo.CAJ_GUIA_REMISION_REMITENTE
-            WHERE dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_Libro = @Cod_Libro
-                  AND dbo.CAJ_GUIA_REMISION_REMITENTE.Cod_TipoComprobante = @Cod_TipoComprobante
-                  AND dbo.CAJ_GUIA_REMISION_REMITENTE.Serie = @Serie
-                  AND dbo.CAJ_GUIA_REMISION_REMITENTE.Numero = @Numero;
+            DELETE dbo.HIS_ELIMINADOS
+            WHERE dbo.HIS_ELIMINADOS.Cod_Eliminado = @Cod_Eliminado
+                  AND dbo.HIS_ELIMINADOS.Tabla = @Tabla
+                  AND dbo.HIS_ELIMINADOS.Cliente = @Cliente
+                  AND dbo.HIS_ELIMINADOS.Detalle = @Detalle
+                  AND dbo.HIS_ELIMINADOS.Fecha_Emision = CONVERT(DATETIME, @Fecha_Emision, 121)
+                  AND dbo.HIS_ELIMINADOS.Fecha_Eliminacion = CONVERT(DATETIME, @Fecha_Eliminacion, 121)
+                  AND dbo.HIS_ELIMINADOS.Responsable = @Responsable
+                  AND dbo.HIS_ELIMINADOS.Justificacion = @Justificacion;
         END TRY
         BEGIN CATCH
             SELECT ERROR_NUMBER() AS ErrorNumber, 
