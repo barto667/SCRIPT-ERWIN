@@ -770,6 +770,8 @@ WITH ENCRYPTION
 AS
     BEGIN
         SET DATEFORMAT YMD;
+        IF @Cod_TipoComprobante !='FE'
+        BEGIN
         IF(@Numero = ''
            AND @Cod_Libro = '14')
             BEGIN
@@ -782,6 +784,8 @@ AS
                           AND cgrr.Cod_Libro = @Cod_Libro
                 );
         END;
+        END
+
         IF @Cod_Libro = '14'
             BEGIN
                 SET @Id_GuiaRemisionRemitente = (ISNULL(
