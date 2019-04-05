@@ -161,6 +161,39 @@ IF
              @Boleano = 1, 
              @Flag_Creacion = 1, 
              @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '001', 
+             @Cod_Fila = 4, 
+             @Cadena = N'004', 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 0, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '002', 
+             @Cod_Fila = 4, 
+             @Cadena = N'ANULADO', 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 0, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G 
+             @Cod_Tabla = '127', 
+             @Cod_Columna = '003', 
+             @Cod_Fila = 4, 
+             @Cadena = NULL, 
+             @Numero = NULL, 
+             @Entero = NULL, 
+             @FechaHora = NULL, 
+             @Boleano = 1, 
+             @Flag_Creacion = 1, 
+             @Cod_Usuario = 'MIGRACION';
 END;
 GO
 
@@ -1130,7 +1163,7 @@ AS
                    ELSE 0
                END Monto_Base, 
                clc.Cod_Cuenta, 
-			   bcb.Des_CuentaBancaria,
+               bcb.Des_CuentaBancaria, 
                clc.Nro_Operacion, 
                clc.Cod_Moneda, 
                vm.Nom_Moneda, 
@@ -1148,14 +1181,14 @@ AS
                ccp.Nom_Cliente, 
                ccp.Cod_TipoComprobante, 
                vtc.Nom_TipoComprobante, 
-               ccp.Cod_TipoComprobante+':'+ccp.Serie + '-' + ccp.Numero SerieNumero
+               ccp.Cod_TipoComprobante + ':' + ccp.Serie + '-' + ccp.Numero SerieNumero
         FROM dbo.CAJ_LETRA_CAMBIO clc
              INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccp.id_ComprobantePago = clc.Id_Comprobante
              INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON ccp.Cod_TipoComprobante = vtc.Cod_TipoComprobante
              INNER JOIN dbo.VIS_MONEDAS vm ON clc.Cod_Moneda = vm.Cod_Moneda
              INNER JOIN dbo.VIS_ESTADOS_LETRA vel ON clc.Cod_Estado = vel.Cod_Estado
              INNER JOIN dbo.VIS_TIPO_DOCUMENTOS vtd ON ccp.Cod_TipoDoc = vtd.Cod_TipoDoc
-			 INNER JOIN dbo.BAN_CUENTA_BANCARIA bcb ON clc.Cod_Cuenta=bcb.Cod_CuentaBancaria
+             INNER JOIN dbo.BAN_CUENTA_BANCARIA bcb ON clc.Cod_Cuenta = bcb.Cod_CuentaBancaria
         WHERE(@CodMoneda IS NULL
               OR clc.Cod_Moneda = @CodMoneda)
              AND (@CodCuenta IS NULL
@@ -1200,7 +1233,6 @@ AS
         WHERE dbo.CAJ_LETRA_CAMBIO.Id = @Id;
     END;
 	GO
-    
 IF EXISTS
 (
     SELECT *
@@ -1365,5 +1397,448 @@ AS
              1, 
              1, 
              'MIGRACION';
+    END;
+GO
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_LETRA_CAMBIO_AnularLetra'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_AnularLetra;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_AnularLetra @Id            INT, 
+                                                  @Cod_Estado    VARCHAR(32), 
+                                                  @Justificacion VARCHAR(MAX), 
+                                                  @Cod_Usuario   VARCHAR(32)
+AS
+    BEGIN
+        --Variables de justificacion
+        DECLARE @Documento VARCHAR(MAX)=
+        (
+            SELECT CONCAT(clc.Cod_Libro, '-', clc.Nro_Letra)
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Id = @Id
+        );
+        DECLARE @Proveedor VARCHAR(MAX)=
+        (
+            SELECT CONCAT(ccp.Cod_TipoDoc, ':', ccp.Doc_Cliente, '-', ccp.Nom_Cliente)
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+                 INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON clc.Id_Comprobante = ccp.id_ComprobantePago
+            WHERE clc.Id = @Id
+        );
+        DECLARE @Detalle VARCHAR(MAX)=
+        (
+            SELECT CONCAT(clc.Cod_Estado, '|', clc.Monto_Base, '|', clc.Monto_Real)
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Id = @Id
+        );
+        DECLARE @FechaEmision DATETIME=
+        (
+            SELECT clc.Fecha_Reg
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Id = @Id
+        );
+
+        --Cambiamos el estado de la letra, montos = 0
+        UPDATE dbo.CAJ_LETRA_CAMBIO
+          SET 
+              dbo.CAJ_LETRA_CAMBIO.Cod_Estado = @Cod_Estado, -- varchar
+              dbo.CAJ_LETRA_CAMBIO.Monto_Base = 0, -- numeric
+              dbo.CAJ_LETRA_CAMBIO.Monto_Real = 0, -- numeric
+              dbo.CAJ_LETRA_CAMBIO.Cod_UsuarioAct = @Cod_Usuario, -- varchar
+              dbo.CAJ_LETRA_CAMBIO.Fecha_Act = GETDATE() -- datetime
+        WHERE dbo.CAJ_LETRA_CAMBIO.Id = @Id;
+        --Eliminamos las formas de pago relacionadas
+        DELETE dbo.CAJ_FORMA_PAGO
+        WHERE dbo.CAJ_FORMA_PAGO.Id_Movimiento = @Id
+              AND dbo.CAJ_FORMA_PAGO.Cod_TipoFormaPago = '001';
+        --Eliminamos las relaciones
+        DELETE dbo.CAJ_COMPROBANTE_RELACION
+        WHERE dbo.CAJ_COMPROBANTE_RELACION.Id_ComprobanteRelacion = (SELECT clc.Id_Letra FROM dbo.CAJ_LETRA_CAMBIO clc WHERE clc.Id=@Id)
+              AND dbo.CAJ_COMPROBANTE_RELACION.Cod_TipoRelacion = 'LET';
+
+        --Guardamos la jsutificacion
+
+        DECLARE @FechaActual DATETIME= GETDATE();
+        DECLARE @id_Fila INT=
+        (
+            SELECT ISNULL(COUNT(*) / 9, 1) + 1
+            FROM PAR_FILA
+            WHERE Cod_Tabla = '079'
+        );
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '001', 
+             @id_Fila, 
+             @Documento, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '002', 
+             @id_Fila, 
+             'CAJ_LETRA_CAMBIO', 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '003', 
+             @id_Fila, 
+             @Proveedor, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '004', 
+             @id_Fila, 
+             @Detalle, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '005', 
+             @id_Fila, 
+             NULL, 
+             NULL, 
+             NULL, 
+             @FechaEmision, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '006', 
+             @id_Fila, 
+             NULL, 
+             NULL, 
+             NULL, 
+             @FechaActual, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '007', 
+             @id_Fila, 
+             @Cod_Usuario, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '008', 
+             @id_Fila, 
+             @Justificacion, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '009', 
+             @id_Fila, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             1, 
+             'MIGRACION';
+    END;
+GO
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_LETRA_CAMBIO_ProtestarLetra'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_LETRA_CAMBIO_ProtestarLetra;
+GO
+CREATE PROCEDURE USP_CAJ_LETRA_CAMBIO_ProtestarLetra @Id            INT, 
+                                                     @Cod_Estado    VARCHAR(32), 
+                                                     @Monto         NUMERIC(32, 3), 
+                                                     @Justificacion VARCHAR(MAX), 
+                                                     @Cod_Usuario   VARCHAR(32)
+AS
+    BEGIN
+        --Variables de justificacion
+        DECLARE @Documento VARCHAR(MAX)=
+        (
+            SELECT CONCAT(clc.Cod_Libro, '-', clc.Nro_Letra)
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Id = @Id
+        );
+        DECLARE @Proveedor VARCHAR(MAX)=
+        (
+            SELECT CONCAT(ccp.Cod_TipoDoc, ':', ccp.Doc_Cliente, '-', ccp.Nom_Cliente)
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+                 INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON clc.Id_Comprobante = ccp.id_ComprobantePago
+            WHERE clc.Id = @Id
+        );
+        DECLARE @Detalle VARCHAR(MAX)=
+        (
+            SELECT CONCAT(clc.Cod_Estado, '|', clc.Monto_Base, '|', clc.Monto_Real)
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Id = @Id
+        );
+        DECLARE @FechaEmision DATETIME=
+        (
+            SELECT clc.Fecha_Reg
+            FROM dbo.CAJ_LETRA_CAMBIO clc
+            WHERE clc.Id = @Id
+        );
+
+        --Cambiamos el estado de la letra, montos = 0
+        UPDATE dbo.CAJ_LETRA_CAMBIO
+          SET 
+              dbo.CAJ_LETRA_CAMBIO.Cod_Estado = @Cod_Estado, -- varchar
+              dbo.CAJ_LETRA_CAMBIO.Monto_Real = @Monto, -- numeric
+              dbo.CAJ_LETRA_CAMBIO.Cod_UsuarioAct = @Cod_Usuario, -- varchar
+              dbo.CAJ_LETRA_CAMBIO.Fecha_Act = GETDATE() -- datetime
+        WHERE dbo.CAJ_LETRA_CAMBIO.Id = @Id;
+        --Eliminamos las formas de pago relacionadas
+        DELETE dbo.CAJ_FORMA_PAGO
+        WHERE dbo.CAJ_FORMA_PAGO.Id_Movimiento = @Id
+              AND dbo.CAJ_FORMA_PAGO.Cod_TipoFormaPago = '001';
+        --Eliminamos las relaciones
+        DELETE dbo.CAJ_COMPROBANTE_RELACION
+        WHERE dbo.CAJ_COMPROBANTE_RELACION.Id_ComprobanteRelacion = @Id
+              AND dbo.CAJ_COMPROBANTE_RELACION.Cod_TipoRelacion = 'LET';
+
+        --Guardamos la jsutificacion
+
+        DECLARE @FechaActual DATETIME= GETDATE();
+        DECLARE @id_Fila INT=
+        (
+            SELECT ISNULL(COUNT(*) / 9, 1) + 1
+            FROM PAR_FILA
+            WHERE Cod_Tabla = '079'
+        );
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '001', 
+             @id_Fila, 
+             @Documento, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '002', 
+             @id_Fila, 
+             'CAJ_LETRA_CAMBIO', 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '003', 
+             @id_Fila, 
+             @Proveedor, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '004', 
+             @id_Fila, 
+             @Detalle, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '005', 
+             @id_Fila, 
+             NULL, 
+             NULL, 
+             NULL, 
+             @FechaEmision, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '006', 
+             @id_Fila, 
+             NULL, 
+             NULL, 
+             NULL, 
+             @FechaActual, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '007', 
+             @id_Fila, 
+             @Cod_Usuario, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '008', 
+             @id_Fila, 
+             @Justificacion, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             'MIGRACION';
+        EXEC USP_PAR_FILA_G 
+             '079', 
+             '009', 
+             @id_Fila, 
+             NULL, 
+             NULL, 
+             NULL, 
+             NULL, 
+             1, 
+             1, 
+             'MIGRACION';
+    END;
+GO
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'URP_CAJ_LETRA_CAMBIO_TraerLetras_ReporteGeneral'
+          AND type = 'P'
+)
+    DROP PROCEDURE URP_CAJ_LETRA_CAMBIO_TraerLetras_ReporteGeneral;
+GO
+CREATE PROCEDURE URP_CAJ_LETRA_CAMBIO_TraerLetras_ReporteGeneral @CodMoneda   VARCHAR(5)   = NULL, 
+                                                                 @CodCuenta   VARCHAR(128) = NULL, 
+                                                                 @IdCliente   INT          = NULL, 
+                                                                 @FechaInicio DATETIME     = NULL, 
+                                                                 @FechaFin    DATETIME     = NULL, 
+                                                                 @CodEstado   VARCHAR(10)  = NULL, 
+                                                                 @CodLibro    VARCHAR(10)  = NULL, 
+                                                                 @Por_Vencer  BIT          = 0, 
+                                                                 @Dias_Plazo  INT          = 0, 
+                                                                 @Vencido     BIT          = 0
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT 
+       clc.Id, 
+       clc.Id_Letra, 
+       CAST(clc.Nro_Letra AS BIGINT) Nro_Letra, 
+       clc.Cod_Libro, 
+       clc.Ref_Girador, 
+       clc.Fecha_Girado, 
+       clc.Fecha_Vencimiento,
+       CASE
+           WHEN clc.Cod_Estado = '001'
+           THEN DATEDIFF(dd, GETDATE(), clc.Fecha_Vencimiento)
+           ELSE 0
+       END Diferencia, 
+       clc.Fecha_Pago,
+       CASE
+           WHEN clc.Cod_Estado = '001'
+           THEN clc.Monto_Base
+           ELSE 0
+       END Monto_Base, 
+       clc.Cod_Cuenta, 
+       bcb.Des_CuentaBancaria, 
+       clc.Nro_Operacion, 
+       clc.Cod_Moneda, 
+       vm.Nom_Moneda, 
+       clc.Id_Comprobante, 
+       clc.Cod_Estado, 
+       vel.Des_Estado, 
+       clc.Nro_Referencia, 
+       clc.Monto_Base, 
+       clc.Monto_Real, 
+       clc.Observaciones, 
+       ccp.Id_Cliente, 
+       vtd.Nom_TipoDoc, 
+       ccp.Cod_TipoDoc, 
+       ccp.Doc_Cliente, 
+       ccp.Nom_Cliente, 
+       ccp.Cod_TipoComprobante, 
+       vtc.Nom_TipoComprobante, 
+       ccp.Cod_TipoComprobante + ':' + ccp.Serie + '-' + ccp.Numero SerieNumero
+FROM dbo.CAJ_LETRA_CAMBIO clc
+     INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccp.id_ComprobantePago = clc.Id_Comprobante
+     INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON ccp.Cod_TipoComprobante = vtc.Cod_TipoComprobante
+     INNER JOIN dbo.VIS_MONEDAS vm ON clc.Cod_Moneda = vm.Cod_Moneda
+     INNER JOIN dbo.VIS_ESTADOS_LETRA vel ON clc.Cod_Estado = vel.Cod_Estado
+     INNER JOIN dbo.VIS_TIPO_DOCUMENTOS vtd ON ccp.Cod_TipoDoc = vtd.Cod_TipoDoc
+     INNER JOIN dbo.BAN_CUENTA_BANCARIA bcb ON clc.Cod_Cuenta = bcb.Cod_CuentaBancaria
+WHERE(@CodMoneda IS NULL
+      OR clc.Cod_Moneda = @CodMoneda)
+     AND (@CodCuenta IS NULL
+          OR clc.Cod_Cuenta = @CodCuenta)
+     AND (@IdCliente IS NULL
+          OR ccp.Id_Cliente = @IdCliente)
+     AND (CONVERT(DATETIME, CONVERT(VARCHAR(32), clc.Fecha_Girado, 103)) BETWEEN CONVERT(DATETIME, @FechaInicio) AND CONVERT(DATETIME, @FechaFin)
+          OR @FechaInicio IS NULL)
+     AND ((@Por_Vencer = 0
+           AND @Vencido = 0
+           AND (@CodEstado IS NULL
+                OR clc.Cod_Estado = @CodEstado))
+          OR (@Por_Vencer = 1
+              AND @Vencido = 0
+              AND (clc.Cod_Estado = '001'
+                   AND DATEDIFF(dd, GETDATE(), clc.Fecha_Vencimiento) <= @Dias_Plazo
+                   AND DATEDIFF(dd, GETDATE(), clc.Fecha_Vencimiento) > 0))
+          OR (@Por_Vencer = 0
+              AND @Vencido = 1
+              AND (clc.Cod_Estado = '001'
+                   AND DATEDIFF(dd, GETDATE(), clc.Fecha_Vencimiento) < 0)))
+     AND (@CodLibro IS NULL
+          OR clc.Cod_Libro = @CodLibro)
+ORDER BY ccp.Id_Cliente, 
+         clc.Id_Letra, 
+         CAST(clc.Nro_Letra AS BIGINT), 
+         clc.Fecha_Girado;
     END;
 GO

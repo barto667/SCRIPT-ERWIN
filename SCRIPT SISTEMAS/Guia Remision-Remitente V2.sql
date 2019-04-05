@@ -1741,3 +1741,42 @@ AS
               AND cgrr.Numero = @Numero;
     END;
 GO
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_TraerComprobantesXCodLibroCodCaja'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TraerComprobantesXCodLibroCodCaja;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TraerComprobantesXCodLibroCodCaja @Cod_Libro VARCHAR(2), 
+                                                                                   @Cod_Caja  VARCHAR(32) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        IF @Cod_Libro = '08'
+            BEGIN
+                --Traemos todos los tipos de comprobantes
+                SELECT DISTINCT 
+                       vtc.Cod_TipoComprobante, 
+                       vtc.Nom_TipoComprobante
+                FROM dbo.VIS_TIPO_COMPROBANTES vtc
+                WHERE vtc.Estado = 1
+                      AND vtc.Cod_TipoComprobante IN('GR', 'GRE');
+        END;
+            ELSE
+            BEGIN
+                SELECT DISTINCT 
+                       vtc.Cod_TipoComprobante, 
+                       vtc.Nom_TipoComprobante
+                FROM dbo.CAJ_CAJAS_DOC ccd
+                     INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON ccd.Cod_TipoComprobante = vtc.Cod_TipoComprobante
+                WHERE ccd.Cod_Caja = @Cod_Caja
+                      AND vtc.Cod_TipoComprobante IN('GR', 'GRE')
+                     AND vtc.Estado = 1;
+        END;
+    END;
+GO
