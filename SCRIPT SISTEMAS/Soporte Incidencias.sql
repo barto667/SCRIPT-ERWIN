@@ -121,7 +121,6 @@ GO
 --Archivo: USP_SOP_ASISTENCIAS.sql
 -- Guardar
 
-
 IF EXISTS
 (
     SELECT name
@@ -134,7 +133,7 @@ GO
 CREATE PROCEDURE USP_SOP_ASISTENCIAS_G @Id_Incidencia         INT, 
                                        @Item                  INT OUTPUT, 
                                        @Fecha_Inicio          DATETIME, 
-                                       @Fecha_Fin             DATETIME,      
+                                       @Fecha_Fin             DATETIME, 
                                        @Tiempo                BIGINT, 
                                        @Cod_UsuarioAsistencia VARCHAR(32), 
                                        @Obs_Asistencia        VARCHAR(1024), 
@@ -153,9 +152,9 @@ AS
                 INSERT INTO SOP_ASISTENCIAS
                 VALUES
                 (@Id_Incidencia, 
-                 @Item,
-                 @Fecha_Inicio,
-                 @Fecha_Fin,
+                 @Item, 
+                 @Fecha_Inicio, 
+                 @Fecha_Fin, 
                  @Tiempo, 
                  @Cod_UsuarioAsistencia, 
                  @Obs_Asistencia, 
@@ -179,8 +178,8 @@ AS
                         INSERT INTO SOP_ASISTENCIAS
                         VALUES
                         (@Id_Incidencia, 
-                         @Item,
-                         @Fecha_Inicio,
+                         @Item, 
+                         @Fecha_Inicio, 
                          @Fecha_Fin, 
                          @Tiempo, 
                          @Cod_UsuarioAsistencia, 
@@ -303,7 +302,7 @@ AS
                Item, 
                Fecha_Inicio, 
                Fecha_Fin, 
-			   Tiempo,
+               Tiempo, 
                Cod_UsuarioAsistencia, 
                Obs_Asistencia, 
                Cod_UsuarioReg, 
@@ -1113,27 +1112,214 @@ AS
 GO
 
 --Estado terminal
-EXEC dbo.USP_PAR_TABLA_G '130','ESTADOS_TERMINAL','Almacena los estados de una terminal','001',1,'MIGRACION';
-EXEC dbo.USP_PAR_COLUMNA_G '130','001','Cod_Estado','Almacena el codigo del estado','CADENA',0, 32,'',1,'MIGRACION';
-EXEC dbo.USP_PAR_COLUMNA_G '130','002','Des_Estado','Almacena la descripcion del estado','CADENA',0,1024,'',0,'MIGRACION';
-EXEC dbo.USP_PAR_COLUMNA_G '130','003','Estado','Estado','BOLEANO',0,64,'',0,'MIGRACION';
-EXEC dbo.USP_PAR_TABLA_GENERADOR_VISTAS '130';
+EXEC dbo.USP_PAR_TABLA_G 
+     '130', 
+     'ESTADOS_TERMINAL', 
+     'Almacena los estados de una terminal', 
+     '001', 
+     1, 
+     'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G 
+     '130', 
+     '001', 
+     'Cod_Estado', 
+     'Almacena el codigo del estado', 
+     'CADENA', 
+     0, 
+     32, 
+     '', 
+     1, 
+     'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G 
+     '130', 
+     '002', 
+     'Des_Estado', 
+     'Almacena la descripcion del estado', 
+     'CADENA', 
+     0, 
+     1024, 
+     '', 
+     0, 
+     'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G 
+     '130', 
+     '003', 
+     'Estado', 
+     'Estado', 
+     'BOLEANO', 
+     0, 
+     64, 
+     '', 
+     0, 
+     'MIGRACION';
+EXEC dbo.USP_PAR_TABLA_GENERADOR_VISTAS 
+     '130';
 GO
-EXEC USP_PAR_FILA_G '130','001',1,'001',NULL,NULL,NULL,NULL,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','002',1,'ACTIVO',NULL,NULL,NULL,NULL,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','003',1,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','001',2,'002',NULL,NULL,NULL,NULL,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','002',2,'INACTIVO',NULL,NULL,NULL,NULL,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','003',2,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','001',3,'003',NULL,NULL,NULL,NULL,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','002',3,'BAJA',NULL,NULL,NULL,NULL,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','003',3,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','001',4,'004',NULL,NULL,NULL,NULL,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','002',4,'INOPERATIVO',NULL,NULL,NULL,NULL,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','003',4,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','001',5,'005',NULL,NULL,NULL,NULL,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','002',5,'EN MANTENIMIENTO',NULL,NULL,NULL,NULL,1,'MIGRACION';
-EXEC USP_PAR_FILA_G '130','003',5,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '001', 
+     1, 
+     '001', 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '002', 
+     1, 
+     'ACTIVO', 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '003', 
+     1, 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '001', 
+     2, 
+     '002', 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '002', 
+     2, 
+     'INACTIVO', 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '003', 
+     2, 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '001', 
+     3, 
+     '003', 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '002', 
+     3, 
+     'BAJA', 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '003', 
+     3, 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '001', 
+     4, 
+     '004', 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '002', 
+     4, 
+     'INOPERATIVO', 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '003', 
+     4, 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '001', 
+     5, 
+     '005', 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '002', 
+     5, 
+     'EN MANTENIMIENTO', 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     'MIGRACION';
+EXEC USP_PAR_FILA_G 
+     '130', 
+     '003', 
+     5, 
+     NULL, 
+     NULL, 
+     NULL, 
+     NULL, 
+     1, 
+     1, 
+     'MIGRACION';
 GO
 
 --Procedimientos adicionales
@@ -1181,7 +1367,8 @@ AS
         WHERE(@FlagActivo IS NULL
               OR st.Flag_Estado = @FlagActivo)
              AND (@CodUbigeo IS NULL
-                  OR pcp.Cod_Ubigeo = @CodUbigeo);
+                  OR pcp.Cod_Ubigeo = @CodUbigeo)
+        ORDER BY st.Des_Terminal;
     END;
 GO
 
@@ -1230,7 +1417,8 @@ AS
         WHERE(@FlagActivo IS NULL
               OR st.Flag_Estado = @FlagActivo)
              AND pcp.Cod_Ubigeo = @CodUbigeo
-             AND st.Id_ClienteProveedor = @IdCliente;
+             AND st.Id_ClienteProveedor = @IdCliente
+        ORDER BY st.Des_Terminal;
     END;
 GO
 
@@ -1248,13 +1436,16 @@ CREATE PROCEDURE USP_SOP_TERMINALES_TraerDepartamentos @Flag_Activo BIT = NULL
 WITH ENCRYPTION
 AS
     BEGIN
-        SELECT DISTINCT vd2.*
+        SELECT DISTINCT 
+               vd2.Cod_Departamento, 
+               vd2.Nom_Departamento
         FROM dbo.SOP_TERMINALES st
              INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON st.Id_ClienteProveedor = pcp.Id_ClienteProveedor
              INNER JOIN dbo.VIS_DISTRITOS vd ON pcp.Cod_Ubigeo = vd.Cod_Ubigeo
              INNER JOIN dbo.VIS_DEPARTAMENTOS vd2 ON vd.Cod_Departamento = vd2.Cod_Departamento
         WHERE @Flag_Activo IS NULL
-              OR st.Flag_Estado = @Flag_Activo;
+              OR st.Flag_Estado = @Flag_Activo
+        ORDER BY vd2.Nom_Departamento;
     END;
 GO
 
@@ -1273,7 +1464,10 @@ CREATE PROCEDURE USP_SOP_TERMINALES_TraerProvincias @Cod_Departamento VARCHAR(2)
 WITH ENCRYPTION
 AS
     BEGIN
-        SELECT DISTINCT vp.*
+        SELECT DISTINCT 
+               vp.Cod_Departamento, 
+               vp.Cod_Provincia, 
+               vp.Nom_Provincia
         FROM dbo.SOP_TERMINALES st
              INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON st.Id_ClienteProveedor = pcp.Id_ClienteProveedor
              INNER JOIN dbo.VIS_DISTRITOS vd ON pcp.Cod_Ubigeo = vd.Cod_Ubigeo
@@ -1281,7 +1475,8 @@ AS
                                                  AND vd.Cod_Provincia = vp.Cod_Provincia
         WHERE(@Flag_Activo IS NULL
               OR st.Flag_Estado = @Flag_Activo)
-             AND (vp.Cod_Departamento = @Cod_Departamento);
+             AND (vp.Cod_Departamento = @Cod_Departamento)
+        ORDER BY vp.Nom_Provincia;
     END;
 GO
 
@@ -1301,7 +1496,12 @@ CREATE PROCEDURE USP_SOP_TERMINALES_TraerDistritos @Cod_Departamento VARCHAR(2),
 WITH ENCRYPTION
 AS
     BEGIN
-        SELECT DISTINCT vd.*
+        SELECT DISTINCT 
+               vd.Cod_Ubigeo, 
+               vd.Cod_Departamento, 
+               vd.Cod_Provincia, 
+               vd.Cod_Distrito, 
+               vd.Nom_Distrito
         FROM dbo.SOP_TERMINALES st
              INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON st.Id_ClienteProveedor = pcp.Id_ClienteProveedor
              INNER JOIN dbo.VIS_DISTRITOS vd ON pcp.Cod_Ubigeo = vd.Cod_Ubigeo
@@ -1310,7 +1510,8 @@ AS
         WHERE(@Flag_Activo IS NULL
               OR st.Flag_Estado = @Flag_Activo)
              AND (vp.Cod_Departamento = @Cod_Departamento)
-             AND (vp.Cod_Provincia = @Cod_Provincia);
+             AND (vp.Cod_Provincia = @Cod_Provincia)
+        ORDER BY vd.Nom_Distrito;
     END;
 GO
 
@@ -1360,7 +1561,8 @@ AS
              INNER JOIN dbo.SOP_TERMINALES st ON pcp.Id_ClienteProveedor = st.Id_ClienteProveedor
         WHERE pcp.Cod_Ubigeo = @CodUbigeo
               AND (@FlagActivo IS NULL
-                   OR st.Flag_Estado = @FlagActivo);
+                   OR st.Flag_Estado = @FlagActivo)
+        ORDER BY pcp.Cliente;
     END;
 GO
 
@@ -1999,6 +2201,7 @@ EXEC USP_PAR_FILA_G '135','003',4,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
 EXEC USP_PAR_FILA_G '135','003',5,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
 GO
 
+
 IF EXISTS
 (
     SELECT *
@@ -2026,19 +2229,19 @@ AS
                         OR LEN(RTRIM(LTRIM(st.Id_TeamViewer))) = 0
                    THEN NULL
                    ELSE st.Id_TeamViewer
-               END Id_TeamViewer, 
+               END Id_TeamViewer,
                CASE
                    WHEN st.Pass_Teamviewer IS NULL
                         OR LEN(RTRIM(LTRIM(st.Pass_Teamviewer))) = 0
                    THEN NULL
                    ELSE st.Pass_Teamviewer
-               END  Pass_Teamviewer, 
+               END Pass_Teamviewer,
                CASE
                    WHEN st.Id_AnyDesk IS NULL
                         OR LEN(RTRIM(LTRIM(st.Id_AnyDesk))) = 0
                    THEN NULL
                    ELSE st.Id_AnyDesk
-               END Id_AnyDesk, 
+               END Id_AnyDesk,
                CASE
                    WHEN st.Pass_AnyDesk IS NULL
                         OR LEN(RTRIM(LTRIM(st.Pass_AnyDesk))) = 0
@@ -2053,11 +2256,10 @@ AS
         FROM dbo.SOP_TERMINALES st
         WHERE st.Id_ClienteProveedor = @Id_ClienteProveedor
               AND (@FlagActivo IS NULL
-                   OR st.Flag_Estado = @FlagActivo);
+                   OR st.Flag_Estado = @FlagActivo)
+        ORDER BY st.Des_Terminal;
     END;
 GO
-
-
 IF EXISTS
 (
     SELECT *
@@ -2078,7 +2280,7 @@ AS
             pcc.Ap_Paterno, 
             pcc.Ap_Materno, 
             pcc.Nombres, 
-			CONCAT(pcc.Nombres,' ',pcc.Ap_Paterno,' ',pcc.Ap_Materno) Nombres_Completo,
+            CONCAT(pcc.Nombres, ' ', pcc.Ap_Paterno, ' ', pcc.Ap_Materno) Nombres_Completo, 
             pcc.Cod_Telefono, 
             pcc.Nro_Telefono, 
             pcc.Anexo, 
@@ -2086,13 +2288,13 @@ AS
             pcc.Email_Personal, 
             pcc.Celular, 
             pcc.Cod_TipoRelacion, 
-			vtr.Nom_TipoRelacion,
+            vtr.Nom_TipoRelacion, 
             pcc.Fecha_Incorporacion
      FROM dbo.PRI_CLIENTE_CONTACTO pcc
-	 INNER JOIN dbo.VIS_TIPO_RELACION vtr ON pcc.Cod_TipoRelacion = vtr.Cod_TipoRelacion
-     WHERE pcc.Id_ClienteProveedor = @Id_ClienteProveedor;
+          INNER JOIN dbo.VIS_TIPO_RELACION vtr ON pcc.Cod_TipoRelacion = vtr.Cod_TipoRelacion
+     WHERE pcc.Id_ClienteProveedor = @Id_ClienteProveedor
+     ORDER BY CONCAT(pcc.Nombres, ' ', pcc.Ap_Paterno, ' ', pcc.Ap_Materno);
 GO
-
 IF EXISTS
 (
     SELECT *
@@ -2108,44 +2310,50 @@ CREATE PROCEDURE USP_SOP_INCIDENCIAS_TraerPENDIENTESPAUSADOS @Cod_TipoIncidencia
 WITH ENCRYPTION
 AS
     BEGIN
-        SELECT DISTINCT si.Id_Incidencia, 
-               si.Id_Terminal, 
-               st.Des_Terminal, 
-               st.Id_ClienteProveedor, 
-               pcp.Id_ClienteProveedor, 
-               pcp.Cod_TipoDocumento, 
-               pcp.Nro_Documento, 
-               pcp.Cliente, 
-               si.Cod_TipoIncidencia, 
-               vti.Des_Tipo, 
-               si.Cod_Prioridad, 
-               vpi.Des_Prioridad, 
-               si.Detalle, 
-               si.Respuesta, 
-               si.Cod_MedioOrigen, 
-               voi.Des_Origen, 
-               si.Obs_Incidencia, 
-               si.Cod_Estado, 
-               CAST(NULL AS VARBINARY(8000)) ImagenEstado, 
-               vei.Des_Estado, 
-               si.Cod_UsuarioIncidencia
-        FROM dbo.SOP_INCIDENCIAS si
-             INNER JOIN dbo.SOP_TERMINALES st ON si.Id_Terminal = st.Id_Terminal
-             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON st.Id_ClienteProveedor = pcp.Id_ClienteProveedor
-             LEFT JOIN dbo.VIS_TIPOS_INCIDENCIAS vti ON si.Cod_TipoIncidencia = vti.Cod_Tipo
-             LEFT JOIN dbo.VIS_PRIORIDADES_INCIDENCIAS vpi ON si.Cod_Prioridad = vpi.Cod_Prioridad
-             LEFT JOIN dbo.VIS_ORIGENES_INCIDENCIAS voi ON si.Cod_MedioOrigen = voi.Cod_Origen
-             LEFT JOIN dbo.VIS_ESTADOS_INCIDENCIAS vei ON si.Cod_Estado = vei.Cod_Estado
-        WHERE(@Cod_TipoIncidencia IS NULL
-              OR si.Cod_TipoIncidencia = @Cod_TipoIncidencia)
-             AND (@Cod_Prioridad IS NULL
-                  OR si.Cod_Prioridad = @Cod_Prioridad)
-             AND (@Cod_MedioOrigen IS NULL
-                  OR si.Cod_MedioOrigen = @Cod_MedioOrigen)
-             AND si.Cod_Estado IN('001', '002', '003');
+        SELECT T1.*, 
+               CAST(NULL AS IMAGE) Imagen_Estado
+        FROM
+        (
+            SELECT DISTINCT 
+                   si.Id_Incidencia, 
+                   si.Id_Terminal, 
+                   st.Des_Terminal, 
+                   st.Id_ClienteProveedor, 
+                   pcp.Cod_TipoDocumento, 
+                   pcp.Nro_Documento, 
+                   pcp.Cliente, 
+                   si.Cod_TipoIncidencia, 
+                   vti.Des_Tipo, 
+                   si.Cod_Prioridad, 
+                   vpi.Des_Prioridad, 
+                   si.Detalle, 
+                   si.Respuesta, 
+                   si.Cod_MedioOrigen, 
+                   voi.Des_Origen, 
+                   si.Obs_Incidencia, 
+                   si.Cod_Estado, 
+                   vei.Des_Estado, 
+                   si.Cod_UsuarioIncidencia
+            FROM dbo.SOP_INCIDENCIAS si
+                 INNER JOIN dbo.SOP_TERMINALES st ON si.Id_Terminal = st.Id_Terminal
+                 INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON st.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+                 LEFT JOIN dbo.VIS_TIPOS_INCIDENCIAS vti ON si.Cod_TipoIncidencia = vti.Cod_Tipo
+                 LEFT JOIN dbo.VIS_PRIORIDADES_INCIDENCIAS vpi ON si.Cod_Prioridad = vpi.Cod_Prioridad
+                 LEFT JOIN dbo.VIS_ORIGENES_INCIDENCIAS voi ON si.Cod_MedioOrigen = voi.Cod_Origen
+                 LEFT JOIN dbo.VIS_ESTADOS_INCIDENCIAS vei ON si.Cod_Estado = vei.Cod_Estado
+            WHERE(@Cod_TipoIncidencia IS NULL
+                  OR si.Cod_TipoIncidencia = @Cod_TipoIncidencia)
+                 AND (@Cod_Prioridad IS NULL
+                      OR si.Cod_Prioridad = @Cod_Prioridad)
+                 AND (@Cod_MedioOrigen IS NULL
+                      OR si.Cod_MedioOrigen = @Cod_MedioOrigen)
+                 AND si.Cod_Estado IN('001', '002', '003')
+        ) T1
+        ORDER BY T1.Id_Incidencia, 
+                 T1.Des_Terminal, 
+                 T1.Cliente;
     END;
 GO
-
 IF EXISTS
 (
     SELECT *
@@ -2158,7 +2366,8 @@ GO
 CREATE PROCEDURE USP_SOP_ASISTENCIAS_TraerXIdIncidencia @Id_Incidencia INT = NULL
 AS
     BEGIN
-        SELECT DISTINCT sa.Id_Incidencia, 
+        SELECT DISTINCT 
+               sa.Id_Incidencia, 
                sa.Item, 
                sa.Fecha_Inicio, 
                sa.Fecha_Fin, 
@@ -2167,13 +2376,11 @@ AS
                sa.Obs_Asistencia
         FROM dbo.SOP_ASISTENCIAS sa
         WHERE(@Id_Incidencia IS NULL
-              OR sa.Id_Incidencia = @Id_Incidencia);
+              OR sa.Id_Incidencia = @Id_Incidencia)
     END;
 GO
 
 --Traer ultimas incidencias resueltas sin encuesta ordenadas por la ultima fecha de asistencia
-
-
 IF EXISTS
 (
     SELECT *
@@ -2191,7 +2398,7 @@ AS
                                         st.Id_ClienteProveedor, 
                                         pcp.Cod_TipoDocumento, 
                                         pcp.Nro_Documento, 
-										pcp.Cliente,
+                                        pcp.Cliente, 
                                         si.Id_Terminal, 
                                         st.Des_Terminal, 
                                         si.Cod_Estado, 
@@ -2203,8 +2410,8 @@ AS
                                         SUM(sa.Tiempo) Sumatoria_TiempoAsistencia, 
                                         MIN(sa.Fecha_Inicio) Min_FechaInicioAsistencia, 
                                         MAX(sa.Fecha_Fin) Max_FechaFinAsistencia, 
-                                        COUNT(sa.Item) Intervalos_Asistencias,
-										si.Cod_UsuarioIncidencia
+                                        COUNT(sa.Item) Intervalos_Asistencias, 
+                                        si.Cod_UsuarioIncidencia
         FROM dbo.SOP_INCIDENCIAS si
              INNER JOIN dbo.SOP_TERMINALES st ON si.Id_Terminal = st.Id_Terminal
              INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON st.Id_ClienteProveedor = pcp.Id_ClienteProveedor
@@ -2217,8 +2424,8 @@ AS
         GROUP BY si.Id_Incidencia, 
                  st.Id_ClienteProveedor, 
                  pcp.Cod_TipoDocumento, 
-                 pcp.Nro_Documento,
-				 pcp.Cliente, 
+                 pcp.Nro_Documento, 
+                 pcp.Cliente, 
                  si.Id_Terminal, 
                  st.Des_Terminal, 
                  si.Cod_Estado, 
@@ -2226,12 +2433,11 @@ AS
                  si.Cod_TipoIncidencia, 
                  vti.Des_Tipo, 
                  si.Cod_Prioridad, 
-                 vpi.Des_Prioridad,
-				 si.Cod_UsuarioIncidencia
+                 vpi.Des_Prioridad, 
+                 si.Cod_UsuarioIncidencia
         ORDER BY MAX(sa.Fecha_Fin) DESC;
     END;
 GO
-
 IF EXISTS
 (
     SELECT *
@@ -2253,7 +2459,8 @@ AS
                                                  AND si.Cod_Estado IN('001', '002', '003')
         WHERE st.Id_Terminal = @Id_Terminal
         GROUP BY st.Id_Terminal, 
-                 st.Des_Terminal;
+                 st.Des_Terminal
+        ORDER BY st.Des_Terminal;
     END;
 GO
 
@@ -2294,7 +2501,7 @@ AS
                CASE
                    WHEN ISNULL(COUNT(sa.Item), 0.00) = 0.00
                    THEN 0.00
-                   ELSE ISNULL(SUM(sa.Tiempo), 0.00) / ISNULL(COUNT(sa.Item), 0.00)
+                   ELSE CAST(ISNULL(SUM(sa.Tiempo), 0.00) AS NUMERIC(38, 2)) / ISNULL(COUNT(sa.Item), 0.00)
                END Promedio_SegundosAsistencias
         FROM dbo.SOP_INCIDENCIAS si
              INNER JOIN dbo.SOP_ASISTENCIAS sa ON si.Id_Incidencia = sa.Id_Incidencia
@@ -2317,10 +2524,10 @@ AS
                   OR si.Id_Terminal = @Id_Terminal)
              AND vei.Estado = 1
         GROUP BY vei.Cod_Estado, 
-                 vei.Des_Estado;
+                 vei.Des_Estado
+        ORDER BY vei.Cod_Estado;
     END;
 GO
-
 
 --Obtiene el reporte de incidencias por dia agrupado por terminal
 --DECLARE @Fecha datetime = GETDATE()
@@ -2363,7 +2570,7 @@ AS
                CASE
                    WHEN ISNULL(COUNT(sa.Item), 0.00) = 0.00
                    THEN 0.00
-                   ELSE ISNULL(SUM(sa.Tiempo), 0.00) / ISNULL(COUNT(sa.Item), 0.00)
+                   ELSE CAST(ISNULL(SUM(sa.Tiempo), 0.00) AS NUMERIC(38, 2)) / ISNULL(COUNT(sa.Item), 0.00)
                END Promedio_SegundosAsistencias
         FROM dbo.SOP_INCIDENCIAS si
              INNER JOIN dbo.SOP_ASISTENCIAS sa ON si.Id_Incidencia = sa.Id_Incidencia
@@ -2390,7 +2597,8 @@ AS
                  pcp.Id_ClienteProveedor, 
                  pcp.Cod_TipoDocumento, 
                  pcp.Nro_Documento, 
-                 pcp.Cliente;
+                 pcp.Cliente
+        ORDER BY st.Des_Terminal;
     END;
 GO
 
@@ -2433,7 +2641,7 @@ AS
                CASE
                    WHEN ISNULL(COUNT(sa.Item), 0.00) = 0.00
                    THEN 0.00
-                   ELSE ISNULL(SUM(sa.Tiempo), 0.00) / ISNULL(COUNT(sa.Item), 0.00)
+                   ELSE CAST(ISNULL(SUM(sa.Tiempo), 0.00) AS NUMERIC(38, 2)) / ISNULL(COUNT(sa.Item), 0.00)
                END Promedio_SegundosAsistencias
         FROM dbo.SOP_INCIDENCIAS si
              INNER JOIN dbo.SOP_ASISTENCIAS sa ON si.Id_Incidencia = sa.Id_Incidencia
@@ -2457,6 +2665,9 @@ AS
              AND st.Flag_Estado = 1
         GROUP BY pcp.Id_ClienteProveedor, 
                  pcp.Cod_TipoDocumento, 
+                 pcp.Nro_Documento, 
+                 pcp.Cliente
+        ORDER BY pcp.Cod_TipoDocumento, 
                  pcp.Nro_Documento, 
                  pcp.Cliente;
     END;
@@ -2499,7 +2710,7 @@ AS
                CASE
                    WHEN ISNULL(COUNT(sa.Item), 0.00) = 0.00
                    THEN 0.00
-                   ELSE ISNULL(SUM(sa.Tiempo), 0.00) / ISNULL(COUNT(sa.Item), 0.00)
+                   ELSE CAST(ISNULL(SUM(sa.Tiempo), 0.00) AS NUMERIC(38, 2)) / ISNULL(COUNT(sa.Item), 0.00)
                END Promedio_SegundosAsistencias
         FROM dbo.SOP_INCIDENCIAS si
              INNER JOIN dbo.SOP_ASISTENCIAS sa ON si.Id_Incidencia = sa.Id_Incidencia
@@ -2523,7 +2734,8 @@ AS
                   OR si.Id_Terminal = @Id_Terminal)
              AND vei.Estado = 1
         GROUP BY pu.Cod_Usuarios, 
-                 pu.Nick;
+                 pu.Nick
+        ORDER BY pu.Cod_Usuarios;
     END;
 GO
 
@@ -2569,9 +2781,9 @@ AS
                ISNULL(SUM(sa.Tiempo), 0) Tiempo_TotalSegundos,
                CASE
                    WHEN ISNULL(COUNT(sa.Item), 0.00) != 0.00
-                   THEN ISNULL(SUM(sa.Tiempo), 0.00) / ISNULL(COUNT(sa.Item), 0)
+                   THEN CAST(ISNULL(SUM(sa.Tiempo), 0.00) AS NUMERIC(38, 2)) / ISNULL(COUNT(sa.Item), 0)
                    ELSE 0.00
-               END Tiempo_PromedioAsisitencias
+               END Tiempo_PromedioAsistencias
         FROM dbo.SOP_INCIDENCIAS si
              INNER JOIN dbo.SOP_ASISTENCIAS sa ON si.Id_Incidencia = sa.Id_Incidencia
              INNER JOIN dbo.SOP_TERMINALES st ON si.Id_Terminal = st.Id_Terminal
@@ -2608,6 +2820,195 @@ AS
                  si.Pregunta1, 
                  si.Pregunta2, 
                  si.Pregunta3, 
-                 si.Respuesta;
+                 si.Respuesta
+        ORDER BY st.Des_Terminal;
     END;
 GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_SOP_TERMINALES_DepartamentosTT'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_TERMINALES_DepartamentosTT;
+GO
+CREATE PROCEDURE USP_SOP_TERMINALES_DepartamentosTT @Flag_Activo BIT = NULL
+AS
+    BEGIN
+        SELECT DISTINCT 
+               vd2.Cod_Departamento, 
+               vd2.Nom_Departamento
+        FROM dbo.SOP_TERMINALES st
+             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON st.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+             INNER JOIN dbo.VIS_DISTRITOS vd ON pcp.Cod_Ubigeo = vd.Cod_Ubigeo
+             INNER JOIN dbo.VIS_DEPARTAMENTOS vd2 ON vd.Cod_Departamento = vd2.Cod_Departamento
+        WHERE @Flag_Activo IS NULL
+              OR st.Flag_Estado = @Flag_Activo
+        ORDER BY vd2.Nom_Departamento;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_SOP_TERMINALES_ProvinciasTT'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_TERMINALES_ProvinciasTT;
+GO
+CREATE PROCEDURE USP_SOP_TERMINALES_ProvinciasTT @Flag_Activo BIT = NULL
+AS
+    BEGIN
+        SELECT DISTINCT 
+               vp.Cod_Departamento, 
+               vp.Cod_Provincia, 
+               vp.Nom_Provincia
+        FROM dbo.SOP_TERMINALES st
+             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON st.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+             INNER JOIN dbo.VIS_DISTRITOS vd ON pcp.Cod_Ubigeo = vd.Cod_Ubigeo
+             INNER JOIN dbo.VIS_PROVINCIAS vp ON vd.Cod_Departamento = vp.Cod_Departamento
+                                                 AND vd.Cod_Provincia = vp.Cod_Provincia
+        WHERE(@Flag_Activo IS NULL
+              OR st.Flag_Estado = @Flag_Activo)
+        ORDER BY vp.Nom_Provincia;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_SOP_TERMINALES_DistritosTT'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_TERMINALES_DistritosTT;
+GO
+CREATE PROCEDURE USP_SOP_TERMINALES_DistritosTT @Flag_Activo BIT = NULL
+AS
+    BEGIN
+        SELECT DISTINCT 
+               vd.Cod_Ubigeo, 
+               vd.Cod_Departamento, 
+               vd.Cod_Provincia, 
+               vd.Cod_Distrito, 
+               vd.Nom_Distrito
+        FROM dbo.SOP_TERMINALES st
+             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON st.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+             INNER JOIN dbo.VIS_DISTRITOS vd ON pcp.Cod_Ubigeo = vd.Cod_Ubigeo
+             INNER JOIN dbo.VIS_PROVINCIAS vp ON vd.Cod_Departamento = vp.Cod_Departamento
+                                                 AND vd.Cod_Provincia = vp.Cod_Provincia
+        WHERE(@Flag_Activo IS NULL
+              OR st.Flag_Estado = @Flag_Activo)
+        ORDER BY vd.Nom_Distrito;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_SOP_TERMINALES_EmpresasTT'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_TERMINALES_EmpresasTT;
+GO
+CREATE PROCEDURE USP_SOP_TERMINALES_EmpresasTT @Flag_Activo BIT = NULL
+AS
+    BEGIN
+        SELECT DISTINCT 
+               pcp.Id_ClienteProveedor, 
+               pcp.Cod_TipoDocumento, 
+               pcp.Nro_Documento, 
+               pcp.Cliente, 
+               pcp.Ap_Paterno, 
+               pcp.Ap_Materno, 
+               pcp.Nombres, 
+               pcp.Direccion, 
+               pcp.Cod_EstadoCliente, 
+               pcp.Cod_CondicionCliente, 
+               pcp.Cod_TipoCliente, 
+               pcp.RUC_Natural, 
+               pcp.Cod_TipoComprobante, 
+               pcp.Cod_Nacionalidad, 
+               pcp.Fecha_Nacimiento, 
+               pcp.Cod_Sexo, 
+               pcp.Email1, 
+               pcp.Email2, 
+               pcp.Telefono1, 
+               pcp.Telefono2, 
+               pcp.Fax, 
+               pcp.PaginaWeb, 
+               pcp.Cod_Ubigeo, 
+               pcp.Cod_FormaPago, 
+               pcp.Limite_Credito, 
+               pcp.Num_DiaCredito
+        FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
+             INNER JOIN dbo.SOP_TERMINALES st ON pcp.Id_ClienteProveedor = st.Id_ClienteProveedor
+        WHERE @Flag_Activo IS NULL
+              OR st.Flag_Estado = @Flag_Activo
+        ORDER BY pcp.Cliente;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_SOP_TERMINALES_TerminalesTT'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_TERMINALES_TerminalesTT;
+GO
+CREATE PROCEDURE USP_SOP_TERMINALES_TerminalesTT @Flag_Activo BIT = NULL
+AS
+    BEGIN
+        SELECT DISTINCT 
+               st.Id_Terminal, 
+               st.Id_ClienteProveedor, 
+               pcp.Cod_TipoDocumento, 
+               pcp.Nro_Documento, 
+               pcp.Cliente, 
+               pcp.Cod_Ubigeo, 
+               st.Des_Terminal, 
+               st.MAC_Terminal, 
+               st.Id_Sistema, 
+               st.Serie_Sistema, 
+               st.Fecha_Creacion, 
+               st.Id_TeamViewer, 
+               st.Pass_Teamviewer, 
+               st.Id_AnyDesk, 
+               st.Pass_AnyDesk, 
+               st.Id_Otros, 
+               st.Pass_Otros, 
+               st.Flag_Estado, 
+               st.Cod_Estado, 
+               st.Obs_Terminal
+        FROM dbo.SOP_TERMINALES st
+             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON st.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+        WHERE(@Flag_Activo IS NULL
+              OR st.Flag_Estado = @Flag_Activo)
+        ORDER BY st.Des_Terminal;
+    END;
+GO
+
+-- --Creacion de terminales demo
+--   SELECT DISTINCT  CONCAT(
+--  	'EXEC USP_SOP_TERMINALES_G ', 
+--  	0,',',
+--  	pcp.Id_ClienteProveedor,',',
+--  	'''TERMINAL ',vd.Nom_Distrito,''',',
+--  	'''',pcp.Id_ClienteProveedor,''',',
+--  	'''',pcp.Id_ClienteProveedor,''',',
+--  	'''',pcp.Id_ClienteProveedor,''',',
+--  	'@Fecha,',
+--  	'''',ABS(CAST(CAST(NEWID() AS VARBINARY) AS INT)),''',',
+--  	'''123456'',',
+--  	'''',ABS(CAST(CAST(NEWID() AS VARBINARY) AS INT)),''',',
+--  	'''paleC0nsult0res'',',
+--  	''''',',
+--  	''''',',
+--  	'1,',
+--  	'''001'',',
+--  	''''',',
+--  	'''MIGRACION'''
+--  	) script
+--  FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
+--  INNER JOIN dbo.VIS_DISTRITOS vd ON pcp.Cod_Ubigeo = vd.Cod_Ubigeo
