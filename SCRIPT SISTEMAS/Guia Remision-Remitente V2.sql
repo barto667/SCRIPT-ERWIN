@@ -1971,3 +1971,256 @@ AS
               AND cgrr.Cod_Libro = @Cod_Libro;
     END;
 GO
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_TraerComprobantesXDocClienteTipoguia'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TraerComprobantesXDocClienteTipoguia;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TraerComprobantesXDocClienteTipoguia @NumDocumento VARCHAR(32), 
+                                                                                      @TipoGuia     VARCHAR(32)
+AS
+    BEGIN
+        IF @TipoGuia = 'GRE'
+           OR @TipoGuia = 'GRR'
+            BEGIN
+                SELECT DISTINCT 
+                       ccp.id_ComprobantePago,
+                       CASE
+                           WHEN ccp.Cod_Libro = '08'
+                           THEN 'COMPRA'
+                           ELSE 'VENTA'
+                       END Operacion, 
+                       UPPER(CONCAT(ccp.Cod_TipoComprobante, ':', ccp.Serie, '-', RIGHT('00000000' + LTRIM(RTRIM(ccp.Numero)), 8))) CodSerieNumero, 
+                       ccp.Id_Cliente, 
+                       ccp.Doc_Cliente, 
+                       ccp.Nom_Cliente, 
+                       ccp.FechaEmision, 
+                       ccp.Total
+                FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+                WHERE ccp.Doc_Cliente = @NumDocumento
+                      AND ccp.Flag_Anulado = 0
+                      AND ccp.Cod_TipoComprobante IN('BE', 'FE', 'BO', 'FA', 'TKB', 'TKF')
+                EXCEPT
+                SELECT DISTINCT 
+                       ccp.id_ComprobantePago,
+                       CASE
+                           WHEN ccp.Cod_Libro = '08'
+                           THEN 'COMPRA'
+                           ELSE 'VENTA'
+                       END Operacion, 
+                       UPPER(CONCAT(ccp.Cod_TipoComprobante, ':', ccp.Serie, '-', RIGHT('00000000' + LTRIM(RTRIM(ccp.Numero)), 8))) CodSerieNumero, 
+                       ccp.Id_Cliente, 
+                       ccp.Doc_Cliente, 
+                       ccp.Nom_Cliente, 
+                       ccp.FechaEmision, 
+                       ccp.Total
+                FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+                     INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS cgrrr ON cgrrr.Id_DocRelacionado = ccp.id_ComprobantePago
+                                                                                      AND cgrrr.Cod_TipoRelacion = 'GRR'
+                                                                                      AND ccp.Cod_TipoComprobante = cgrrr.Cod_TipoDocumento
+                                                                                      AND cgrrr.Cod_TipoDocumento IN('BE', 'FE', 'BO', 'FA', 'TKB', 'TKF')
+                WHERE ccp.Doc_Cliente = @NumDocumento
+                      AND ccp.Flag_Anulado = 0;
+        END;
+            ELSE
+            BEGIN
+                --Solo facturas electronicas
+                SELECT DISTINCT 
+                       ccp.id_ComprobantePago,
+                       CASE
+                           WHEN ccp.Cod_Libro = '08'
+                           THEN 'COMPRA'
+                           ELSE 'VENTA'
+                       END Operacion, 
+                       UPPER(CONCAT(ccp.Cod_TipoComprobante, ':', ccp.Serie, '-', RIGHT('00000000' + LTRIM(RTRIM(ccp.Numero)), 8))) CodSerieNumero, 
+                       ccp.Id_Cliente, 
+                       ccp.Doc_Cliente, 
+                       ccp.Nom_Cliente, 
+                       ccp.FechaEmision, 
+                       ccp.Total
+                FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+                WHERE ccp.Doc_Cliente = @NumDocumento
+                      AND ccp.Flag_Anulado = 0
+                      AND ccp.Cod_TipoComprobante = 'FE'
+                EXCEPT
+                SELECT DISTINCT 
+                       ccp.id_ComprobantePago,
+                       CASE
+                           WHEN ccp.Cod_Libro = '08'
+                           THEN 'COMPRA'
+                           ELSE 'VENTA'
+                       END Operacion, 
+                       UPPER(CONCAT(ccp.Cod_TipoComprobante, ':', ccp.Serie, '-', RIGHT('00000000' + LTRIM(RTRIM(ccp.Numero)), 8))) CodSerieNumero, 
+                       ccp.Id_Cliente, 
+                       ccp.Doc_Cliente, 
+                       ccp.Nom_Cliente, 
+                       ccp.FechaEmision, 
+                       ccp.Total
+                FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+                     INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS cgrrr ON cgrrr.Id_DocRelacionado = ccp.id_ComprobantePago
+                                                                                      AND cgrrr.Cod_TipoRelacion = 'GRR'
+                                                                                      AND ccp.Cod_TipoComprobante = cgrrr.Cod_TipoDocumento
+                                                                                      AND cgrrr.Cod_TipoDocumento = 'FE'
+                WHERE ccp.Doc_Cliente = @NumDocumento
+                      AND ccp.Flag_Anulado = 0;
+        END;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_TraerComprobantesXNomClienteTipoguia'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TraerComprobantesXNomClienteTipoguia;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TraerComprobantesXNomClienteTipoguia @NomCliente VARCHAR(1024), 
+                                                                                      @TipoGuia   VARCHAR(32)
+AS
+    BEGIN
+        IF @TipoGuia = 'GRE'
+           OR @TipoGuia = 'GRR'
+            BEGIN
+                SELECT DISTINCT 
+                       ccp.id_ComprobantePago,
+                       CASE
+                           WHEN ccp.Cod_Libro = '08'
+                           THEN 'COMPRA'
+                           ELSE 'VENTA'
+                       END Operacion, 
+                       UPPER(CONCAT(ccp.Cod_TipoComprobante, ':', ccp.Serie, '-', RIGHT('00000000' + LTRIM(RTRIM(ccp.Numero)), 8))) CodSerieNumero, 
+                       ccp.Id_Cliente, 
+                       ccp.Doc_Cliente, 
+                       ccp.Nom_Cliente, 
+                       ccp.FechaEmision, 
+                       ccp.Total
+                FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+                WHERE ccp.Nom_Cliente LIKE '%' + @NomCliente + '%'
+                      AND ccp.Flag_Anulado = 0
+                      AND ccp.Cod_TipoComprobante IN('BE', 'FE', 'BO', 'FA', 'TKB', 'TKF')
+                EXCEPT
+                SELECT DISTINCT 
+                       ccp.id_ComprobantePago,
+                       CASE
+                           WHEN ccp.Cod_Libro = '08'
+                           THEN 'COMPRA'
+                           ELSE 'VENTA'
+                       END Operacion, 
+                       UPPER(CONCAT(ccp.Cod_TipoComprobante, ':', ccp.Serie, '-', RIGHT('00000000' + LTRIM(RTRIM(ccp.Numero)), 8))) CodSerieNumero, 
+                       ccp.Id_Cliente, 
+                       ccp.Doc_Cliente, 
+                       ccp.Nom_Cliente, 
+                       ccp.FechaEmision, 
+                       ccp.Total
+                FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+                     INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS cgrrr ON cgrrr.Id_DocRelacionado = ccp.id_ComprobantePago
+                                                                                      AND cgrrr.Cod_TipoRelacion = 'GRR'
+                                                                                      AND ccp.Cod_TipoComprobante = cgrrr.Cod_TipoDocumento
+                                                                                      AND cgrrr.Cod_TipoDocumento IN('BE', 'FE', 'BO', 'FA', 'TKB', 'TKF')
+                WHERE ccp.Nom_Cliente LIKE '%' + @NomCliente + '%'
+                      AND ccp.Flag_Anulado = 0;
+        END;
+            ELSE
+            BEGIN
+                --Solo facturas electronicas
+                SELECT DISTINCT 
+                       ccp.id_ComprobantePago,
+                       CASE
+                           WHEN ccp.Cod_Libro = '08'
+                           THEN 'COMPRA'
+                           ELSE 'VENTA'
+                       END Operacion, 
+                       UPPER(CONCAT(ccp.Cod_TipoComprobante, ':', ccp.Serie, '-', RIGHT('00000000' + LTRIM(RTRIM(ccp.Numero)), 8))) CodSerieNumero, 
+                       ccp.Id_Cliente, 
+                       ccp.Doc_Cliente, 
+                       ccp.Nom_Cliente, 
+                       ccp.FechaEmision, 
+                       ccp.Total
+                FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+                WHERE ccp.Nom_Cliente LIKE '%' + @NomCliente + '%'
+                      AND ccp.Flag_Anulado = 0
+                      AND ccp.Cod_TipoComprobante = 'FE'
+                EXCEPT
+                SELECT DISTINCT 
+                       ccp.id_ComprobantePago,
+                       CASE
+                           WHEN ccp.Cod_Libro = '08'
+                           THEN 'COMPRA'
+                           ELSE 'VENTA'
+                       END Operacion, 
+                       UPPER(CONCAT(ccp.Cod_TipoComprobante, ':', ccp.Serie, '-', RIGHT('00000000' + LTRIM(RTRIM(ccp.Numero)), 8))) CodSerieNumero, 
+                       ccp.Id_Cliente, 
+                       ccp.Doc_Cliente, 
+                       ccp.Nom_Cliente, 
+                       ccp.FechaEmision, 
+                       ccp.Total
+                FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+                     INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS cgrrr ON cgrrr.Id_DocRelacionado = ccp.id_ComprobantePago
+                                                                                      AND cgrrr.Cod_TipoRelacion = 'GRR'
+                                                                                      AND ccp.Cod_TipoComprobante = cgrrr.Cod_TipoDocumento
+                                                                                      AND cgrrr.Cod_TipoDocumento = 'FE'
+                WHERE ccp.Nom_Cliente LIKE '%' + @NomCliente + '%'
+                      AND ccp.Flag_Anulado = 0;
+        END;
+    END;
+GO
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_TraerFacturasGuiasXIdComprobante'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TraerFacturasGuiasXIdComprobante;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_TraerFacturasGuiasXIdComprobante @Id_ComprobantePago INT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT cgrr.Id_GuiaRemisionRemitente, 
+               cgrr.Cod_Caja, 
+               cgrr.Cod_Turno, 
+               cgrr.Cod_TipoComprobante, 
+               cgrr.Cod_Libro, 
+               cgrr.Cod_Periodo, 
+               cgrr.Serie, 
+               cgrr.Numero, 
+               cgrr.Fecha_Emision, 
+               cgrr.Fecha_TrasladoBienes, 
+               cgrr.Fecha_EntregaBienes, 
+               cgrr.Cod_MotivoTraslado, 
+               cgrr.Des_MotivoTraslado, 
+               cgrr.Cod_ModalidadTraslado, 
+               cgrr.Cod_UnidadMedida, 
+               cgrr.Id_ClienteDestinatario, 
+               cgrr.Cod_UbigeoPartida, 
+               cgrr.Direccion_Partida, 
+               cgrr.Cod_UbigeoLlegada, 
+               cgrr.Direccion_LLegada, 
+               cgrr.Flag_Transbordo, 
+               cgrr.Peso_Bruto, 
+               cgrr.Nro_Contenedor, 
+               cgrr.Cod_Puerto, 
+               cgrr.Nro_Bulltos, 
+               cgrr.Cod_EstadoGuia, 
+               cgrr.Obs_GuiaRemisionRemitente, 
+               cgrr.Id_GuiaRemisionRemitenteBaja, 
+               cgrr.Flag_Anulado, 
+               cgrr.Valor_Resumen, 
+               cgrr.Valor_Firma
+        FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+             INNER JOIN dbo.CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS cgrrr ON cgrr.Id_GuiaRemisionRemitente = cgrrr.Id_GuiaRemisionRemitente
+                                                                              AND cgrrr.Cod_TipoDocumento = 'FE'
+                                                                              AND cgrrr.Cod_TipoRelacion = 'GRR'
+        WHERE cgrrr.Id_DocRelacionado = @Id_ComprobantePago
+              AND cgrr.Flag_Anulado = 0;
+    END;
+GO

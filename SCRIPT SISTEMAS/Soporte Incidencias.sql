@@ -1112,214 +1112,27 @@ AS
 GO
 
 --Estado terminal
-EXEC dbo.USP_PAR_TABLA_G 
-     '130', 
-     'ESTADOS_TERMINAL', 
-     'Almacena los estados de una terminal', 
-     '001', 
-     1, 
-     'MIGRACION';
-EXEC dbo.USP_PAR_COLUMNA_G 
-     '130', 
-     '001', 
-     'Cod_Estado', 
-     'Almacena el codigo del estado', 
-     'CADENA', 
-     0, 
-     32, 
-     '', 
-     1, 
-     'MIGRACION';
-EXEC dbo.USP_PAR_COLUMNA_G 
-     '130', 
-     '002', 
-     'Des_Estado', 
-     'Almacena la descripcion del estado', 
-     'CADENA', 
-     0, 
-     1024, 
-     '', 
-     0, 
-     'MIGRACION';
-EXEC dbo.USP_PAR_COLUMNA_G 
-     '130', 
-     '003', 
-     'Estado', 
-     'Estado', 
-     'BOLEANO', 
-     0, 
-     64, 
-     '', 
-     0, 
-     'MIGRACION';
-EXEC dbo.USP_PAR_TABLA_GENERADOR_VISTAS 
-     '130';
+EXEC dbo.USP_PAR_TABLA_G '130', 'ESTADOS_TERMINAL', 'Almacena los estados de una terminal', '001', 1, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '130', '001', 'Cod_Estado', 'Almacena el codigo del estado', 'CADENA', 0, 32, '', 1, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '130', '002', 'Des_Estado', 'Almacena la descripcion del estado', 'CADENA', 0, 1024, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '130', '003', 'Estado', 'Estado', 'BOLEANO', 0, 64, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_TABLA_GENERADOR_VISTAS '130';
 GO
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '001', 
-     1, 
-     '001', 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '002', 
-     1, 
-     'ACTIVO', 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '003', 
-     1, 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '001', 
-     2, 
-     '002', 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '002', 
-     2, 
-     'INACTIVO', 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '003', 
-     2, 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '001', 
-     3, 
-     '003', 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '002', 
-     3, 
-     'BAJA', 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '003', 
-     3, 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '001', 
-     4, 
-     '004', 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '002', 
-     4, 
-     'INOPERATIVO', 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '003', 
-     4, 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '001', 
-     5, 
-     '005', 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '002', 
-     5, 
-     'EN MANTENIMIENTO', 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     'MIGRACION';
-EXEC USP_PAR_FILA_G 
-     '130', 
-     '003', 
-     5, 
-     NULL, 
-     NULL, 
-     NULL, 
-     NULL, 
-     1, 
-     1, 
-     'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '001', 1, '001', NULL, NULL, NULL, NULL, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '002', 1, 'ACTIVO', NULL, NULL, NULL, NULL, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '003', 1, NULL, NULL, NULL, NULL, 1, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '001', 2, '002', NULL, NULL, NULL, NULL, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '002', 2, 'INACTIVO', NULL, NULL, NULL, NULL, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '003', 2, NULL, NULL, NULL, NULL, 1, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '001', 3, '003', NULL, NULL, NULL, NULL, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '002', 3, 'BAJA', NULL, NULL, NULL, NULL, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '003', 3, NULL, NULL, NULL, NULL, 1, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '001', 4, '004', NULL, NULL, NULL, NULL, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '002', 4, 'INOPERATIVO', NULL, NULL, NULL, NULL, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '003', 4, NULL, NULL, NULL, NULL, 1, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '001', 5, '005', NULL, NULL, NULL, NULL, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '002', 5, 'EN MANTENIMIENTO', NULL, NULL, NULL, NULL, 1, 'MIGRACION';
+EXEC USP_PAR_FILA_G '130', '003', 5, NULL, NULL, NULL, NULL, 1, 1, 'MIGRACION';
 GO
 
 --Procedimientos adicionales
@@ -2902,6 +2715,7 @@ AS
         ORDER BY vd.Nom_Distrito;
     END;
 GO
+
 IF EXISTS
 (
     SELECT *
@@ -2918,7 +2732,7 @@ AS
                pcp.Id_ClienteProveedor, 
                pcp.Cod_TipoDocumento, 
                pcp.Nro_Documento, 
-               pcp.Cliente, 
+               replace(replace(pcp.Cliente, '&amp;', '&'), CHAR(13) + CHAR(10), ' ') Cliente, 
                pcp.Ap_Paterno, 
                pcp.Ap_Materno, 
                pcp.Nombres, 
@@ -2945,7 +2759,7 @@ AS
              INNER JOIN dbo.SOP_TERMINALES st ON pcp.Id_ClienteProveedor = st.Id_ClienteProveedor
         WHERE @Flag_Activo IS NULL
               OR st.Flag_Estado = @Flag_Activo
-        ORDER BY pcp.Cliente;
+        ORDER BY replace(replace(pcp.Cliente, '&amp;', '&'), CHAR(13) + CHAR(10), ' ');
     END;
 GO
 IF EXISTS
@@ -2965,7 +2779,7 @@ AS
                st.Id_ClienteProveedor, 
                pcp.Cod_TipoDocumento, 
                pcp.Nro_Documento, 
-               pcp.Cliente, 
+               replace(replace(pcp.Cliente, '&amp;', '&'), CHAR(13) + CHAR(10), ' ') Cliente, 
                pcp.Cod_Ubigeo, 
                st.Des_Terminal, 
                st.MAC_Terminal, 

@@ -1842,3 +1842,26 @@ ORDER BY ccp.Id_Cliente,
          clc.Fecha_Girado;
     END;
 GO
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_BAN_CUENTA_BANCARIA_TraerXIdCLienteProveedor'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_BAN_CUENTA_BANCARIA_TraerXIdCLienteProveedor;
+GO
+CREATE PROCEDURE USP_BAN_CUENTA_BANCARIA_TraerXIdCLienteProveedor @Id_ClienteProveedor INT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT pcc.NroCuenta_Bancaria Cod_CuentaBancaria, 
+               pcc.Cod_EntidadFinanciera Cod_EntidadFinanciera, 
+               pcc.Des_CuentaBancaria Des_CuentaBancaria, 
+               pcc.Cod_TipoCuentaBancaria Cod_TipoCuentaBancaria
+        FROM dbo.PRI_CLIENTE_CUENTABANCARIA pcc
+		WHERE pcc.Id_ClienteProveedor = @Id_ClienteProveedor;
+    END;
+GO
