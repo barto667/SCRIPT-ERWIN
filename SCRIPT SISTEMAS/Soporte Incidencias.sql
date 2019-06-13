@@ -8,25 +8,24 @@ IF NOT EXISTS
 )
     BEGIN
         CREATE TABLE SOP_SERVICIOS
-        (Id_Servicio         INT IDENTITY(1, 1), 
-         Id_ClienteProveedor INT NOT NULL, 
-         Id_Producto         INT NOT NULL, 
-         Id_ComprobantePago  INT NULL, 
-         Fecha_Inicio        DATETIME NOT NULL, 
-         Fecha_Fin           DATETIME NOT NULL, 
-         Monto               DECIMAL(38, 6) NULL, 
-         Cod_EstadoServicio  VARCHAR(32) NOT NULL, 
-         Cod_Usuario         VARCHAR(32) NOT NULL, 
-         Cod_Servicio        VARCHAR(64) NOT NULL, 
-         Password            VARCHAR(128) NULL, 
-         Obs_Servicio        VARCHAR(1024) NULL, 
-         Cod_UsuarioReg      VARCHAR(32) NOT NULL, 
-         Fecha_Reg           DATETIME NOT NULL, 
-         Cod_UsuarioAct      VARCHAR(32) NULL, 
-         Fecha_Act           DATETIME NULL, 
-         PRIMARY KEY NONCLUSTERED(Id_Servicio), 
-         FOREIGN KEY(Id_Producto) REFERENCES PRI_PRODUCTOS, 
-         FOREIGN KEY(Id_ClienteProveedor) REFERENCES PRI_CLIENTE_PROVEEDOR
+        (Id_Servicio         INT IDENTITY(1, 1) PRIMARY KEY, 
+        Id_ClienteProveedor INT FOREIGN KEY REFERENCES dbo.PRI_CLIENTE_PROVEEDOR(Id_ClienteProveedor), 
+        Cod_TipoServicio    VARCHAR(32) NOT NULL, 
+        Id_ComprobantePago  INT NOT NULL, 
+        Fecha_Inicio        DATETIME NOT NULL, 
+        Fecha_Fin           DATETIME NOT NULL, 
+        Monto               NUMERIC(38, 6) NOT NULL, 
+        Cod_EstadoServicio  VARCHAR(32) NOT NULL, 
+        Nro_Contrato        VARCHAR(64), 
+        Cod_Usuario         VARCHAR(32) NOT NULL, 
+        Nom_Servicio        VARCHAR(1024) NOT NULL, 
+        Ruta_Servicio       VARCHAR(1024), 
+        Password            VARCHAR(128), 
+        Obs_Servicio        VARCHAR(1024), 
+        Cod_UsuarioReg      VARCHAR(32) NOT NULL, 
+        Fecha_Reg           DATETIME NOT NULL, 
+        Cod_UsuarioAct      VARCHAR(32), 
+        Fecha_Act           DATETIME
         );
 END;
 GO
@@ -628,7 +627,16 @@ AS
 GO
 
 --Archivo: USP_SOP_SERVICIOS.sql
---Guardar
+--	 Archivo: USP_SOP_SERVICIOS.sql
+--
+--	 Versión: v2.1.10
+--
+--	 Autor(es): Reyber Yuri Palma Quispe  y Laura Yanina Alegria Amudio
+--
+--	 Fecha de Creación:  Tue May 21 12:57:22 2019
+--
+--	 Copyright  Pale Consultores EIRL Peru	2013
+-- Guadar
 IF EXISTS
 (
     SELECT name
@@ -638,19 +646,21 @@ IF EXISTS
 )
     DROP PROCEDURE USP_SOP_SERVICIOS_G;
 GO
-CREATE PROCEDURE USP_SOP_SERVICIOS_G @Id_Servicio         INT OUTPUT, 
-                                     @Id_ClienteProveedor INT, 
-                                     @Id_Producto         INT, 
-                                     @Id_ComprobantePago  INT, 
-                                     @Fecha_Inicio        DATETIME, 
-                                     @Fecha_Fin           DATETIME, 
-                                     @Monto               DECIMAL(38, 6), 
-                                     @Cod_EstadoServicio  VARCHAR(32), 
-                                     @Cod_UsuarioServicio VARCHAR(32), 
-                                     @Cod_Servicio        VARCHAR(64), 
-                                     @Password            VARCHAR(128), 
-                                     @Obs_Servicio        VARCHAR(1024), 
-                                     @Cod_Usuario         VARCHAR(32)
+CREATE PROCEDURE USP_SOP_SERVICIOS_G @Id_Servicio           INT, 
+                                     @Id_ClienteProveedor   INT, 
+                                     @Cod_TipoServicio      VARCHAR(32), 
+                                     @Id_ComprobantePago    INT, 
+                                     @Fecha_Inicio          DATETIME, 
+                                     @Fecha_Fin             DATETIME, 
+                                     @Monto                 DECIMAL(38, 6), 
+                                     @Cod_EstadoServicio    VARCHAR(32), 
+                                     @Nro_Contrato          VARCHAR(64), 
+                                     @Cod_UsuarioRegistrado VARCHAR(32), 
+                                     @Nom_Servicio          VARCHAR(1024), 
+                                     @Ruta_Servicio         VARCHAR(1024), 
+                                     @Password              VARCHAR(128), 
+                                     @Obs_Servicio          VARCHAR(1024), 
+                                     @Cod_Usuario           VARCHAR(32)
 WITH ENCRYPTION
 AS
     BEGIN
@@ -664,14 +674,16 @@ AS
                 INSERT INTO SOP_SERVICIOS
                 VALUES
                 (@Id_ClienteProveedor, 
-                 @Id_Producto, 
+                 @Cod_TipoServicio, 
                  @Id_ComprobantePago, 
                  @Fecha_Inicio, 
                  @Fecha_Fin, 
                  @Monto, 
                  @Cod_EstadoServicio, 
-                 @Cod_UsuarioServicio, 
-                 @Cod_Servicio, 
+                 @Nro_Contrato, 
+                 @Cod_UsuarioRegistrado, 
+                 @Nom_Servicio, 
+                 @Ruta_Servicio, 
                  @Password, 
                  @Obs_Servicio, 
                  @Cod_Usuario, 
@@ -679,21 +691,22 @@ AS
                  NULL, 
                  NULL
                 );
-                SET @Id_Servicio = @@IDENTITY;
         END;
             ELSE
             BEGIN
                 UPDATE SOP_SERVICIOS
                   SET 
                       Id_ClienteProveedor = @Id_ClienteProveedor, 
-                      Id_Producto = @Id_Producto, 
+                      Cod_TipoServicio = @Cod_TipoServicio, 
                       Id_ComprobantePago = @Id_ComprobantePago, 
                       Fecha_Inicio = @Fecha_Inicio, 
                       Fecha_Fin = @Fecha_Fin, 
                       Monto = @Monto, 
                       Cod_EstadoServicio = @Cod_EstadoServicio, 
-                      Cod_Usuario = @Cod_UsuarioServicio, 
-                      Cod_Servicio = @Cod_Servicio, 
+                      Nro_Contrato = @Nro_Contrato, 
+                      Cod_Usuario = @Cod_UsuarioRegistrado, 
+                      Nom_Servicio = @Nom_Servicio, 
+                      Ruta_Servicio = @Ruta_Servicio, 
                       Password = @Password, 
                       Obs_Servicio = @Obs_Servicio, 
                       Cod_UsuarioAct = @Cod_Usuario, 
@@ -738,14 +751,16 @@ AS
     BEGIN
         SELECT Id_Servicio, 
                Id_ClienteProveedor, 
-               Id_Producto, 
+               Cod_TipoServicio, 
                Id_ComprobantePago, 
                Fecha_Inicio, 
                Fecha_Fin, 
                Monto, 
                Cod_EstadoServicio, 
+               Nro_Contrato, 
                Cod_Usuario, 
-               Cod_Servicio, 
+               Nom_Servicio, 
+               Ruta_Servicio, 
                Password, 
                Obs_Servicio, 
                Cod_UsuarioReg, 
@@ -774,8 +789,8 @@ WITH ENCRYPTION
 AS
     BEGIN
         DECLARE @ScripSQL VARCHAR(MAX);
-        SET @ScripSQL = 'SELECT NumeroFila,Id_Servicio , Id_ClienteProveedor , Id_Producto , Id_ComprobantePago , Fecha_Inicio , Fecha_Fin , Monto , Cod_EstadoServicio , Cod_Usuario , Cod_Servicio , Password , Obs_Servicio , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act  
-	FROM (SELECT TOP 100 PERCENT Id_Servicio , Id_ClienteProveedor , Id_Producto , Id_ComprobantePago , Fecha_Inicio , Fecha_Fin , Monto , Cod_EstadoServicio , Cod_Usuario , Cod_Servicio , Password , Obs_Servicio , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act ,
+        SET @ScripSQL = 'SELECT NumeroFila,Id_Servicio , Id_ClienteProveedor , Cod_TipoServicio , Id_ComprobantePago , Fecha_Inicio , Fecha_Fin , Monto , Cod_EstadoServicio , Nro_Contrato , Cod_Usuario , Nom_Servicio , Ruta_Servicio , Password , Obs_Servicio , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act  
+	FROM (SELECT TOP 100 PERCENT Id_Servicio , Id_ClienteProveedor , Cod_TipoServicio , Id_ComprobantePago , Fecha_Inicio , Fecha_Fin , Monto , Cod_EstadoServicio , Nro_Contrato , Cod_Usuario , Nom_Servicio , Ruta_Servicio , Password , Obs_Servicio , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act ,
 		  ROW_NUMBER() OVER (' + @ScripOrden + ') AS NumeroFila 
 		  FROM SOP_SERVICIOS ' + @ScripWhere + ') aSOP_SERVICIOS
 	WHERE NumeroFila BETWEEN (' + @TamañoPagina + ' * ' + @NumeroPagina + ')+1 AND ' + @TamañoPagina + ' * (' + @NumeroPagina + ' + 1)';
@@ -799,14 +814,16 @@ AS
     BEGIN
         SELECT Id_Servicio, 
                Id_ClienteProveedor, 
-               Id_Producto, 
+               Cod_TipoServicio, 
                Id_ComprobantePago, 
                Fecha_Inicio, 
                Fecha_Fin, 
                Monto, 
                Cod_EstadoServicio, 
+               Nro_Contrato, 
                Cod_Usuario, 
-               Cod_Servicio, 
+               Nom_Servicio, 
+               Ruta_Servicio, 
                Password, 
                Obs_Servicio, 
                Cod_UsuarioReg, 
@@ -2277,6 +2294,31 @@ AS
     END;
 GO
 
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_SOP_TERMINALES_AsistenciasPendientes'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_TERMINALES_AsistenciasPendientes;
+GO
+CREATE PROCEDURE USP_SOP_TERMINALES_AsistenciasPendientes 
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT st.Id_Terminal, 
+               st.Des_Terminal, 
+               COUNT(si.Id_Incidencia) Asistencias_Pendientes
+        FROM dbo.SOP_TERMINALES st
+             LEFT JOIN dbo.SOP_INCIDENCIAS si ON st.Id_Terminal = si.Id_Terminal
+                                                 AND si.Cod_Estado IN('001', '002', '003')
+        GROUP BY st.Id_Terminal, 
+                 st.Des_Terminal
+        ORDER BY st.Des_Terminal;
+    END;
+GO
+
 --Obtiene el reporte de incidencias por dia agrupado por estado
 --DECLARE @Fecha datetime = GETDATE()
 --EXEC URP_SOP_INCIDENCIAS_ReporteXDiaAgrupadoPorEstado @Fecha
@@ -2826,3 +2868,849 @@ GO
 --  	) script
 --  FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
 --  INNER JOIN dbo.VIS_DISTRITOS vd ON pcp.Cod_Ubigeo = vd.Cod_Ubigeo
+
+--SERVICIOS
+--VIS_TIPOS_SERVICIOS
+EXEC dbo.USP_PAR_TABLA_G '136', 'TIPOS_SERVICIOS', 'Almacena los tipos de servicio', '001', 1, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '136', '001', 'Cod_TipoServicio', 'Almacena el codigo del tipo de servicio', 'CADENA', 0, 32, '', 1, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '136', '002', 'Nom_TipoServicio', 'Almacena el Nombre del tipo de servicio', 'CADENA', 0, 1024, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '136', '003', 'Frecuencia', 'Almacena la frecuencia del tipo de servicio', 'CADENA', 0, 128, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '136', '004', 'Filtro', 'Almacena el filtro del tipo de servicio', 'CADENA', 0, 1024, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '136', '005', 'Id_Producto', 'Almacen el id del producto', 'ENTERO', 0, 5, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '136', '006', 'Ruta_Archivo', 'Almacen la ruta del archivo', 'CADENA', 0, 2048 , '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '136', '007', 'Ruta_Template', 'Almacen la ruta del template', 'CADENA', 0, 2048 , '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '136', '008', 'Estado', 'Estado', 'BOLEANO', 0, 64, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_TABLA_GENERADOR_VISTAS '136';
+GO
+--Creamos el tipo certificados
+-- EXEC USP_PAR_FILA_G '136','001',1,'001','001',NULL,NULL,NULL,1,'MIGRACION';
+-- EXEC USP_PAR_FILA_G '136','002',1,'CERTIFICADO DIGITAL',NULL,NULL,NULL,NULL,1,'MIGRACION';
+-- EXEC USP_PAR_FILA_G '136','003',1,'ANUAL',NULL,NULL,NULL,NULL,1,'MIGRACION';
+-- EXEC USP_PAR_FILA_G '136','004',1,'Certificado digital|*.pfx',NULL,NULL,NULL,NULL,1,'MIGRACION';
+-- EXEC USP_PAR_FILA_G '136','005',1,NULL,NULL,30,NULL,NULL,1,'MIGRACION';
+-- EXEC USP_PAR_FILA_G '136','006',1,'',NULL,NULL,NULL,NULL,1,'MIGRACION';
+-- EXEC USP_PAR_FILA_G '136','007',1,'',NULL,NULL,NULL,NULL,1,'MIGRACION';
+-- EXEC USP_PAR_FILA_G '136','008',1,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+--ESTADOS DEL SERVICIO
+EXEC dbo.USP_PAR_TABLA_G '137', 'ESTADOS_SERVICIO', 'Almacena los estados del servicio', '001', 1, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '137', '001', 'Cod_Estado', 'Almacena el codigo del estado de servicio', 'CADENA', 0, 32, '', 1, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '137', '002', 'Nom_Estado', 'Almacena el Nombre del estado de servicio', 'CADENA', 0, 1024, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '137', '003', 'Estado', 'Estado', 'BOLEANO', 0, 64, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_TABLA_GENERADOR_VISTAS '137';
+GO
+EXEC USP_PAR_FILA_G '137','001',1,'001',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','002',1,'GENERADO',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','003',1,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','001',2,'002',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','002',2,'NOTIFICADO',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','003',2,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','001',3,'003',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','002',3,'ANULADO',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','003',3,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','001',4,'004',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','002',4,'FACTURADO',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','003',4,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','001',5,'005',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','002',5,'FINALIZADO',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '137','003',5,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+GO
+
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_SOP_SERVICIOS_TraerServiciosXAnioMesCodEstado'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SERVICIOS_TraerServiciosXAnioMesCodEstado;
+GO
+CREATE PROCEDURE USP_SOP_SERVICIOS_TraerServiciosXAnioMesCodEstado @Anio         INT, 
+                                                                   @Mes          INT, 
+                                                                   @Cod_Estado   VARCHAR(32) = NULL, 
+                                                                   @Cod_Tipo     VARCHAR(32) = NULL, 
+                                                                   @FlagAnulados BIT         = 0
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT 
+               ss.Id_Servicio, 
+               ss.Id_ClienteProveedor, 
+               ss.Cod_TipoServicio, 
+               vts.Frecuencia, 
+               ss.Nom_Servicio, 
+               pcp.Nro_Documento, 
+               pcp.Cliente, 
+               ss.Fecha_Inicio, 
+               ss.Fecha_Fin, 
+               ss.Monto, 
+               ss.Id_ComprobantePago, 
+               ISNULL(ccp.Cod_TipoComprobante + ':' + ccp.Serie + '-' + ccp.Numero, '') Comprobante,
+               CASE
+                   WHEN ss.Id_ComprobantePago != 0
+                   THEN CASE
+                            WHEN(ISNULL(ccp.Total, 0) - ISNULL(
+        (
+            SELECT SUM(cfp.Monto)
+            FROM dbo.CAJ_FORMA_PAGO cfp
+            WHERE cfp.id_ComprobantePago = ccp.id_ComprobantePago
+        ), 0)) > 0
+                            THEN 'PENDIENTE'
+                            ELSE 'PAGADO'
+                        END
+                   ELSE 'PENDIENTE'
+               END Estado, 
+               ss.Cod_EstadoServicio, 
+               ves.Nom_Estado, 
+               ISNULL(
+        (
+            SELECT ss2.Id_Servicio
+            FROM dbo.SOP_SERVICIOS ss2
+            WHERE ss2.Id_ClienteProveedor = ss.Id_ClienteProveedor
+                  AND ss2.Cod_TipoServicio = ss.Cod_TipoServicio
+                  AND ss2.Fecha_Inicio = ss.Fecha_Fin
+                  AND ss2.Cod_EstadoServicio != '003'
+        ), 0) Id_Referencia
+        FROM dbo.SOP_SERVICIOS ss
+             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON ss.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+             INNER JOIN dbo.VIS_ESTADOS_SERVICIO ves ON ss.Cod_EstadoServicio = ves.Cod_Estado
+             INNER JOIN dbo.VIS_TIPOS_SERVICIOS vts ON ss.Cod_TipoServicio = vts.Cod_TipoServicio
+             LEFT JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ss.Id_ComprobantePago = ccp.id_ComprobantePago
+        WHERE MONTH(ss.Fecha_Fin) = @Mes
+              AND YEAR(ss.Fecha_Fin) = @Anio
+              AND (@FlagAnulados = 1
+                   OR (@FlagAnulados = 0
+                       AND ss.Cod_EstadoServicio <> '003'))
+              AND (@Cod_Estado IS NULL
+                   OR (ss.Cod_EstadoServicio = @Cod_Estado))
+              AND (@Cod_Tipo IS NULL
+                   OR (ss.Cod_TipoServicio = @Cod_Tipo))
+        ORDER BY ss.Fecha_Fin, 
+                 pcp.Nro_Documento, 
+                 pcp.Cliente;
+    END;
+GO
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_SOP_SERVICIOS_TraerServicioXIdServicio'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SERVICIOS_TraerServicioXIdServicio;
+GO
+CREATE PROCEDURE USP_SOP_SERVICIOS_TraerServicioXIdServicio @Id_Servicio INT = 0
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT ss.Id_Servicio, 
+               ss.Id_ClienteProveedor, 
+               ss.Cod_TipoServicio, 
+               ss.Id_ComprobantePago, 
+               ss.Fecha_Inicio, 
+               ss.Fecha_Fin, 
+               ss.Monto, 
+               ss.Cod_EstadoServicio, 
+               ss.Nro_Contrato, 
+               ss.Cod_Usuario, 
+               ss.Nom_Servicio, 
+               ss.Ruta_Servicio, 
+               ss.Password, 
+               ss.Obs_Servicio, 
+               pcp.Cod_TipoDocumento, 
+               pcp.Nro_Documento, 
+               pcp.Cliente, 
+               pcp.Direccion, 
+               pcp.Email1, 
+               pcp.Email2, 
+               vts.Nom_TipoServicio, 
+               vts.Frecuencia, 
+               vts.Filtro, 
+               vts.Id_Producto, 
+               vts.Ruta_Archivo, 
+               vts.Ruta_Template,  
+               pp.Cod_Producto, 
+               pp.Cod_Categoria, 
+               pp.Cod_TipoProducto, 
+               pp.Cod_Marca, 
+               pp.Nom_Producto, 
+               pp.Cod_Fabricante,
+			   pp.Cod_TipoOperatividad
+        FROM dbo.SOP_SERVICIOS ss
+             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON ss.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+             INNER JOIN dbo.VIS_TIPOS_SERVICIOS vts ON ss.Cod_TipoServicio = vts.Cod_TipoServicio
+             INNER JOIN dbo.PRI_PRODUCTOS pp ON pp.Id_Producto = vts.Id_Producto
+        WHERE ss.Id_Servicio = @Id_Servicio;
+    END;
+GO
+
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_PRI_PRODUCTOS_BuscarXIdProducto'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_PRI_PRODUCTOS_BuscarXIdProducto;
+GO
+CREATE PROCEDURE USP_PRI_PRODUCTOS_BuscarXIdProducto @Id_Producto INT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT DMY;	
+        --SET @Buscar = REPLACE(@Buscar,'%',' ');
+        SELECT DISTINCT 
+               P.Id_Producto, 
+               P.Nom_Producto AS Nom_Producto, 
+               P.Cod_Producto, 
+               PS.Stock_Act, 
+               PS.Precio_Venta, 
+               M.Nom_Moneda AS Nom_Moneda, 
+               PS.Cod_Almacen, 
+               0 AS Descuento, 
+               'NINGUNO' AS TipoDescuento, 
+               A.Des_CortaAlmacen AS Des_Almacen, 
+               PS.Cod_UnidadMedida, 
+               UM.Nom_UnidadMedida, 
+               P.Flag_Stock, 
+               PS.Precio_Compra, 
+               ppp.Valor Precio, 
+               P.Cod_TipoOperatividad, 
+               M.Cod_Moneda, 
+               Cod_TipoProducto, 
+               PS.Peso
+        FROM PRI_PRODUCTOS AS P
+             INNER JOIN PRI_PRODUCTO_STOCK AS PS ON P.Id_Producto = PS.Id_Producto
+             INNER JOIN VIS_MONEDAS AS M ON PS.Cod_Moneda = M.Cod_Moneda
+             INNER JOIN ALM_ALMACEN AS A ON PS.Cod_Almacen = A.Cod_Almacen
+             INNER JOIN VIS_UNIDADES_DE_MEDIDA AS UM ON PS.Cod_UnidadMedida = UM.Cod_UnidadMedida
+             INNER JOIN CAJ_CAJA_ALMACEN AS CA ON A.Cod_Almacen = CA.Cod_Almacen
+             INNER JOIN dbo.PRI_PRODUCTO_PRECIO ppp ON PS.Id_Producto = ppp.Id_Producto
+                                                       AND PS.Cod_UnidadMedida = ppp.Cod_UnidadMedida
+                                                       AND PS.Cod_Almacen = ppp.Cod_Almacen
+        WHERE P.Id_Producto = @Id_Producto
+        ORDER BY Nom_Producto;
+    END;
+GO
+
+--SOP_SUNAT
+IF NOT EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = N'SOP_SUNAT'
+          AND type = 'U'
+)
+    BEGIN
+        CREATE TABLE SOP_SUNAT
+        (Id_ClienteProveedor INT FOREIGN KEY REFERENCES dbo.PRI_CLIENTE_PROVEEDOR(Id_ClienteProveedor), 
+         Id_Sunat            INT,
+         Cod_UsuarioSunat    VARCHAR(64) NOT NULL, 
+         Contraseña          VARCHAR(512) NOT NULL, 
+         Cod_TipoUsuario     VARCHAR(8), 
+         Obs_Sunat           VARCHAR(1024), 
+         Cod_UsuarioReg      VARCHAR(32) NOT NULL, 
+         Fecha_Reg           DATETIME NOT NULL, 
+         Cod_UsuarioAct      VARCHAR(32), 
+         Fecha_Act           DATETIME,
+		 PRIMARY KEY(Id_ClienteProveedor,Id_Sunat)
+        );
+END;
+GO
+--	 Archivo: USP_SOP_SUNAT.sql
+--
+--	 Versión: v2.1.10
+--
+--	 Autor(es): Reyber Yuri Palma Quispe  y Laura Yanina Alegria Amudio
+--
+--	 Fecha de Creación:  Tue May 21 12:57:30 2019
+--
+--	 Copyright  Pale Consultores EIRL Peru	2013
+-- Guadar
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_SOP_SUNAT_G'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SUNAT_G;
+GO
+CREATE PROCEDURE USP_SOP_SUNAT_G @Id_ClienteProveedor INT, 
+                                 @Id_Sunat            INT, 
+                                 @Cod_UsuarioSunat    VARCHAR(64), 
+                                 @Contraseña          VARCHAR(512), 
+                                 @Cod_TipoUsuario     VARCHAR(8), 
+                                 @Obs_Sunat           VARCHAR(1024), 
+                                 @Cod_Usuario         VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        IF @Id_Sunat <> 0
+            BEGIN
+                IF NOT EXISTS
+                (
+                    SELECT @Id_ClienteProveedor, 
+                           @Id_Sunat
+                    FROM SOP_SUNAT
+                    WHERE(Id_ClienteProveedor = @Id_ClienteProveedor)
+                         AND (Id_Sunat = @Id_Sunat)
+                )
+                    BEGIN
+                        INSERT INTO SOP_SUNAT
+                        VALUES
+                        (@Id_ClienteProveedor, 
+                         @Id_Sunat, 
+                         @Cod_UsuarioSunat, 
+                         @Contraseña, 
+                         @Cod_TipoUsuario, 
+                         @Obs_Sunat, 
+                         @Cod_Usuario, 
+                         GETDATE(), 
+                         NULL, 
+                         NULL
+                        );
+                END;
+                    ELSE
+                    BEGIN
+                        UPDATE SOP_SUNAT
+                          SET 
+                              Cod_UsuarioSunat = @Cod_UsuarioSunat, 
+                              Contraseña = @Contraseña, 
+                              Cod_TipoUsuario = @Cod_TipoUsuario, 
+                              Obs_Sunat = @Obs_Sunat, 
+                              Cod_UsuarioAct = @Cod_Usuario, 
+                              Fecha_Act = GETDATE()
+                        WHERE(Id_ClienteProveedor = @Id_ClienteProveedor)
+                             AND (Id_Sunat = @Id_Sunat);
+                END;
+        END;
+            ELSE
+            BEGIN
+                SET @Id_Sunat = ISNULL(
+                (
+                    SELECT MAX(ss.Id_Sunat)
+                    FROM dbo.SOP_SUNAT ss
+                    WHERE ss.Id_ClienteProveedor = @Id_ClienteProveedor
+                ), 0) + 1;
+                INSERT INTO SOP_SUNAT
+                VALUES
+                (@Id_ClienteProveedor, 
+                 @Id_Sunat, 
+                 @Cod_UsuarioSunat, 
+                 @Contraseña, 
+                 @Cod_TipoUsuario, 
+                 @Obs_Sunat, 
+                 @Cod_Usuario, 
+                 GETDATE(), 
+                 NULL, 
+                 NULL
+                );
+        END;
+    END;
+GO
+-- Eliminar
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_SOP_SUNAT_E'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SUNAT_E;
+GO
+CREATE PROCEDURE USP_SOP_SUNAT_E @Id_ClienteProveedor INT, 
+                                 @Id_Sunat            INT
+WITH ENCRYPTION
+AS
+    BEGIN
+        DELETE FROM SOP_SUNAT
+        WHERE(Id_ClienteProveedor = @Id_ClienteProveedor)
+             AND (Id_Sunat = @Id_Sunat);
+    END;
+GO
+-- Traer Todo
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_SOP_SUNAT_TT'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SUNAT_TT;
+GO
+CREATE PROCEDURE USP_SOP_SUNAT_TT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT Id_ClienteProveedor, 
+               Id_Sunat, 
+               Cod_UsuarioSunat, 
+               Contraseña, 
+               Cod_TipoUsuario, 
+               Obs_Sunat, 
+               Cod_UsuarioReg, 
+               Fecha_Reg, 
+               Cod_UsuarioAct, 
+               Fecha_Act
+        FROM SOP_SUNAT;
+    END;
+GO
+-- Traer Paginado
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_SOP_SUNAT_TP'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SUNAT_TP;
+GO
+CREATE PROCEDURE USP_SOP_SUNAT_TP @TamañoPagina VARCHAR(16), 
+                                  @NumeroPagina VARCHAR(16), 
+                                  @ScripOrden   VARCHAR(MAX) = NULL, 
+                                  @ScripWhere   VARCHAR(MAX) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        DECLARE @ScripSQL VARCHAR(MAX);
+        SET @ScripSQL = 'SELECT NumeroFila,Id_ClienteProveedor , Id_Sunat , Cod_UsuarioSunat , Contraseña , Cod_TipoUsuario , Obs_Sunat , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act  
+	FROM (SELECT TOP 100 PERCENT Id_ClienteProveedor , Id_Sunat , Cod_UsuarioSunat , Contraseña , Cod_TipoUsuario , Obs_Sunat , Cod_UsuarioReg , Fecha_Reg , Cod_UsuarioAct , Fecha_Act ,
+		  ROW_NUMBER() OVER (' + @ScripOrden + ') AS NumeroFila 
+		  FROM SOP_SUNAT ' + @ScripWhere + ') aSOP_SUNAT
+	WHERE NumeroFila BETWEEN (' + @TamañoPagina + ' * ' + @NumeroPagina + ')+1 AND ' + @TamañoPagina + ' * (' + @NumeroPagina + ' + 1)';
+        EXECUTE (@ScripSQL);
+    END;
+GO
+-- Traer Por Claves primarias
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_SOP_SUNAT_TXPK'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SUNAT_TXPK;
+GO
+CREATE PROCEDURE USP_SOP_SUNAT_TXPK @Id_ClienteProveedor INT, 
+                                    @Id_Sunat            INT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT Id_ClienteProveedor, 
+               Id_Sunat, 
+               Cod_UsuarioSunat, 
+               Contraseña, 
+               Cod_TipoUsuario, 
+               Obs_Sunat, 
+               Cod_UsuarioReg, 
+               Fecha_Reg, 
+               Cod_UsuarioAct, 
+               Fecha_Act
+        FROM SOP_SUNAT
+        WHERE(Id_ClienteProveedor = @Id_ClienteProveedor)
+             AND (Id_Sunat = @Id_Sunat);
+    END;
+GO
+-- Traer Auditoria
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_SOP_SUNAT_Auditoria'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SUNAT_Auditoria;
+GO
+CREATE PROCEDURE USP_SOP_SUNAT_Auditoria @Id_ClienteProveedor INT, 
+                                         @Id_Sunat            INT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT Cod_UsuarioReg, 
+               Fecha_Reg, 
+               Cod_UsuarioAct, 
+               Fecha_Act
+        FROM SOP_SUNAT
+        WHERE(Id_ClienteProveedor = @Id_ClienteProveedor)
+             AND (Id_Sunat = @Id_Sunat);
+    END;
+GO
+-- Traer Número de Filas
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_SOP_SUNAT_TNF'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SUNAT_TNF;
+GO
+CREATE PROCEDURE USP_SOP_SUNAT_TNF @ScripWhere VARCHAR(MAX) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        EXECUTE ('SELECT COUNT(*) AS NroFilas  FROM SOP_SUNAT '+@ScripWhere);
+    END;
+GO
+--VIS_TIPOS_USUARIO_SUNAT
+EXEC dbo.USP_PAR_TABLA_G '138', 'TIPOS_USUARIO_SUNAT', 'Almacena los tipos de usuario SUNAT', '001', 1, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '138', '001', 'Cod_TipoUsuario', 'Almacena el codigo del tipo de usuario SUNAT', 'CADENA', 0, 32, '', 1, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '138', '002', 'Nom_TipoUsuario', 'Almacena el Nombre del tipo de usuario SUNAT', 'CADENA', 0, 1024, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '138', '003', 'Estado', 'Estado', 'BOLEANO', 0, 64, '', 0, 'MIGRACION';
+EXEC dbo.USP_PAR_TABLA_GENERADOR_VISTAS '138';
+GO
+GO
+EXEC USP_PAR_FILA_G '138','001',1,'001',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '138','002',1,'USUARIO PRIMARIO',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '138','003',1,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '138','001',2,'002',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '138','002',2,'USUARIO SECUNDARIO',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '138','003',2,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_SOP_SUNAT_TraerUsuarios'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SUNAT_TraerUsuarios;
+GO
+CREATE PROCEDURE USP_SOP_SUNAT_TraerUsuarios
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT 
+               ss.Id_Sunat, 
+               ss.Id_ClienteProveedor, 
+               pcp.Nro_Documento, 
+               pcp.Cliente, 
+               vtus.Cod_TipoUsuario, 
+               vtus.Nom_TipoUsuario, 
+               ss.Cod_UsuarioSunat, 
+               ss.Contraseña
+        FROM dbo.SOP_SUNAT ss
+             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON ss.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+             INNER JOIN dbo.VIS_TIPOS_USUARIO_SUNAT vtus ON ss.Cod_TipoUsuario = vtus.Cod_TipoUsuario
+			 ORDER BY pcp.Cliente,vtus.Nom_TipoUsuario
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_PRI_CLIENTE_CONTACTO_G'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_PRI_CLIENTE_CONTACTO_G;
+GO
+CREATE PROCEDURE USP_PRI_CLIENTE_CONTACTO_G @Id_ClienteProveedor INT, 
+                                            @Id_ClienteContacto  INT, 
+                                            @Cod_TipoDocumento   VARCHAR(5), 
+                                            @Nro_Documento       VARCHAR(20), 
+                                            @Ap_Paterno          VARCHAR(128), 
+                                            @Ap_Materno          VARCHAR(128), 
+                                            @Nombres             VARCHAR(128), 
+                                            @Cod_Telefono        VARCHAR(5), 
+                                            @Nro_Telefono        VARCHAR(64), 
+                                            @Anexo               VARCHAR(32), 
+                                            @Email_Empresarial   VARCHAR(512), 
+                                            @Email_Personal      VARCHAR(512), 
+                                            @Celular             VARCHAR(64), 
+                                            @Cod_TipoRelacion    VARCHAR(8), 
+                                            @Fecha_Incorporacion DATETIME, 
+                                            @Cod_Usuario         VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        IF @Id_ClienteContacto = 0
+            BEGIN
+                SET @Id_ClienteContacto = ISNULL(
+                (
+                    SELECT TOP 1 pcc.Id_ClienteContacto
+                    FROM dbo.PRI_CLIENTE_CONTACTO pcc
+                    WHERE pcc.Id_ClienteProveedor = @Id_ClienteProveedor
+                    ORDER BY pcc.Id_ClienteContacto DESC
+                ), 0) + 1;
+                INSERT INTO PRI_CLIENTE_CONTACTO
+                VALUES
+                (@Id_ClienteProveedor, 
+                 @Id_ClienteContacto, 
+                 @Cod_TipoDocumento, 
+                 @Nro_Documento, 
+                 @Ap_Paterno, 
+                 @Ap_Materno, 
+                 @Nombres, 
+                 @Cod_Telefono, 
+                 @Nro_Telefono, 
+                 @Anexo, 
+                 @Email_Empresarial, 
+                 @Email_Personal, 
+                 @Celular, 
+                 @Cod_TipoRelacion, 
+                 @Fecha_Incorporacion, 
+                 @Cod_Usuario, 
+                 GETDATE(), 
+                 NULL, 
+                 NULL
+                );
+        END;
+            ELSE
+            BEGIN
+                IF NOT EXISTS
+                (
+                    SELECT @Id_ClienteProveedor, 
+                           @Id_ClienteContacto
+                    FROM PRI_CLIENTE_CONTACTO
+                    WHERE(Id_ClienteProveedor = @Id_ClienteProveedor)
+                         AND (Id_ClienteContacto = @Id_ClienteContacto)
+                )
+                    BEGIN
+                        SET @Id_ClienteContacto = ISNULL(
+                        (
+                            SELECT TOP 1 pcc.Id_ClienteContacto
+                            FROM dbo.PRI_CLIENTE_CONTACTO pcc
+                            WHERE pcc.Id_ClienteProveedor = @Id_ClienteProveedor
+                            ORDER BY pcc.Id_ClienteContacto DESC
+                        ), 0) + 1;
+                        INSERT INTO PRI_CLIENTE_CONTACTO
+                        VALUES
+                        (@Id_ClienteProveedor, 
+                         @Id_ClienteContacto, 
+                         @Cod_TipoDocumento, 
+                         @Nro_Documento, 
+                         @Ap_Paterno, 
+                         @Ap_Materno, 
+                         @Nombres, 
+                         @Cod_Telefono, 
+                         @Nro_Telefono, 
+                         @Anexo, 
+                         @Email_Empresarial, 
+                         @Email_Personal, 
+                         @Celular, 
+                         @Cod_TipoRelacion, 
+                         @Fecha_Incorporacion, 
+                         @Cod_Usuario, 
+                         GETDATE(), 
+                         NULL, 
+                         NULL
+                        );
+                END;
+                    ELSE
+                    BEGIN
+                        UPDATE PRI_CLIENTE_CONTACTO
+                          SET 
+                              Cod_TipoDocumento = @Cod_TipoDocumento, 
+                              Nro_Documento = @Nro_Documento, 
+                              Ap_Paterno = @Ap_Paterno, 
+                              Ap_Materno = @Ap_Materno, 
+                              Nombres = @Nombres, 
+                              Cod_Telefono = @Cod_Telefono, 
+                              Nro_Telefono = @Nro_Telefono, 
+                              Anexo = @Anexo, 
+                              Email_Empresarial = @Email_Empresarial, 
+                              Email_Personal = @Email_Personal, 
+                              Celular = @Celular, 
+                              Cod_TipoRelacion = @Cod_TipoRelacion, 
+                              Fecha_Incorporacion = @Fecha_Incorporacion, 
+                              Cod_UsuarioAct = @Cod_Usuario, 
+                              Fecha_Act = GETDATE()
+                        WHERE(Id_ClienteProveedor = @Id_ClienteProveedor)
+                             AND (Id_ClienteContacto = @Id_ClienteContacto);
+                END;
+        END;
+    END;
+GO
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_SOP_SUNAT_TraerUsuariosXIdClienteProveedor'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_SOP_SUNAT_TraerUsuariosXIdClienteProveedor;
+GO
+CREATE PROCEDURE USP_SOP_SUNAT_TraerUsuariosXIdClienteProveedor @IdClienteProveedor INT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT 
+               ss.Id_Sunat, 
+               ss.Id_ClienteProveedor, 
+               pcp.Nro_Documento, 
+               pcp.Cliente, 
+               vtus.Cod_TipoUsuario, 
+               vtus.Nom_TipoUsuario, 
+               ss.Cod_UsuarioSunat, 
+               ss.Contraseña
+        FROM dbo.SOP_SUNAT ss
+             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON ss.Id_ClienteProveedor = pcp.Id_ClienteProveedor
+             INNER JOIN dbo.VIS_TIPOS_USUARIO_SUNAT vtus ON ss.Cod_TipoUsuario = vtus.Cod_TipoUsuario
+        WHERE ss.Id_ClienteProveedor = @IdClienteProveedor
+        ORDER BY pcp.Cliente, 
+                 vtus.Nom_TipoUsuario;
+    END;
+GO
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_ResumenPendientesSUNAT'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ResumenPendientesSUNAT;
+GO
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ResumenPendientesSUNAT @Fecha_Actual DATETIME
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT Res.*
+        FROM
+        (
+            SELECT DISTINCT 
+				   'CAJ_COMPROBANTE_PAGO' Documento,
+                   ccp.Cod_TipoComprobante, 
+                   ccp.Serie, 
+                   CONVERT(DATE, ccp.FechaEmision) FechaEmision, 
+                   SUM(CASE
+                           WHEN ccp.Serie LIKE 'F%'
+                           THEN CASE
+                                    WHEN ccp.Cod_EstadoComprobante IN('INI', 'EMI')
+                                    THEN 1
+                                    ELSE 0
+                                END
+                           ELSE CASE
+                                    WHEN ccp.Cod_EstadoComprobante IN('INI', 'EMI')
+                                         OR ccp.Nro_Ticketera = ''
+                                    THEN 1
+                                    ELSE 0
+                                END
+                       END) Pendientes
+            FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+            WHERE ccp.Cod_TipoComprobante IN('BE', 'FE', 'NCE', 'NDE')
+            AND ccp.Cod_Libro = '14'
+            AND ccp.Flag_Anulado = 0
+            AND CONVERT(DATE, ccp.FechaEmision) <= CONVERT(DATE, @Fecha_Actual)
+            GROUP BY ccp.Cod_TipoComprobante, 
+                     ccp.Serie, 
+                     CONVERT(DATE, ccp.FechaEmision)
+            HAVING SUM(CASE
+                           WHEN ccp.Serie LIKE 'F%'
+                           THEN CASE
+                                    WHEN ccp.Cod_EstadoComprobante IN('INI', 'EMI')
+                                    THEN 1
+                                    ELSE 0
+                                END
+                           ELSE CASE
+                                    WHEN ccp.Cod_EstadoComprobante IN('INI', 'EMI')
+                                         OR ccp.Nro_Ticketera = ''
+                                    THEN 1
+                                    ELSE 0
+                                END
+                       END) > 0
+            UNION
+            SELECT DISTINCT 
+				   'CAJ_GUIA_REMISION_REMITENTE' Documento,
+                   cgrr.Cod_TipoComprobante, 
+                   cgrr.Serie, 
+                   CONVERT(DATE, cgrr.Fecha_Emision) FechaEmision, 
+                   SUM(CASE
+                           WHEN cgrr.Cod_EstadoGuia IN('INI', 'EMI')
+                           THEN 1
+                           ELSE 0
+                       END) Pendientes
+            FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+            WHERE cgrr.Cod_TipoComprobante = 'GRE'
+                  AND cgrr.Cod_Libro = '14'
+                  AND cgrr.Flag_Anulado = 0
+                  AND CONVERT(DATE, cgrr.Fecha_Emision) <= CONVERT(DATE, @Fecha_Actual)
+            GROUP BY cgrr.Cod_TipoComprobante, 
+                     cgrr.Serie, 
+                     CONVERT(DATE, cgrr.Fecha_Emision)
+            HAVING SUM(CASE
+                           WHEN cgrr.Cod_EstadoGuia IN('INI', 'EMI')
+                           THEN 1
+                           ELSE 0
+                       END) > 0
+        ) Res
+        ORDER BY Res.FechaEmision DESC;
+    END;
+GO
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_ResumenPendientesSUNATDetallado'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ResumenPendientesSUNATDetallado;
+GO
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ResumenPendientesSUNATDetallado @Fecha_Actual    DATETIME, 
+                                                                          @TipoComprobante VARCHAR(10), 
+                                                                          @Serie           VARCHAR(10)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT 
+               ccp.id_ComprobantePago Id, 
+               ccp.Numero, 
+               CONVERT(DATE, ccp.FechaEmision) Fecha_Emision, 
+               ccp.Cod_Caja, 
+               ccp.Cod_EstadoComprobante Cod_Estado, 
+               ccp.Nro_Ticketera CDR
+        FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+        WHERE ccp.Cod_TipoComprobante = @TipoComprobante
+			  AND ccp.Serie=@Serie
+              AND ccp.Cod_Libro = '14'
+              AND ccp.Flag_Anulado = 0
+              AND CONVERT(DATE, ccp.FechaEmision) = CONVERT(DATE, @Fecha_Actual)
+              AND ((ccp.Serie LIKE 'F%'
+                   AND ccp.Cod_EstadoComprobante IN('INI', 'EMI'))
+        OR (ccp.Serie LIKE 'B%'
+            AND (ccp.Cod_EstadoComprobante IN('INI', 'EMI')
+        OR ccp.Nro_Ticketera = '')))
+        ORDER BY Fecha_Emision DESC;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_GUIA_REMISION_REMITENTE_ResumenPendientesSUNATDetallado'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_ResumenPendientesSUNATDetallado;
+GO
+CREATE PROCEDURE USP_CAJ_GUIA_REMISION_REMITENTE_ResumenPendientesSUNATDetallado @Fecha_Actual    DATETIME, 
+                                                                                 @TipoComprobante VARCHAR(10), 
+                                                                                 @Serie           VARCHAR(10)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT 
+               cgrr.Id_GuiaRemisionRemitente Id, 
+               cgrr.Numero, 
+               CONVERT(DATE, cgrr.Fecha_Emision) Fecha_Emision, 
+               cgrr.Cod_Caja, 
+               cgrr.Cod_EstadoGuia Cod_Estado, 
+               '' CDR
+        FROM dbo.CAJ_GUIA_REMISION_REMITENTE cgrr
+        WHERE cgrr.Cod_TipoComprobante = @TipoComprobante
+              AND cgrr.Serie = @Serie
+              AND cgrr.Cod_Libro = '14'
+              AND cgrr.Flag_Anulado = 0
+              AND CONVERT(DATE, cgrr.Fecha_Emision) = CONVERT(DATE, @Fecha_Actual)
+              AND cgrr.Cod_EstadoGuia IN('INI', 'EMI')
+        ORDER BY CONVERT(DATE, cgrr.Fecha_Emision) DESC;
+    END;
+GO

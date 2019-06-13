@@ -1235,3 +1235,192 @@ AS
         DROP TABLE #kardexFinal;
     END;
 GO
+--EXEC dbo.USP_ALM_ALMACEN_MOV_ObtenerMovimientoSaldoInicial 'A101',34,'NIU'
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_ALM_ALMACEN_MOV_ObtenerMovimientoSaldoInicial'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_ALM_ALMACEN_MOV_ObtenerMovimientoSaldoInicial;
+GO
+CREATE PROCEDURE USP_ALM_ALMACEN_MOV_ObtenerMovimientoSaldoInicial @Cod_Almacen      VARCHAR(32), 
+                                                                   @Id_Producto      INT, 
+                                                                   @Cod_UnidadMedida VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT TOP 1 aamd.Id_AlmacenMov, 
+                     aamd.Item,
+					 aam.Cod_Almacen,
+					 aamd.Id_Producto,
+					 aamd.Cod_UnidadMedida
+        FROM dbo.ALM_ALMACEN_MOV aam
+             INNER JOIN dbo.ALM_ALMACEN_MOV_D aamd ON aam.Id_AlmacenMov = aamd.Id_AlmacenMov
+        WHERE aam.Cod_Almacen = @Cod_Almacen
+              AND aamd.Id_Producto = @Id_Producto
+              AND aamd.Cod_UnidadMedida = @Cod_UnidadMedida
+              AND aam.Cod_TipoComprobante = 'NE'
+              AND aam.Cod_TipoOperacion = '16'
+              AND aamd.Cantidad = 999999
+              AND aam.Flag_Anulado = 0
+        ORDER BY aam.Fecha ASC;
+    END;
+GO
+
+--EXEC dbo.USP_PRI_PRODUCTOS_KardexXCodAlmacenIdProductoCodMedida 'A101',34,'NIU'
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_PRI_PRODUCTOS_KardexXCodAlmacenIdProductoCodMedida'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_PRI_PRODUCTOS_KardexXCodAlmacenIdProductoCodMedida;
+GO
+CREATE PROCEDURE USP_PRI_PRODUCTOS_KardexXCodAlmacenIdProductoCodMedida @Cod_Almacen      VARCHAR(32), 
+                                                                        @Id_Producto      INT, 
+                                                                        @Cod_UnidadMedida VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SET DATEFORMAT DMY;
+        --Creamos las tabla para saldo inicial
+        --Introducimos los datos de todos lo comprobantes hasta la fecha
+
+        SELECT DISTINCT 
+               CASE aam.Cod_TipoComprobante
+                   WHEN 'NE'
+                   THEN 1
+                   ELSE 2
+               END AS Orden, 
+               aam.Id_AlmacenMov, 
+               aamd.Item, 
+               'ALM_ALMACEN_MOV' Tabla, 
+               CONVERT(DATETIME, CONVERT(VARCHAR(32), aam.Fecha, 103)) Fecha_Emision, 
+               aam.Cod_TipoComprobante, 
+               aam.Serie, 
+               aam.Numero, 
+               CONCAT(aam.Cod_TipoComprobante, ':', aam.Serie, '-', aam.Numero) Comprobante, 
+               pp.Cod_Producto, 
+               vto.Nom_TipoOperacion, 
+               ROUND(SUM(CASE aam.Cod_TipoComprobante
+                             WHEN 'NE'
+                             THEN aamd.Cantidad
+                             ELSE 0.00
+                         END), 2) Cantidad_Entrada, 
+               ROUND(AVG(CASE aam.Cod_TipoComprobante
+                             WHEN 'NE'
+                             THEN aamd.Precio_Unitario
+                             ELSE 0.00
+                         END), 2) Precio_Entrada, 
+               ROUND(SUM(CASE aam.Cod_TipoComprobante
+                             WHEN 'NE'
+                             THEN aamd.Cantidad * aamd.Precio_Unitario
+                             ELSE 0.00
+                         END), 2) AS Monto_Entrada, 
+               ROUND(SUM(CASE aam.Cod_TipoComprobante
+                             WHEN 'NS'
+                             THEN aamd.Cantidad
+                             ELSE 0.00
+                         END), 2) Cantidad_Salida, 
+               ROUND(AVG(CASE aam.Cod_TipoComprobante
+                             WHEN 'NS'
+                             THEN aamd.Precio_Unitario
+                             ELSE 0.00
+                         END), 2) Precio_Salida, 
+               ROUND(SUM(CASE aam.Cod_TipoComprobante
+                             WHEN 'NS'
+                             THEN aamd.Cantidad * aamd.Precio_Unitario
+                             ELSE 0.00
+                         END), 2) Monto_Salida
+        FROM dbo.ALM_ALMACEN_MOV aam
+             INNER JOIN dbo.ALM_ALMACEN_MOV_D aamd ON aam.Id_AlmacenMov = aamd.Id_AlmacenMov
+             INNER JOIN dbo.PRI_PRODUCTOS pp ON aamd.Id_Producto = pp.Id_Producto
+             INNER JOIN dbo.VIS_TIPO_OPERACIONES vto ON aam.Cod_TipoOperacion = vto.Cod_TipoOperacion
+             INNER JOIN dbo.PRI_PRODUCTO_STOCK pps ON aamd.Id_Producto = pps.Id_Producto
+        WHERE aam.Flag_Anulado = 0
+              AND aam.Cod_Almacen = @Cod_Almacen
+              AND aamd.Id_Producto = @Id_Producto
+              AND pp.Flag_Stock = 1
+              AND aamd.Cod_UnidadMedida = @Cod_UnidadMedida
+              AND pps.Cod_UnidadMedida = @Cod_UnidadMedida
+              AND pps.Cod_Almacen = @Cod_Almacen
+        GROUP BY aam.Cod_TipoComprobante, 
+                 aam.Id_AlmacenMov, 
+                 aam.Fecha, 
+                 aam.Serie, 
+                 aam.Numero, 
+                 vto.Nom_TipoOperacion, 
+                 pp.Cod_Producto, 
+                 aamd.Item
+        UNION
+        SELECT DISTINCT 
+               CASE ccp.Cod_Libro
+                   WHEN '14'
+                   THEN 2
+                   WHEN '08'
+                   THEN 1
+                   ELSE 3
+               END Orden, 
+               ccp.id_ComprobantePago, 
+               ccd.id_Detalle Item, 
+               'CAJ_COMPROBANTE_PAGO' Tabla, 
+               CONVERT(DATETIME, CONVERT(VARCHAR, ccp.FechaEmision, 103)) Fecha_Emision, 
+               ccp.Cod_TipoComprobante, 
+               ccp.Serie, 
+               ccp.Numero, 
+               CONCAT(ccp.Cod_TipoComprobante, ':', ccp.Serie, '-', ccp.Numero) Comprobante, 
+               pp.Cod_Producto, 
+               ccp.Nom_Cliente, 
+               ISNULL(ROUND(SUM(CASE
+                                    WHEN ccp.Cod_Libro = '08'
+                                    THEN ccd.Cantidad
+                                    ELSE 0.00
+                                END), 2), 0.00) Cantidad_Entrada, 
+               ROUND(AVG(CASE ccp.Cod_Libro
+                             WHEN '08'
+                             THEN dbo.UFN_CAJ_TIPOCAMBIOxFechaMoneda(ccp.FechaEmision, ccp.Cod_Moneda, ccd.PrecioUnitario)
+                             ELSE 0.00
+                         END), 2) Precio_Entrada, 
+               ROUND(SUM(CASE
+                             WHEN ccp.Cod_Libro = '08'
+                             THEN dbo.UFN_CAJ_TIPOCAMBIOxFechaMoneda(ccp.FechaEmision, ccp.Cod_Moneda, ccd.PrecioUnitario * ccd.Cantidad)
+                             ELSE 0.00
+                         END), 2) Monto_Entrada, 
+               ISNULL(ROUND(SUM(CASE
+                                    WHEN ccp.Cod_Libro = '14'
+                                    THEN ccd.Cantidad
+                                    ELSE 0.00
+                                END), 2), 0.00) Cantidad_Salida, 
+               ROUND(AVG(CASE ccp.Cod_Libro
+                             WHEN '14'
+                             THEN dbo.UFN_CAJ_TIPOCAMBIOxFechaMoneda(ccp.FechaEmision, ccp.Cod_Moneda, ccd.PrecioUnitario)
+                             ELSE 0.00
+                         END), 2) Precio_Salida, 
+               ROUND(SUM(CASE
+                             WHEN ccp.Cod_Libro = '14'
+                             THEN dbo.UFN_CAJ_TIPOCAMBIOxFechaMoneda(ccp.FechaEmision, ccp.Cod_Moneda, ccd.PrecioUnitario * ccd.Cantidad)
+                             ELSE 0.00
+                         END), 2) Monto_Salida
+        FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+             INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+             INNER JOIN dbo.PRI_PRODUCTOS pp ON ccd.Id_Producto = pp.Id_Producto
+        WHERE ccp.Flag_Anulado = 0
+              AND ccp.Flag_Despachado = 1
+              AND pp.Flag_Stock = 1
+              AND ccd.Cod_Almacen = @Cod_Almacen
+              AND ccd.Id_Producto = @Id_Producto
+              AND ccd.Cod_UnidadMedida = @Cod_UnidadMedida
+        GROUP BY ccp.Cod_Libro, 
+                 ccp.id_ComprobantePago, 
+                 ccp.FechaEmision, 
+                 ccp.Cod_TipoComprobante, 
+                 ccp.Serie, 
+                 ccp.Numero, 
+                 ccp.Nom_Cliente, 
+                 pp.Cod_Producto, 
+                 ccd.id_Detalle;
+    END;
+GO
