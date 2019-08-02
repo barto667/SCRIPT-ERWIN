@@ -1,0 +1,71 @@
+--Fecha Creacion: 25/07/2019
+--Autor ERWIN MIULLER RAYME CHAMBI
+--Creacion de la vista
+EXEC dbo.USP_PAR_TABLA_G '139','CONFIGURACION_BONUS','Almacena la configuracion de bonos','001',1,'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '139','001','Cod_Comercio','Almacena el codigo comercio','CADENA',0, 32,'',1,'MIGRACION';
+EXEC dbo.USP_PAR_COLUMNA_G '139','002','Estado','Estado','BOLEANO',0,64,'',0,'MIGRACION';
+EXEC dbo.USP_PAR_TABLA_GENERADOR_VISTAS '139';
+GO
+IF NOT EXISTS(SELECT vdx.* FROM dbo.VIS_DIAGRAMAS_XML vdx WHERE vdx.Cod_Tabla='CAJ_COMPROBANTE_PAGO' AND vdx.Cod_Elemento='TARJETA_BONUS' AND vdx.Estado=1)
+BEGIN
+DECLARE @Fila int = ISNULL((SELECT COUNT(*) FROM dbo.VIS_DIAGRAMAS_XML vdx ),0)+1
+EXEC USP_PAR_FILA_G '093','001',@Fila,'CAJ_COMPROBANTE_PAGO',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '093','002',@Fila,'TARJETA_BONUS',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '093','003',@Fila,'Nro. Bonus:',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '093','004',@Fila,'CADENA',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '093','005',@Fila,NULL,32,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '093','006',@Fila,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+END
+GO
+IF NOT EXISTS(SELECT vdx.* FROM dbo.VIS_DIAGRAMAS_XML vdx WHERE vdx.Cod_Tabla='CAJ_COMPROBANTE_PAGO' AND vdx.Cod_Elemento='PUNTOS_BONUS' AND vdx.Estado=1)
+BEGIN
+DECLARE @Fila int = ISNULL((SELECT COUNT(*) FROM dbo.VIS_DIAGRAMAS_XML vdx ),0)+1
+EXEC USP_PAR_FILA_G '093','001',@Fila,'CAJ_COMPROBANTE_PAGO',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '093','002',@Fila,'PUNTOS_BONUS',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '093','003',@Fila,'Total Puntos:',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '093','004',@Fila,'CADENA',NULL,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '093','005',@Fila,NULL,32,NULL,NULL,NULL,1,'MIGRACION';
+EXEC USP_PAR_FILA_G '093','006',@Fila,NULL,NULL,NULL,NULL,1,1,'MIGRACION';
+END
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_PRI_CATEGORIA_TraerCategoriaXIdProducto'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_PRI_CATEGORIA_TraerCategoriaXIdProducto;
+GO
+CREATE PROCEDURE USP_PRI_CATEGORIA_TraerCategoriaXIdProducto @Id_Producto INT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT 
+               ccd.Id_Producto, 
+               ccd.Descripcion, 
+               pp.Cod_Categoria, 
+               pc.Des_Categoria
+        FROM dbo.CAJ_COMPROBANTE_D ccd
+             INNER JOIN dbo.PRI_PRODUCTOS pp ON ccd.Id_Producto = pp.Id_Producto
+             INNER JOIN dbo.PRI_CATEGORIA pc ON pp.Cod_Categoria = pc.Cod_Categoria
+        WHERE ccd.Id_Producto = @Id_Producto;
+    END;
+GO
+
+IF EXISTS (
+  SELECT * 
+    FROM sysobjects 
+   WHERE name = N'USP_ObtenerHoraServidor' 
+	 AND type = 'P'
+)
+  DROP PROCEDURE USP_ObtenerHoraServidor
+GO
+
+CREATE PROCEDURE USP_ObtenerHoraServidor
+WITH ENCRYPTION
+AS
+BEGIN
+	SELECT GETDATE() FechaHora_Servidor
+END
+GO

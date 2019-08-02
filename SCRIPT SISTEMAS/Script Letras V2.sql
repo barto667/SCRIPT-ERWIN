@@ -1865,3 +1865,31 @@ AS
 		WHERE pcc.Id_ClienteProveedor = @Id_ClienteProveedor;
     END;
 GO
+
+IF NOT EXISTS (SELECT cc.* FROM dbo.CAJ_CONCEPTO cc WHERE cc.Id_Concepto=70003)
+BEGIN
+	INSERT dbo.CAJ_CONCEPTO
+	(
+	    Id_Concepto,
+	    Des_Concepto,
+	    Cod_ClaseConcepto,
+	    Flag_Activo,
+	    Id_ConceptoPadre,
+	    Cod_UsuarioReg,
+	    Fecha_Reg,
+	    Cod_UsuarioAct,
+	    Fecha_Act
+	)
+	VALUES
+	(
+	    70003, -- Id_Concepto - int
+	    'AMORTIZACION DE LETRA DE CAMBIO', -- Des_Concepto - varchar
+	    '006', -- Cod_ClaseConcepto - varchar
+	    1, -- Flag_Activo - bit
+	    0, -- Id_ConceptoPadre - int
+	    'MIGRACION', -- Cod_UsuarioReg - varchar
+	    GETDATE(), -- Fecha_Reg - datetime
+	    NULL, -- Cod_UsuarioAct - varchar
+	    NULL -- Fecha_Act - datetime
+	)
+END

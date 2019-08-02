@@ -3687,9 +3687,10 @@ AS
         SET DATEFORMAT YMD;
         DECLARE @Id_MovimientoCuenta INT=
         (
-            SELECT Id_MovimientoCuenta
+            SELECT TOP 1 Id_MovimientoCuenta
             FROM BAN_CUENTA_M
             WHERE Cod_CuentaBancaria = @Cod_CuentaBancaria
+            AND Nro_Operacion = @Nro_Operacion
         );
         IF NOT EXISTS
         (

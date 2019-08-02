@@ -6167,8 +6167,8 @@ BEGIN
 			  CASE WHEN CP.Placa_Vehiculo IS NULL THEN 'NULL,' ELSE ''''+REPLACE( CP.Placa_Vehiculo,'''','')+''',' END +
 			  CASE WHEN CP.Cod_TipoDocReferencia IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoDocReferencia,'''','')+''',' END +
 			  CASE WHEN CP.Nro_DocReferencia IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nro_DocReferencia,'''','')+''',' END +
-			  'NULL,'+
-			  'NULL,'+
+			  CASE WHEN CP.Valor_Resumen IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Valor_Resumen,'''','')+''',' END +
+			  CASE WHEN CP.Valor_Firma IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Valor_Firma,'''','')+''',' END +
 			  CASE WHEN CP.Cod_EstadoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_EstadoComprobante,'''','')+''',' END +
 			  CASE WHEN CP.MotivoAnulacion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.MotivoAnulacion,'''','')+''',' END +
 			  CASE WHEN CP.Otros_Cargos IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Otros_Cargos)+','END+

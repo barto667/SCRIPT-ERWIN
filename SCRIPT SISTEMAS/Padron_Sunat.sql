@@ -279,6 +279,7 @@ GO
 
 USE PALERPsunat;
 GO
+
 IF NOT EXISTS
 (
     SELECT name
@@ -288,8 +289,7 @@ IF NOT EXISTS
 )
     BEGIN
         CREATE TABLE PRI_CLIENTE_PROVEEDOR
-        (Nro_Documento        VARCHAR(32)
-         PRIMARY KEY, 
+        (Nro_Documento        VARCHAR(32), 
          Cod_TipoDocumento    VARCHAR(3) NOT NULL, 
          Cliente              VARCHAR(2048) NULL, 
          Ap_Paterno           VARCHAR(128) NULL, 
@@ -323,7 +323,8 @@ IF NOT EXISTS
          Cod_UsuarioReg       VARCHAR(32) NOT NULL, 
          Fecha_Reg            DATETIME NOT NULL, 
          Cod_UsuarioAct       VARCHAR(32) NULL, 
-         Fecha_Act            DATETIME NULL,
+         Fecha_Act            DATETIME NULL, 
+         PRIMARY KEY(Nro_Documento, Cod_TipoDocumento)
         );
 END;
 GO
@@ -371,7 +372,6 @@ AS
     END;
 GO
 
-
 IF EXISTS
 (
     SELECT *
@@ -385,6 +385,7 @@ CREATE PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_volcardatos
 WITH ENCRYPTION
 AS
     BEGIN
+        --Insercion
         DECLARE @Fecha DATETIME= GETDATE();
         INSERT INTO dbo.PRI_CLIENTE_PROVEEDOR
         (Nro_Documento, 
@@ -538,7 +539,11 @@ AS
                                                         OR prr.[KILÓMETRO] = '-----'
                                                    THEN ''
                                                    ELSE 'KILOMETRO: ' + prr.[KILÓMETRO] + ' '
-                                               END)))) Direccion, -- Direccion - varchar,
+                                               END)))) + CASE
+                                                             WHEN pu.Cod_Ubigeo IS NULL
+                                                             THEN ''
+                                                             ELSE ' ' + pu.Departamento_Provincia_Distrito
+                                                         END Direccion, -- Direccion - varchar,
                       CASE
                           WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'ACTIVO'
                           THEN '001'
@@ -564,7 +569,7 @@ AS
                           THEN '007'
                           WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'SUSPENSION TEMPORAL'
                           THEN '008'
-                          ELSE '999'
+                          ELSE '002'
                       END Cod_EstadoCliente, -- Cod_EstadoCliente - varchar
                       CASE
                           WHEN prr.[CONDICIÓN DE DOMICILIO] = 'HABIDO'
@@ -595,7 +600,7 @@ AS
                           THEN '14'
                           WHEN prr.[CONDICIÓN DE DOMICILIO] = 'POR VERIFICAR'
                           THEN '15'
-                          ELSE '03'
+                          ELSE '02'
                       END Cod_CondicionCliente, -- Cod_CondicionCliente - varchar
                       '002' Cod_TipoCliente, -- Cod_TipoCliente - varchar
                       '' RUC_Natural, -- RUC_Natural - varchar
@@ -624,12 +629,396 @@ AS
                       0 Ubicacion_EjeY, -- Ubicacion_EjeY - numeric
                       '' Ruta, -- Ruta - varchar
                       'MIGRACION' Cod_UsuarioReg, -- Cod_UsuarioReg - varchar
-                      GETDATE() Fecha_Reg, -- Fecha_Reg - datetime
+                      @Fecha Fecha_Reg, -- Fecha_Reg - datetime
                       NULL Cod_UsuarioAct, -- Cod_UsuarioAct - varchar
                       NULL Fecha_Act -- Fecha_Act - datetime
-               FROM PALERPtemp_sunat.dbo.padron_reducido_ruc prr;
+               FROM PALERPtemp_sunat.dbo.padron_reducido_ruc prr
+                    LEFT JOIN dbo.PRI_UBIGEOS pu ON CASE
+                                                        WHEN LTRIM(RTRIM(prr.UBIGEO)) = '-'
+                                                        THEN ''
+                                                        ELSE LTRIM(RTRIM(prr.UBIGEO))
+                                                    END = pu.Cod_Ubigeo
+               WHERE UPPER(LTRIM(RTRIM(prr.RUC))) IN
+               (
+                   SELECT UPPER(LTRIM(RTRIM(prr.RUC))) Nro_Documento -- Nro_Documento - varchar
+                   FROM PALERPtemp_sunat.dbo.padron_reducido_ruc prr
+                   EXCEPT
+                   SELECT pcp.Nro_Documento
+                   FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
+                   WHERE pcp.Cod_TipoDocumento = '6'
+               );
+        --Actualizacion
+        UPDATE pcp
+          SET 
+              pcp.Cliente = UPPER(LTRIM(RTRIM(prr.[NOMBRE O RAZÓN SOCIAL]))), 
+              pcp.Direccion = UPPER(LTRIM(RTRIM(CONCAT(CASE
+                                                           WHEN prr.[TIPO DE VÍA] IS NULL
+                                                                OR prr.[TIPO DE VÍA] = ''
+                                                                OR prr.[TIPO DE VÍA] = '-'
+                                                                OR prr.[TIPO DE VÍA] = '--'
+                                                                OR prr.[TIPO DE VÍA] = '---'
+                                                                OR prr.[TIPO DE VÍA] = '----'
+                                                                OR prr.[TIPO DE VÍA] = '-----'
+                                                           THEN ''
+                                                           ELSE prr.[TIPO DE VÍA] + ' '
+                                                       END,
+                                                       CASE
+                                                           WHEN prr.[NOMBRE DE VÍA] IS NULL
+                                                                OR prr.[NOMBRE DE VÍA] = ''
+                                                                OR prr.[NOMBRE DE VÍA] = '-'
+                                                                OR prr.[NOMBRE DE VÍA] = '--'
+                                                                OR prr.[NOMBRE DE VÍA] = '---'
+                                                                OR prr.[NOMBRE DE VÍA] = '----'
+                                                                OR prr.[NOMBRE DE VÍA] = '-----'
+                                                           THEN ''
+                                                           ELSE prr.[NOMBRE DE VÍA] + ' '
+                                                       END,
+                                                       CASE
+                                                           WHEN prr.[CÓDIGO DE ZONA] IS NULL
+                                                                OR prr.[CÓDIGO DE ZONA] = ''
+                                                                OR prr.[CÓDIGO DE ZONA] = '-'
+                                                                OR prr.[CÓDIGO DE ZONA] = '--'
+                                                                OR prr.[CÓDIGO DE ZONA] = '---'
+                                                                OR prr.[CÓDIGO DE ZONA] = '----'
+                                                                OR prr.[CÓDIGO DE ZONA] = '-----'
+                                                           THEN ''
+                                                           ELSE prr.[CÓDIGO DE ZONA] + ' '
+                                                       END,
+                                                       CASE
+                                                           WHEN prr.[TIPO DE ZONA] IS NULL
+                                                                OR prr.[TIPO DE ZONA] = ''
+                                                                OR prr.[TIPO DE ZONA] = '-'
+                                                                OR prr.[TIPO DE ZONA] = '--'
+                                                                OR prr.[TIPO DE ZONA] = '---'
+                                                                OR prr.[TIPO DE ZONA] = '----'
+                                                                OR prr.[TIPO DE ZONA] = '-----'
+                                                           THEN ''
+                                                           ELSE prr.[TIPO DE ZONA] + ' '
+                                                       END,
+                                                       CASE
+                                                           WHEN prr.[NÚMERO] IS NULL
+                                                                OR prr.[NÚMERO] = ''
+                                                                OR prr.[NÚMERO] = '-'
+                                                                OR prr.[NÚMERO] = '--'
+                                                                OR prr.[NÚMERO] = '---'
+                                                                OR prr.[NÚMERO] = '----'
+                                                                OR prr.[NÚMERO] = '-----'
+                                                           THEN ''
+                                                           ELSE prr.[NÚMERO] + ' '
+                                                       END,
+                                                       CASE
+                                                           WHEN prr.[INTERIOR] IS NULL
+                                                                OR prr.[INTERIOR] = ''
+                                                                OR prr.[INTERIOR] = '-'
+                                                                OR prr.[INTERIOR] = '--'
+                                                                OR prr.[INTERIOR] = '---'
+                                                                OR prr.[INTERIOR] = '----'
+                                                                OR prr.[INTERIOR] = '-----'
+                                                           THEN ''
+                                                           ELSE 'INTERIOR: ' + prr.[INTERIOR] + ' '
+                                                       END,
+                                                       CASE
+                                                           WHEN prr.[LOTE] IS NULL
+                                                                OR prr.[LOTE] = ''
+                                                                OR prr.[LOTE] = '-'
+                                                                OR prr.[LOTE] = '--'
+                                                                OR prr.[LOTE] = '---'
+                                                                OR prr.[LOTE] = '----'
+                                                                OR prr.[LOTE] = '-----'
+                                                           THEN ''
+                                                           ELSE 'LOTE: ' + prr.[LOTE] + ' '
+                                                       END,
+                                                       CASE
+                                                           WHEN prr.[DEPARTAMENTO] IS NULL
+                                                                OR prr.[DEPARTAMENTO] = ''
+                                                                OR prr.[DEPARTAMENTO] = '-'
+                                                                OR prr.[DEPARTAMENTO] = '--'
+                                                                OR prr.[DEPARTAMENTO] = '---'
+                                                                OR prr.[DEPARTAMENTO] = '----'
+                                                                OR prr.[DEPARTAMENTO] = '-----'
+                                                           THEN ''
+                                                           ELSE 'DEPARTAMENTO: ' + prr.[DEPARTAMENTO] + ' '
+                                                       END,
+                                                       CASE
+                                                           WHEN prr.[MANZANA] IS NULL
+                                                                OR prr.[MANZANA] = ''
+                                                                OR prr.[MANZANA] = '-'
+                                                                OR prr.[MANZANA] = '--'
+                                                                OR prr.[MANZANA] = '---'
+                                                                OR prr.[MANZANA] = '----'
+                                                                OR prr.[MANZANA] = '-----'
+                                                           THEN ''
+                                                           ELSE 'MANZANA: ' + prr.[MANZANA] + ' '
+                                                       END,
+                                                       CASE
+                                                           WHEN prr.[KILÓMETRO] IS NULL
+                                                                OR prr.[KILÓMETRO] = ''
+                                                                OR prr.[KILÓMETRO] = '-'
+                                                                OR prr.[KILÓMETRO] = '--'
+                                                                OR prr.[KILÓMETRO] = '---'
+                                                                OR prr.[KILÓMETRO] = '----'
+                                                                OR prr.[KILÓMETRO] = '-----'
+                                                           THEN ''
+                                                           ELSE 'KILOMETRO: ' + prr.[KILÓMETRO] + ' '
+                                                       END)))) + CASE
+                                                                     WHEN pu.Cod_Ubigeo IS NULL
+                                                                     THEN ''
+                                                                     ELSE ' ' + pu.Departamento_Provincia_Distrito
+                                                                 END, 
+              pcp.Cod_EstadoCliente = CASE
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'ACTIVO'
+                                          THEN '001'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'ANUL.PROVI.-ACTO ILI'
+                                          THEN '009'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'ANULACION - ERROR SU'
+                                          THEN '010'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'BAJA DE OFICIO'
+                                          THEN '002'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'BAJA DEFINITIVA'
+                                          THEN '003'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'BAJA MULT.INSCR. Y O'
+                                          THEN '004'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'BAJA PROV. POR OFICI'
+                                          THEN '005'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'BAJA PROVISIONAL'
+                                          THEN '006'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'INHABILITADO-VENT.UN'
+                                          THEN '011'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'NUM. INTERNO IDENTIF'
+                                          THEN '012'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'OTROS OBLIGADOS'
+                                          THEN '007'
+                                          WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'SUSPENSION TEMPORAL'
+                                          THEN '008'
+                                          ELSE '002'
+                                      END, 
+              pcp.Cod_CondicionCliente = CASE
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'HABIDO'
+                                             THEN '01'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO APLICABLE'
+                                             THEN '05'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HABIDO'
+                                             THEN '02'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO'
+                                             THEN '06'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO CERRADO'
+                                             THEN '07'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO DESTINATA'
+                                             THEN '08'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO FALLECIO'
+                                             THEN '09'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO NO EXISTE'
+                                             THEN '04'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO NRO.PUERT'
+                                             THEN '10'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO OTROS MOT'
+                                             THEN '11'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO RECHAZADO'
+                                             THEN '12'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO SE MUDO D'
+                                             THEN '13'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'PENDIENTE'
+                                             THEN '14'
+                                             WHEN prr.[CONDICIÓN DE DOMICILIO] = 'POR VERIFICAR'
+                                             THEN '15'
+                                             ELSE '02'
+                                         END, 
+              pcp.Cod_Ubigeo = CASE
+                                   WHEN LTRIM(RTRIM(prr.UBIGEO)) = '-'
+                                   THEN ''
+                                   ELSE LTRIM(RTRIM(prr.UBIGEO))
+                               END, 
+              pcp.Cod_UsuarioAct = 'MIGRACION', 
+              pcp.Fecha_Act = @Fecha
+        FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
+             INNER JOIN PALERPtemp_sunat.dbo.padron_reducido_ruc prr ON pcp.Nro_Documento = UPPER(LTRIM(RTRIM(prr.RUC)))
+             LEFT JOIN dbo.PRI_UBIGEOS pu ON CASE
+                                                 WHEN LTRIM(RTRIM(prr.UBIGEO)) = '-'
+                                                 THEN ''
+                                                 ELSE LTRIM(RTRIM(prr.UBIGEO))
+                                             END = pu.Cod_Ubigeo
+        WHERE pcp.Cod_TipoDocumento = '6'
+              AND (UPPER(LTRIM(RTRIM(prr.[NOMBRE O RAZÓN SOCIAL]))) != pcp.Cliente
+                   OR UPPER(LTRIM(RTRIM(CONCAT(CASE
+                                                   WHEN prr.[TIPO DE VÍA] IS NULL
+                                                        OR prr.[TIPO DE VÍA] = ''
+                                                        OR prr.[TIPO DE VÍA] = '-'
+                                                        OR prr.[TIPO DE VÍA] = '--'
+                                                        OR prr.[TIPO DE VÍA] = '---'
+                                                        OR prr.[TIPO DE VÍA] = '----'
+                                                        OR prr.[TIPO DE VÍA] = '-----'
+                                                   THEN ''
+                                                   ELSE prr.[TIPO DE VÍA] + ' '
+                                               END,
+                                               CASE
+                                                   WHEN prr.[NOMBRE DE VÍA] IS NULL
+                                                        OR prr.[NOMBRE DE VÍA] = ''
+                                                        OR prr.[NOMBRE DE VÍA] = '-'
+                                                        OR prr.[NOMBRE DE VÍA] = '--'
+                                                        OR prr.[NOMBRE DE VÍA] = '---'
+                                                        OR prr.[NOMBRE DE VÍA] = '----'
+                                                        OR prr.[NOMBRE DE VÍA] = '-----'
+                                                   THEN ''
+                                                   ELSE prr.[NOMBRE DE VÍA] + ' '
+                                               END,
+                                               CASE
+                                                   WHEN prr.[CÓDIGO DE ZONA] IS NULL
+                                                        OR prr.[CÓDIGO DE ZONA] = ''
+                                                        OR prr.[CÓDIGO DE ZONA] = '-'
+                                                        OR prr.[CÓDIGO DE ZONA] = '--'
+                                                        OR prr.[CÓDIGO DE ZONA] = '---'
+                                                        OR prr.[CÓDIGO DE ZONA] = '----'
+                                                        OR prr.[CÓDIGO DE ZONA] = '-----'
+                                                   THEN ''
+                                                   ELSE prr.[CÓDIGO DE ZONA] + ' '
+                                               END,
+                                               CASE
+                                                   WHEN prr.[TIPO DE ZONA] IS NULL
+                                                        OR prr.[TIPO DE ZONA] = ''
+                                                        OR prr.[TIPO DE ZONA] = '-'
+                                                        OR prr.[TIPO DE ZONA] = '--'
+                                                        OR prr.[TIPO DE ZONA] = '---'
+                                                        OR prr.[TIPO DE ZONA] = '----'
+                                                        OR prr.[TIPO DE ZONA] = '-----'
+                                                   THEN ''
+                                                   ELSE prr.[TIPO DE ZONA] + ' '
+                                               END,
+                                               CASE
+                                                   WHEN prr.[NÚMERO] IS NULL
+                                                        OR prr.[NÚMERO] = ''
+                                                        OR prr.[NÚMERO] = '-'
+                                                        OR prr.[NÚMERO] = '--'
+                                                        OR prr.[NÚMERO] = '---'
+                                                        OR prr.[NÚMERO] = '----'
+                                                        OR prr.[NÚMERO] = '-----'
+                                                   THEN ''
+                                                   ELSE prr.[NÚMERO] + ' '
+                                               END,
+                                               CASE
+                                                   WHEN prr.[INTERIOR] IS NULL
+                                                        OR prr.[INTERIOR] = ''
+                                                        OR prr.[INTERIOR] = '-'
+                                                        OR prr.[INTERIOR] = '--'
+                                                        OR prr.[INTERIOR] = '---'
+                                                        OR prr.[INTERIOR] = '----'
+                                                        OR prr.[INTERIOR] = '-----'
+                                                   THEN ''
+                                                   ELSE 'INTERIOR: ' + prr.[INTERIOR] + ' '
+                                               END,
+                                               CASE
+                                                   WHEN prr.[LOTE] IS NULL
+                                                        OR prr.[LOTE] = ''
+                                                        OR prr.[LOTE] = '-'
+                                                        OR prr.[LOTE] = '--'
+                                                        OR prr.[LOTE] = '---'
+                                                        OR prr.[LOTE] = '----'
+                                                        OR prr.[LOTE] = '-----'
+                                                   THEN ''
+                                                   ELSE 'LOTE: ' + prr.[LOTE] + ' '
+                                               END,
+                                               CASE
+                                                   WHEN prr.[DEPARTAMENTO] IS NULL
+                                                        OR prr.[DEPARTAMENTO] = ''
+                                                        OR prr.[DEPARTAMENTO] = '-'
+                                                        OR prr.[DEPARTAMENTO] = '--'
+                                                        OR prr.[DEPARTAMENTO] = '---'
+                                                        OR prr.[DEPARTAMENTO] = '----'
+                                                        OR prr.[DEPARTAMENTO] = '-----'
+                                                   THEN ''
+                                                   ELSE 'DEPARTAMENTO: ' + prr.[DEPARTAMENTO] + ' '
+                                               END,
+                                               CASE
+                                                   WHEN prr.[MANZANA] IS NULL
+                                                        OR prr.[MANZANA] = ''
+                                                        OR prr.[MANZANA] = '-'
+                                                        OR prr.[MANZANA] = '--'
+                                                        OR prr.[MANZANA] = '---'
+                                                        OR prr.[MANZANA] = '----'
+                                                        OR prr.[MANZANA] = '-----'
+                                                   THEN ''
+                                                   ELSE 'MANZANA: ' + prr.[MANZANA] + ' '
+                                               END,
+                                               CASE
+                                                   WHEN prr.[KILÓMETRO] IS NULL
+                                                        OR prr.[KILÓMETRO] = ''
+                                                        OR prr.[KILÓMETRO] = '-'
+                                                        OR prr.[KILÓMETRO] = '--'
+                                                        OR prr.[KILÓMETRO] = '---'
+                                                        OR prr.[KILÓMETRO] = '----'
+                                                        OR prr.[KILÓMETRO] = '-----'
+                                                   THEN ''
+                                                   ELSE 'KILOMETRO: ' + prr.[KILÓMETRO] + ' '
+                                               END)))) + CASE
+                                                             WHEN pu.Cod_Ubigeo IS NULL
+                                                             THEN ''
+                                                             ELSE ' ' + pu.Departamento_Provincia_Distrito
+                                                         END != pcp.Direccion
+                   OR pcp.Cod_EstadoCliente != CASE
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'ACTIVO'
+                                                   THEN '001'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'ANUL.PROVI.-ACTO ILI'
+                                                   THEN '009'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'ANULACION - ERROR SU'
+                                                   THEN '010'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'BAJA DE OFICIO'
+                                                   THEN '002'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'BAJA DEFINITIVA'
+                                                   THEN '003'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'BAJA MULT.INSCR. Y O'
+                                                   THEN '004'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'BAJA PROV. POR OFICI'
+                                                   THEN '005'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'BAJA PROVISIONAL'
+                                                   THEN '006'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'INHABILITADO-VENT.UN'
+                                                   THEN '011'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'NUM. INTERNO IDENTIF'
+                                                   THEN '012'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'OTROS OBLIGADOS'
+                                                   THEN '007'
+                                                   WHEN prr.[ESTADO DEL CONTRIBUYENTE] = 'SUSPENSION TEMPORAL'
+                                                   THEN '008'
+                                                   ELSE '002'
+                                               END
+                   OR pcp.Cod_CondicionCliente != CASE
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'HABIDO'
+                                                      THEN '01'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO APLICABLE'
+                                                      THEN '05'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HABIDO'
+                                                      THEN '02'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO'
+                                                      THEN '06'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO CERRADO'
+                                                      THEN '07'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO DESTINATA'
+                                                      THEN '08'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO FALLECIO'
+                                                      THEN '09'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO NO EXISTE'
+                                                      THEN '04'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO NRO.PUERT'
+                                                      THEN '10'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO OTROS MOT'
+                                                      THEN '11'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO RECHAZADO'
+                                                      THEN '12'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'NO HALLADO SE MUDO D'
+                                                      THEN '13'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'PENDIENTE'
+                                                      THEN '14'
+                                                      WHEN prr.[CONDICIÓN DE DOMICILIO] = 'POR VERIFICAR'
+                                                      THEN '15'
+                                                      ELSE '02'
+                                                  END
+                   OR pcp.Cod_Ubigeo != CASE
+                                            WHEN LTRIM(RTRIM(prr.UBIGEO)) = '-'
+                                            THEN ''
+                                            ELSE LTRIM(RTRIM(prr.UBIGEO))
+                                        END);
     END;
 GO
+
 IF EXISTS
 (
     SELECT *
@@ -643,6 +1032,67 @@ CREATE PROCEDURE USP_PRI_ESTABLECIMIENTOS_volcardatos
 WITH ENCRYPTION
 AS
     BEGIN
+        --Eliminamos los duplicados de los anexos
+        --Creamos una tabla temporal
+        IF EXISTS
+        (
+            SELECT *
+            FROM sysobjects
+            WHERE type = 'U'
+                  AND name = '#Temporal'
+        )
+            BEGIN
+                DROP TABLE #Temporal;
+        END;
+        SELECT DISTINCT 
+               prla.[ RUC], 
+               prla.UBIGEO, 
+               prla.[TIPO DE VÍA], 
+               prla.[NOMBRE DE VÍA], 
+               prla.[CÓDIGO DE ZONA], 
+               prla.[TIPO DE ZONA], 
+               prla.NÚMERO, 
+               prla.KILÓMETRO, 
+               prla.INTERIOR, 
+               prla.LOTE, 
+               prla.DEPARTAMENTO, 
+               prla.MANZANA
+        INTO #Temporal
+        FROM PALERPtemp_sunat.dbo.padron_reducido_local_anexo prla
+        ORDER BY prla.[ RUC];
+        --Borramos todo los datos de la tabla
+        DELETE PALERPtemp_sunat.dbo.padron_reducido_local_anexo;
+        --Insertamos los nuevos datos
+        INSERT INTO PALERPtemp_sunat.dbo.padron_reducido_local_anexo
+        ([ RUC], 
+         UBIGEO, 
+         [TIPO DE VÍA], 
+         [NOMBRE DE VÍA], 
+         [CÓDIGO DE ZONA], 
+         [TIPO DE ZONA], 
+         NÚMERO, 
+         KILÓMETRO, 
+         INTERIOR, 
+         LOTE, 
+         DEPARTAMENTO, 
+         MANZANA, 
+         [Columna 12]
+        )
+               SELECT t.[ RUC], 
+                      t.UBIGEO, 
+                      t.[TIPO DE VÍA], 
+                      t.[NOMBRE DE VÍA], 
+                      t.[CÓDIGO DE ZONA], 
+                      t.[TIPO DE ZONA], 
+                      t.NÚMERO, 
+                      t.KILÓMETRO, 
+                      t.INTERIOR, 
+                      t.LOTE, 
+                      t.DEPARTAMENTO, 
+                      t.MANZANA, 
+                      ''
+               FROM #Temporal t;
+        DROP TABLE #Temporal;
         INSERT INTO dbo.PRI_ESTABLECIMIENTOS
         (Nro_Documento, 
          Item, 
@@ -660,7 +1110,7 @@ AS
                SELECT prla.[ RUC], -- Nro_Documento - varchar
                       ROW_NUMBER() OVER(
                       ORDER BY prla.[ RUC] ASC), -- Item - int
-                      NULL, -- Des_Establecimiento - varchar
+                      'DOMICILIO FISCAL', -- Des_Establecimiento - varchar
                       '02', -- Cod_TipoEstablecimiento - varchar
                       UPPER(RTRIM(LTRIM(CONCAT(CASE
                                                    WHEN prla.[TIPO DE VÍA] IS NULL
@@ -779,8 +1229,49 @@ AS
                       GETDATE(), -- Fecha_Reg - datetime
                       NULL, -- Cod_UsuarioAct - varchar
                       NULL -- Fecha_Act - datetime
-               FROM PALERPtemp_sunat.dbo.padron_reducido_local_anexo prla
-               --WHERE ISNUMERIC(prla.[ RUC]) = 1;
+               FROM PALERPtemp_sunat.dbo.padron_reducido_local_anexo prla;
+    END;
+GO
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_PRI_UBIGEOS_ActualizarDirecciones'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_PRI_UBIGEOS_ActualizarDirecciones;
+GO
+CREATE PROCEDURE USP_PRI_UBIGEOS_ActualizarDirecciones
+WITH ENCRYPTION
+AS
+    BEGIN
+        --UPDATE pcp
+        --  SET 
+        --      pcp.Direccion = CASE
+        --                          WHEN pu.Cod_Ubigeo IS NULL
+        --                          THEN pcp.Direccion
+        --                          ELSE CASE
+        --                                   WHEN pcp.Direccion = ''
+        --                                   THEN pu.Departamento_Provincia_Distrito
+        --                                   ELSE pcp.Direccion + ' ' + pu.Departamento_Provincia_Distrito
+        --                               END
+        --                      END
+        --FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
+        --     LEFT JOIN dbo.PRI_UBIGEOS pu ON pcp.Cod_Ubigeo = pu.Cod_Ubigeo;
+        UPDATE pe
+          SET 
+              pe.Direccion = CASE
+                                 WHEN pe.Cod_Ubigeo IS NULL
+                                 THEN pe.Direccion
+                                 ELSE CASE
+                                          WHEN pe.Direccion = ''
+                                          THEN pu.Departamento_Provincia_Distrito
+                                          ELSE pe.Direccion + ' ' + pu.Departamento_Provincia_Distrito
+                                      END
+                             END
+        FROM dbo.PRI_ESTABLECIMIENTOS pe
+             LEFT JOIN dbo.PRI_UBIGEOS pu ON pe.Cod_Ubigeo = pu.Cod_Ubigeo;
     END;
 GO
 
@@ -810,3 +1301,256 @@ AS
               @Nro_DocumentoAnterior = dbo.PRI_ESTABLECIMIENTOS.Nro_Documento;
     END;
 GO
+
+
+
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_PRI_CLIENTE_PROVEEDOR_TraerRUCXNumero'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_TraerRUCXNumero;
+GO
+CREATE PROCEDURE USP_PRI_CLIENTE_PROVEEDOR_TraerRUCXNumero @Nro_Documento VARCHAR(11)
+WITH ENCRYPTION
+AS
+    BEGIN
+        IF EXISTS
+        (
+            SELECT pcp.*
+            FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
+            WHERE pcp.Nro_Documento = @Nro_Documento
+                  AND pcp.Cod_TipoDocumento = '6'
+        )
+            BEGIN
+                SELECT 'EXISTE' Respuesta, 
+                       pcp.Nro_Documento, 
+                       pcp.Cod_TipoDocumento, 
+                       ptd.Nom_TipoDoc, 
+                       ISNULL(pcp.Cliente, '') Cliente, 
+                       ISNULL(pcp.Direccion, '') Direccion, 
+                       ISNULL(pcp.Cod_EstadoCliente, '002') Cod_EstadoCliente, 
+                       ISNULL(pec.Nom_EstadoCliente, 'BAJA DE OFICIO') Nom_EstadoCliente, 
+                       ISNULL(pcp.Cod_CondicionCliente, '02') Cod_CondicionCliente, 
+                       ISNULL(pcc.Nom_CondicionCliente, 'NO HABIDO') Nom_CondicionCliente, 
+                       ISNULL(pcp.Cod_Ubigeo, '') Cod_Ubigeo
+                FROM dbo.PRI_CLIENTE_PROVEEDOR pcp
+                     RIGHT JOIN dbo.PRI_ESTADO_CLIENTE pec ON pcp.Cod_EstadoCliente = pec.Cod_EstadoCliente
+                     RIGHT JOIN dbo.PRI_CONDICION_CLIENTE pcc ON pcp.Cod_CondicionCliente = pcc.Cod_CondicionCliente
+                     RIGHT JOIN dbo.PRI_TIPO_DOCUMENTO ptd ON pcp.Cod_TipoDocumento = ptd.Cod_TipoDoc
+                WHERE pcp.Nro_Documento = @Nro_Documento
+                      AND pcp.Cod_TipoDocumento = '6';
+        END;
+            ELSE
+            BEGIN
+                SELECT 'NO ENCONTRADO' Respuesta;
+        END;
+    END;
+GO
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_PRI_ESTABLECIMIENTO_TraerAnexosXNumeroRUC'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_PRI_ESTABLECIMIENTO_TraerAnexosXNumeroRUC;
+GO
+CREATE PROCEDURE USP_PRI_ESTABLECIMIENTO_TraerAnexosXNumeroRUC @Nro_Documento VARCHAR(11)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT DISTINCT 
+               pe.Nro_Documento, 
+               pe.Item, 
+               ISNULL(pe.Des_Establecimiento, 'DOMICILIO FISCAL') Des_Establecimiento, 
+               ISNULL(pe.Cod_TipoEstablecimiento, '02') Cod_TipoEstablecimiento, 
+               ISNULL(pe.Direccion, '') Direccion, 
+               ISNULL(pe.Cod_Ubigeo, '') Cod_Ubigeo
+        FROM dbo.PRI_ESTABLECIMIENTOS pe
+        WHERE pe.Nro_Documento = @Nro_Documento;
+    END;
+GO
+
+
+-- --Insertar
+-- DECLARE @Fecha DATETIME= GETDATE();
+-- INSERT INTO dbo.PRI_ESTABLECIMIENTOS
+-- (Nro_Documento, 
+--  Item, 
+--  Des_Establecimiento, 
+--  Cod_TipoEstablecimiento, 
+--  Direccion, 
+--  Telefono, 
+--  Obs_Establecimiento, 
+--  Cod_Ubigeo, 
+--  Cod_UsuarioReg, 
+--  Fecha_Reg, 
+--  Cod_UsuarioAct, 
+--  Fecha_Act
+-- )
+--        SELECT UPPER(LTRIM(RTRIM(prla.[ RUC]))), -- Nro_Documento - varchar
+--               ROW_NUMBER() OVER(
+--               ORDER BY prla.[ RUC] ASC), -- Item - int
+--               'DOMICILIO FISCAL', -- Des_Establecimiento - varchar
+--               '02', -- Cod_TipoEstablecimiento - varchar
+--               UPPER(RTRIM(LTRIM(CONCAT(CASE
+--                                            WHEN prla.[TIPO DE VÍA] IS NULL
+--                                                 OR prla.[TIPO DE VÍA] = ''
+--                                                 OR prla.[TIPO DE VÍA] = '-'
+--                                                 OR prla.[TIPO DE VÍA] = '--'
+--                                                 OR prla.[TIPO DE VÍA] = '---'
+--                                                 OR prla.[TIPO DE VÍA] = '----'
+--                                                 OR prla.[TIPO DE VÍA] = '-----'
+--                                            THEN ''
+--                                            ELSE prla.[TIPO DE VÍA] + ' '
+--                                        END,
+--                                        CASE
+--                                            WHEN prla.[NOMBRE DE VÍA] IS NULL
+--                                                 OR prla.[NOMBRE DE VÍA] = ''
+--                                                 OR prla.[NOMBRE DE VÍA] = '-'
+--                                                 OR prla.[NOMBRE DE VÍA] = '--'
+--                                                 OR prla.[NOMBRE DE VÍA] = '---'
+--                                                 OR prla.[NOMBRE DE VÍA] = '----'
+--                                                 OR prla.[NOMBRE DE VÍA] = '-----'
+--                                            THEN ''
+--                                            ELSE prla.[NOMBRE DE VÍA] + ' '
+--                                        END,
+--                                        CASE
+--                                            WHEN prla.[CÓDIGO DE ZONA] IS NULL
+--                                                 OR prla.[CÓDIGO DE ZONA] = ''
+--                                                 OR prla.[CÓDIGO DE ZONA] = '-'
+--                                                 OR prla.[CÓDIGO DE ZONA] = '--'
+--                                                 OR prla.[CÓDIGO DE ZONA] = '---'
+--                                                 OR prla.[CÓDIGO DE ZONA] = '----'
+--                                                 OR prla.[CÓDIGO DE ZONA] = '-----'
+--                                            THEN ''
+--                                            ELSE prla.[CÓDIGO DE ZONA] + ' '
+--                                        END,
+--                                        CASE
+--                                            WHEN prla.[TIPO DE ZONA] IS NULL
+--                                                 OR prla.[TIPO DE ZONA] = ''
+--                                                 OR prla.[TIPO DE ZONA] = '-'
+--                                                 OR prla.[TIPO DE ZONA] = '--'
+--                                                 OR prla.[TIPO DE ZONA] = '---'
+--                                                 OR prla.[TIPO DE ZONA] = '----'
+--                                                 OR prla.[TIPO DE ZONA] = '-----'
+--                                            THEN ''
+--                                            ELSE prla.[TIPO DE ZONA] + ' '
+--                                        END,
+--                                        CASE
+--                                            WHEN prla.NÚMERO IS NULL
+--                                                 OR prla.NÚMERO = ''
+--                                                 OR prla.NÚMERO = '-'
+--                                                 OR prla.NÚMERO = '--'
+--                                                 OR prla.NÚMERO = '---'
+--                                                 OR prla.NÚMERO = '----'
+--                                                 OR prla.NÚMERO = '-----'
+--                                            THEN ''
+--                                            ELSE prla.NÚMERO + ' '
+--                                        END,
+--                                        CASE
+--                                            WHEN prla.KILÓMETRO IS NULL
+--                                                 OR prla.KILÓMETRO = ''
+--                                                 OR prla.KILÓMETRO = '-'
+--                                                 OR prla.KILÓMETRO = '--'
+--                                                 OR prla.KILÓMETRO = '---'
+--                                                 OR prla.KILÓMETRO = '----'
+--                                                 OR prla.KILÓMETRO = '-----'
+--                                            THEN ''
+--                                            ELSE 'KILOMETRO: ' + prla.KILÓMETRO + ' '
+--                                        END,
+--                                        CASE
+--                                            WHEN prla.INTERIOR IS NULL
+--                                                 OR prla.INTERIOR = ''
+--                                                 OR prla.INTERIOR = '-'
+--                                                 OR prla.INTERIOR = '--'
+--                                                 OR prla.INTERIOR = '---'
+--                                                 OR prla.INTERIOR = '----'
+--                                                 OR prla.INTERIOR = '-----'
+--                                            THEN ''
+--                                            ELSE 'INTERIOR: ' + prla.INTERIOR + ' '
+--                                        END,
+--                                        CASE
+--                                            WHEN prla.LOTE IS NULL
+--                                                 OR prla.LOTE = ''
+--                                                 OR prla.LOTE = '-'
+--                                                 OR prla.LOTE = '--'
+--                                                 OR prla.LOTE = '---'
+--                                                 OR prla.LOTE = '----'
+--                                                 OR prla.LOTE = '-----'
+--                                            THEN ''
+--                                            ELSE 'LOTE: ' + prla.LOTE + ' '
+--                                        END,
+--                                        CASE
+--                                            WHEN prla.DEPARTAMENTO IS NULL
+--                                                 OR prla.DEPARTAMENTO = ''
+--                                                 OR prla.DEPARTAMENTO = '-'
+--                                                 OR prla.DEPARTAMENTO = '--'
+--                                                 OR prla.DEPARTAMENTO = '---'
+--                                                 OR prla.DEPARTAMENTO = '----'
+--                                                 OR prla.DEPARTAMENTO = '-----'
+--                                            THEN ''
+--                                            ELSE 'DEPARTAMENTO: ' + prla.DEPARTAMENTO + ' '
+--                                        END,
+--                                        CASE
+--                                            WHEN prla.MANZANA IS NULL
+--                                                 OR prla.MANZANA = ''
+--                                                 OR prla.MANZANA = '-'
+--                                                 OR prla.MANZANA = '--'
+--                                                 OR prla.MANZANA = '---'
+--                                                 OR prla.MANZANA = '----'
+--                                                 OR prla.MANZANA = '-----'
+--                                            THEN ''
+--                                            ELSE 'MANZANA: ' + prla.MANZANA + ' '
+--                                        END)))), -- Direccion - varchar
+--               NULL, -- Telefono - varchar
+--               NULL, -- Obs_Establecimiento - varchar
+--               prla.UBIGEO, -- Cod_Ubigeo - varchar
+--               'MIGRACION', -- Cod_UsuarioReg - varchar
+--               @Fecha, -- Fecha_Reg - datetime
+--               NULL, -- Cod_UsuarioAct - varchar
+--               NULL -- Fecha_Act - datetime
+--        FROM PALERPtemp_sunat.dbo.padron_reducido_local_anexo prla
+--        WHERE UPPER(LTRIM(RTRIM(prla.[ RUC]))) IN
+--        (
+--            SELECT UPPER(LTRIM(RTRIM(prla.[ RUC])))
+--            FROM PALERPtemp_sunat.dbo.padron_reducido_local_anexo prla
+--            EXCEPT
+--            SELECT pe.Nro_Documento
+--            FROM dbo.PRI_ESTABLECIMIENTOS pe
+--        );
+
+DECLARE @Nombre_BD VARCHAR(MAX);
+DECLARE @Nombre_Logico VARCHAR(MAX);
+DECLARE @Ruta_Fisica VARCHAR(MAX);
+DECLARE @Tipo_Archivo VARCHAR(MAX);
+DECLARE @Script VARCHAR(MAX);
+DECLARE Cursorfila CURSOR LOCAL
+FOR SELECT DISTINCT 
+           d.name Nombre_BD, 
+           mf.name Nombre_Logico, 
+           mf.physical_name Ruta_Fisica, 
+           mf.type_desc Tipo_Archivo
+    FROM sys.master_files mf
+         INNER JOIN sys.databases d ON mf.database_id = d.database_id
+    WHERE mf.name LIKE 'PALERP%'
+          AND mf.type_desc = 'LOG';
+OPEN Cursorfila;
+FETCH NEXT FROM Cursorfila INTO @Nombre_BD, @Nombre_Logico, @Ruta_Fisica, @Tipo_Archivo;
+WHILE(@@FETCH_STATUS = 0)
+    BEGIN
+        SET @Script = 'USE ' + @Nombre_BD + '
+		ALTER DATABASE ' + @Nombre_BD + '
+		SET RECOVERY SIMPLE;
+		DBCC SHRINKFILE(' + @Nombre_Logico + ', 1);
+		ALTER DATABASE ' + @Nombre_BD + '
+		SET RECOVERY FULL;';
+        EXEC (@Script);
+        FETCH NEXT FROM Cursorfila INTO @Nombre_BD, @Nombre_Logico, @Ruta_Fisica, @Tipo_Archivo;
+    END;
+CLOSE Cursorfila;
+DEALLOCATE Cursorfila;

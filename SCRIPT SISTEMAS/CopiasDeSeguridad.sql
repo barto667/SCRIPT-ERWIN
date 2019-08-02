@@ -1112,3 +1112,27 @@ AS
                 1;
     END;
 GO
+IF EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = 'USP_Crear_CopiaSeguridadXRutaExtension'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_Crear_CopiaSeguridadXRutaExtension;
+GO
+CREATE PROCEDURE USP_Crear_CopiaSeguridadXRutaExtension @RutaBackup VARCHAR(MAX), 
+                                                        @Extension  VARCHAR(MAX)
+WITH ENCRYPTION
+AS
+    BEGIN
+        DECLARE @BDActual VARCHAR(MAX)=
+        (
+            SELECT DB_NAME()
+        );
+        DECLARE @NombreArchivo AS VARCHAR(MAX)= CONCAT(@RutaBackup, CHAR(92), @BDActual, '_', replace(CONVERT(VARCHAR, GETDATE(), 103), '/', ''), '_', replace(CONVERT(VARCHAR, GETDATE(), 108), ':', ''), '.', @Extension);
+        DECLARE @NombreCopia VARCHAR(MAX)= CONCAT(@BDActual, '-Completa Base de datos Copia de seguridad');
+        BACKUP DATABASE @BDActual TO DISK = @NombreArchivo WITH NOFORMAT, NOINIT, NAME = @NombreCopia, SKIP, NOREWIND, NOUNLOAD, STATS = 10, COMPRESSION;
+        SELECT @NombreArchivo Archivo
+    END;
+GO

@@ -181,9 +181,6 @@ BEGIN
 END
 GO 
 
-GO
-
-
 --Creamos nuestra tabla temporal donde se insertan los datos de las inserciones, modificaciones y eliminacion
 IF NOT EXISTS(SELECT name 
 	  FROM 	 sysobjects 

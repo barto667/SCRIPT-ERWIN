@@ -1503,15 +1503,19 @@ BEGIN
 				NULL
 				FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND 
 				(ccd.id_Detalle = @Origen_IdDetalle OR CAST(ccd.IGV AS int) = @Origen_IdDetalle)
+			 END
+			 ELSE
+			 BEGIN
 				--Debemos editar el destino, poniendo  el campo cantidad+=Formalizado
 				UPDATE dbo.CAJ_COMPROBANTE_D
 				SET
-				    dbo.CAJ_COMPROBANTE_D.Cantidad = dbo.CAJ_COMPROBANTE_D.Cantidad +  (SELECT ccd.Cantidad-ccd.Formalizado FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND ccd.id_Detalle=@Origen_IdDetalle),
+				    dbo.CAJ_COMPROBANTE_D.Cantidad = dbo.CAJ_COMPROBANTE_D.Cantidad + (SELECT ccd.Cantidad-ccd.Formalizado FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND ccd.id_Detalle=@Origen_IdDetalle),
 				    dbo.CAJ_COMPROBANTE_D.Sub_Total = ROUND((dbo.CAJ_COMPROBANTE_D.Cantidad +  (SELECT ccd.Cantidad-ccd.Formalizado FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComandaOrigen AND ccd.id_Detalle=@Origen_IdDetalle))*dbo.CAJ_COMPROBANTE_D.PrecioUnitario,2),
 				    dbo.CAJ_COMPROBANTE_D.Cod_UsuarioAct=@Cod_Usuario,
 				    dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
 				WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@Id_ComandaDestino AND dbo.CAJ_COMPROBANTE_D.id_Detalle=@Destino_IdDetalle
-				--Debemos editar el origen, poniendo  el campo cantidad=Formalizado
+			 END
+			 --Debemos editar el origen, poniendo  el campo cantidad=Formalizado
 				UPDATE dbo.CAJ_COMPROBANTE_D
 				SET
 				    dbo.CAJ_COMPROBANTE_D.Cantidad = 0,
@@ -1520,8 +1524,6 @@ BEGIN
 				    dbo.CAJ_COMPROBANTE_D.Fecha_Act=GETDATE()
 				WHERE dbo.CAJ_COMPROBANTE_D.id_ComprobantePago=@Id_ComandaOrigen AND (dbo.CAJ_COMPROBANTE_D.id_Detalle=@Origen_IdDetalle OR 
 					   CAST(dbo.CAJ_COMPROBANTE_D.IGV AS int) = @Origen_IdDetalle)
-			 END
-
 			 FETCH NEXT  FROM Cursor_Origen INTO  @Origen_IdDetalle,@Origen_IdProducto,@Origen_Descripcion,@Origen_PrecioUnitario,@Origen_Observacion
 			 SET @Origen_Contador= @Origen_Contador + 1
 		  END
