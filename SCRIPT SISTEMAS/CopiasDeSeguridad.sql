@@ -1008,22 +1008,6 @@ GO
 CREATE PROCEDURE USP_PROGRAMADOR_TAREAS_TraerXNombre @Nombre_Tarea VARCHAR(MAX)
 WITH ENCRYPTION
 AS
-     SELECT s.*
-     FROM msdb.dbo.sysjobs s
-     WHERE(name = @Nombre_Tarea);
-GO
-IF EXISTS
-(
-    SELECT *
-    FROM sysobjects
-    WHERE name = N'USP_PROGRAMADOR_TAREAS_TraerXNombre'
-          AND type = 'P'
-)
-    DROP PROCEDURE USP_PROGRAMADOR_TAREAS_TraerXNombre;
-GO
-CREATE PROCEDURE USP_PROGRAMADOR_TAREAS_TraerXNombre @Nombre_Tarea VARCHAR(MAX)
-WITH ENCRYPTION
-AS
      SELECT s.job_id, 
             s.originating_server_id, 
             s.name, 

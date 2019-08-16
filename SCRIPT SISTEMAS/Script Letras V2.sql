@@ -1123,7 +1123,6 @@ GO
 -- 	@FechaFin = NULL,
 -- 	@CodEstado = NULL,
 -- 	@CodLibro = NULL 
-
 IF EXISTS
 (
     SELECT *
