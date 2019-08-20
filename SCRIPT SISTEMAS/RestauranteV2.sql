@@ -67,55 +67,60 @@ GO
 
 --Obtiene los items de un comprobante por id
 --solo aquellos que no son componentes, sino productos
-IF EXISTS (
-  SELECT * 
-    FROM sysobjects 
-   WHERE name = N'USP_VIS_MESAS_ObtenerDetallesComprobante' 
-	 AND type = 'P'
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_VIS_MESAS_ObtenerDetallesComprobante'
+          AND type = 'P'
 )
-  DROP PROCEDURE USP_VIS_MESAS_ObtenerDetallesComprobante
+    DROP PROCEDURE USP_VIS_MESAS_ObtenerDetallesComprobante;
 GO
-
-CREATE PROCEDURE USP_VIS_MESAS_ObtenerDetallesComprobante
-	@Id_ComprobantePago int
-  WITH ENCRYPTION
+CREATE PROCEDURE USP_VIS_MESAS_ObtenerDetallesComprobante @Id_ComprobantePago INT
+WITH ENCRYPTION
 AS
-BEGIN
-    SELECT DISTINCT
-       ccd.id_ComprobantePago,
-       ccd.id_Detalle,
-       ccd.Id_Producto,
-       ccd.Cod_Almacen,
-       (ccd.Cantidad - ccd.Formalizado) Cantidad,
-       ccd.Cod_UnidadMedida,
-       ccd.Despachado,
-       ccd.Descripcion,
-       ccd.PrecioUnitario,
-       ccd.Descuento,
-       ccd.Sub_Total,
-       ccd.Tipo,
-       ccd.Obs_ComprobanteD,
-       ccd.Cod_Manguera,
-       ccd.Flag_AplicaImpuesto,
-       ccd.Formalizado,
-       ccd.Valor_NoOneroso,
-       ccd.Cod_TipoISC,
-       ccd.Porcentaje_ISC,
-       ccd.ISC,
-       ccd.Cod_TipoIGV,
-       ccd.Porcentaje_IGV,
-       ccd.IGV,
-       ccd.Cod_UsuarioReg,
-       ccd.Fecha_Reg,
-       ccd.Cod_UsuarioAct,
-       ccd.Fecha_Act
-	FROM dbo.CAJ_COMPROBANTE_D ccd 
-	WHERE ccd.id_ComprobantePago=@Id_ComprobantePago AND ccd.IGV=0
-	AND ccd.Cantidad-ccd.Formalizado>0
-	ORDER BY ccd.Descripcion
-END
+    BEGIN
+        SELECT DISTINCT 
+               ccd.id_ComprobantePago, 
+               ccd.id_Detalle, 
+               ccd.Id_Producto, 
+               ccd.Cod_Almacen, 
+               (ccd.Cantidad - ccd.Formalizado) Cantidad, 
+               ccd.Cod_UnidadMedida, 
+               ccd.Despachado, 
+               ccd.Descripcion, 
+               ccd.PrecioUnitario, 
+               ppt.Por_Tasa, 
+               ppt.Cod_Aplicacion, 
+               ccd.Descuento, 
+               ccd.Sub_Total, 
+               ccd.Tipo, 
+               ccd.Obs_ComprobanteD, 
+               ccd.Cod_Manguera, 
+               ccd.Flag_AplicaImpuesto, 
+               ccd.Formalizado, 
+               ccd.Valor_NoOneroso, 
+               ccd.Cod_TipoISC, 
+               ccd.Porcentaje_ISC, 
+               ccd.ISC, 
+               ccd.Cod_TipoIGV, 
+               ccd.Porcentaje_IGV, 
+               ccd.IGV, 
+               ccd.Cod_UsuarioReg, 
+               ccd.Fecha_Reg, 
+               ccd.Cod_UsuarioAct, 
+               ccd.Fecha_Act
+        FROM dbo.CAJ_COMPROBANTE_D ccd
+             LEFT JOIN dbo.PRI_PRODUCTO_TASA ppt ON ppt.Cod_Libro = '14'
+                                                    AND ppt.Cod_Tasa = 'ICBPER'
+                                                    AND ppt.Flag_Activo = 1
+                                                    AND ccd.Id_Producto = ppt.Id_Producto
+        WHERE ccd.id_ComprobantePago = @Id_ComprobantePago
+              AND ccd.IGV = 0
+              AND ccd.Cantidad - ccd.Formalizado > 0
+        ORDER BY ccd.Descripcion;
+    END;
 GO
-
 
 --Elimina un item de la comanda
 IF EXISTS (
@@ -648,7 +653,7 @@ BEGIN
 	BEGIN
 	   DECLARE @FECHA DATETIME = GETDATE()
 	   DECLARE @Lugar varchar(max) = (SELECT vd.Nom_Distrito FROM dbo.VIS_DISTRITOS vd INNER JOIN dbo.PRI_EMPRESA pe ON vd.Cod_Ubigeo = pe.Cod_Ubigeo)
-       EXEC USP_PRI_CLIENTE_PROVEEDOR_G 0,'0','00000001','CLIENTES VARIOS','','','',@Lugar,'001','01','002','',NULL,NULL,'BE','156',@FECHA,'01','','','','','','','080101','008',0,'CREADO POR SCRIPT',0,'SCRIPT'
+       EXEC dbo.USP_PRI_CLIENTE_PROVEEDOR_G 0,'0','00000001','CLIENTES VARIOS','','','',@Lugar,'001','01','002','',NULL,NULL,'BE','156',@FECHA,'01','','','','','','','080101','008',0,'CREADO POR SCRIPT',0,0,0,'','SCRIPT'
 	END
 END
 GO
@@ -979,52 +984,125 @@ AS
 	SELECT DISTINCT vai.* FROM dbo.VIS_ALMACEN_IMPRESORA vai WHERE vai.Estado=1
 GO
 
---Exec URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda 6553
-IF EXISTS (
-  SELECT * 
-    FROM sysobjects 
-   WHERE name = N'URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda' 
-	 AND type = 'P'
+--Exec URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda 76542
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda'
+          AND type = 'P'
 )
-  DROP PROCEDURE URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda
+    DROP PROCEDURE URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda;
 GO
-
-CREATE PROCEDURE URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda
-	@Id_ComprobanteComanda int
+CREATE PROCEDURE URP_CAJ_COMPROBANTE_PAGO_RecuperarComanda @Id_ComprobanteComanda INT
 WITH ENCRYPTION
 AS
-BEGIN
-    DECLARE @TotalComanda numeric(38,2) = (SELECT SUM((ccd.Cantidad- ccd.Formalizado)*ccd.PrecioUnitario) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@Id_ComprobanteComanda AND ccd.IGV=0);
-
-    WITH	 PRIMERORDEN(id_Detalle,Padre,Cod_Manguera,Numero,Cod_UsuarioReg,FechaEmision,Cantidad,Descripcion,Nivel)
-    AS 
-    (
-	   SELECT ccd.id_Detalle,CONVERT(int,ccd.IGV) Grupo,ccd.Cod_Manguera,ccp.Numero,ccp.Cod_UsuarioReg,ccp.FechaEmision,ccd.Cantidad-ccd.Formalizado Cantidad,ccd.Descripcion, 0 Nivel
-	   FROM dbo.CAJ_COMPROBANTE_PAGO ccp INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
-	   WHERE (ccp.id_ComprobantePago=@Id_ComprobanteComanda
-	   AND ccd.IGV=0 AND ccd.Cantidad-ccd.Formalizado>0 )
-	   UNION ALL
-	   SELECT ccd.id_Detalle, CONVERT(int,ccd.IGV) Grupo,ccd.Cod_Manguera,res.Numero,res.Cod_UsuarioReg,res.FechaEmision,ccd.Cantidad,ccd.Descripcion, Nivel + 1  Nivel
-	   FROM dbo.CAJ_COMPROBANTE_D ccd INNER JOIN PRIMERORDEN res ON res.id_Detalle = ccd.IGV
-	   WHERE ccd.id_ComprobantePago=@Id_ComprobanteComanda
-    )
-    SELECT pe.RUC,pe.Nom_Comercial,pe.RazonSocial,pe.Direccion, pe.Web,
-    vtc.Cod_TipoComprobante,
-    vtc.Nom_TipoComprobante,
-    CAST( CASE WHEN p.Padre=0 THEN CONCAT(p.id_Detalle,'0') ELSE CONCAT(p.Padre,RIGHT(p.id_Detalle,1)) END AS int) Orden, 
-    p.id_Detalle, p.Padre, p.Cod_Manguera Cod_Mesa,vm.Nom_Mesa, p.Numero, p.Cod_UsuarioReg, p.FechaEmision, 
-    CASE WHEN p.Nivel=0 THEN p.Cantidad ELSE 0 END Cantidad_Principal, 
-    CASE WHEN p.Nivel=0 THEN 0 ELSE p.Cantidad END Cantidad_Auxiliar,
-    p.Descripcion,ccd.PrecioUnitario,(ccd.Cantidad- ccd.Formalizado)*ccd.PrecioUnitario Sub_Total,
-    @TotalComanda Total,
-    ccp.Cod_UsuarioVendedor, p.Nivel 
-    FROM PRIMERORDEN p INNER JOIN dbo.VIS_MESAS vm ON p.Cod_Manguera=vm.Cod_Mesa
-    INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON @Id_ComprobanteComanda=ccp.id_ComprobantePago
-    INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON ccp.Cod_TipoComprobante = vtc.Cod_TipoComprobante
-    INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago AND p.id_Detalle=ccd.id_Detalle
-    CROSS JOIN dbo.PRI_EMPRESA pe
-    ORDER BY Orden,p.id_Detalle
-END
+    BEGIN
+        DECLARE @TotalComanda NUMERIC(38, 2)=
+        (
+            SELECT SUM(((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) + CASE
+                                                                                     WHEN ppt.Cod_Aplicacion = 'PORCENTAJE'
+                                                                                     THEN((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) * ppt.Por_Tasa / 100
+                                                                                     WHEN ppt.Cod_Aplicacion = 'MONTO'
+                                                                                     THEN(ccd.Cantidad - ccd.Formalizado) * ppt.Por_Tasa
+                                                                                     ELSE 0
+                                                                                 END)
+            FROM dbo.CAJ_COMPROBANTE_D ccd
+                 LEFT JOIN dbo.PRI_PRODUCTO_TASA ppt ON ccd.Id_Producto = ppt.Id_Producto
+            WHERE ccd.id_ComprobantePago = @Id_ComprobanteComanda
+                  AND ccd.IGV = 0
+        );
+        WITH PRIMERORDEN(id_Detalle, 
+                         Padre, 
+                         Cod_Manguera, 
+                         Numero, 
+                         Cod_UsuarioReg, 
+                         FechaEmision, 
+                         Cantidad, 
+                         Descripcion, 
+                         Nivel)
+             AS (SELECT ccd.id_Detalle, 
+                        CONVERT(INT, ccd.IGV) Grupo, 
+                        ccd.Cod_Manguera, 
+                        ccp.Numero, 
+                        ccp.Cod_UsuarioReg, 
+                        ccp.FechaEmision, 
+                        ccd.Cantidad - ccd.Formalizado Cantidad, 
+                        ccd.Descripcion, 
+                        0 Nivel
+                 FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+                      INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+                 WHERE(ccp.id_ComprobantePago = @Id_ComprobanteComanda
+                       AND ccd.IGV = 0
+                       AND ccd.Cantidad - ccd.Formalizado > 0)
+                 UNION ALL
+                 SELECT ccd.id_Detalle, 
+                        CONVERT(INT, ccd.IGV) Grupo, 
+                        ccd.Cod_Manguera, 
+                        res.Numero, 
+                        res.Cod_UsuarioReg, 
+                        res.FechaEmision, 
+                        ccd.Cantidad, 
+                        ccd.Descripcion, 
+                        Nivel + 1 Nivel
+                 FROM dbo.CAJ_COMPROBANTE_D ccd
+                      INNER JOIN PRIMERORDEN res ON res.id_Detalle = ccd.IGV
+                 WHERE ccd.id_ComprobantePago = @Id_ComprobanteComanda)
+             SELECT pe.RUC, 
+                    pe.Nom_Comercial, 
+                    pe.RazonSocial, 
+                    pe.Direccion, 
+                    pe.Web, 
+                    vtc.Cod_TipoComprobante, 
+                    vtc.Nom_TipoComprobante, 
+                    CAST(CASE
+                             WHEN p.Padre = 0
+                             THEN CONCAT(p.id_Detalle, '0')
+                             ELSE CONCAT(p.Padre, RIGHT(p.id_Detalle, 1))
+                         END AS INT) Orden, 
+                    p.id_Detalle, 
+                    p.Padre, 
+                    p.Cod_Manguera Cod_Mesa, 
+                    vm.Nom_Mesa, 
+                    p.Numero, 
+                    p.Cod_UsuarioReg, 
+                    p.FechaEmision,
+                    CASE
+                        WHEN p.Nivel = 0
+                        THEN p.Cantidad
+                        ELSE 0
+                    END Cantidad_Principal,
+                    CASE
+                        WHEN p.Nivel = 0
+                        THEN 0
+                        ELSE p.Cantidad
+                    END Cantidad_Auxiliar, 
+                    p.Descripcion, 
+                    ccd.PrecioUnitario, 
+                    (ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario Sub_Total,
+                    CASE
+                        WHEN ppt.Cod_Aplicacion = 'PORCENTAJE'
+                        THEN((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) * ppt.Por_Tasa / 100
+                        WHEN ppt.Cod_Aplicacion = 'MONTO'
+                        THEN(ccd.Cantidad - ccd.Formalizado) * ppt.Por_Tasa
+                        ELSE 0
+                    END ICBPER, 
+                    @TotalComanda Total, 
+                    ccp.Cod_UsuarioVendedor, 
+                    p.Nivel
+             FROM PRIMERORDEN p
+                  INNER JOIN dbo.VIS_MESAS vm ON p.Cod_Manguera = vm.Cod_Mesa
+                  INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON @Id_ComprobanteComanda = ccp.id_ComprobantePago
+                  INNER JOIN dbo.VIS_TIPO_COMPROBANTES vtc ON ccp.Cod_TipoComprobante = vtc.Cod_TipoComprobante
+                  INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+                                                          AND p.id_Detalle = ccd.id_Detalle
+                  LEFT JOIN dbo.PRI_PRODUCTO_TASA ppt ON ppt.Cod_Libro = '14'
+                                                         AND ppt.Cod_Tasa = 'ICBPER'
+                                                         AND ccd.Id_Producto = ppt.Id_Producto
+                  CROSS JOIN dbo.PRI_EMPRESA pe
+             ORDER BY Orden, 
+                      p.id_Detalle;
+    END;
 GO
 
 IF object_id('UFN_QuitarCaracteresRaros') IS NOT NULL
@@ -1745,29 +1823,56 @@ BEGIN
 END
 GO
 
-IF EXISTS (
-  SELECT * 
-    FROM sysobjects 
-   WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda' 
-	 AND type = 'P'
+
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda'
+          AND type = 'P'
 )
-  DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda
+    DROP PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda;
 GO
-CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda
-@IdComprobanteComanda int,
-@CodUsuario varchar(32)
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_PAGO_ActualizarTotalComandaXIdComanda @IdComprobanteComanda INT, 
+                                                                           @CodUsuario           VARCHAR(32)
 WITH ENCRYPTION
 AS
-BEGIN
-    UPDATE dbo.CAJ_COMPROBANTE_PAGO
-    SET
-	  dbo.CAJ_COMPROBANTE_PAGO.Total = (SELECT SUM((ccd.Cantidad-ccd.Formalizado)*ccd.PrecioUnitario) FROM dbo.CAJ_COMPROBANTE_D ccd WHERE ccd.id_ComprobantePago=@IdComprobanteComanda AND ccd.IGV=0), 
-	  dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario, 
-	  dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act = GETDATE()
-    WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago=@IdComprobanteComanda
-END
+    BEGIN
+        UPDATE dbo.CAJ_COMPROBANTE_PAGO
+          SET 
+              dbo.CAJ_COMPROBANTE_PAGO.Total =
+        (
+            SELECT SUM(((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) + CASE
+                                                                                     WHEN ppt.Cod_Aplicacion = 'PORCENTAJE'
+                                                                                     THEN((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) * ppt.Por_Tasa / 100
+                                                                                     WHEN ppt.Cod_Aplicacion = 'MONTO'
+                                                                                     THEN((ccd.Cantidad - ccd.Formalizado) * ppt.Por_Tasa)
+                                                                                     ELSE 0
+                                                                                 END)
+            FROM dbo.CAJ_COMPROBANTE_D ccd
+                 LEFT JOIN dbo.PRI_PRODUCTO_TASA ppt ON  ppt.Cod_Libro='14' AND ppt.Cod_Tasa='ICBPER' AND ccd.Id_Producto = ppt.Id_Producto
+            WHERE ccd.id_ComprobantePago = @IdComprobanteComanda
+                  AND ccd.IGV = 0
+        ), 
+              dbo.CAJ_COMPROBANTE_PAGO.Otros_Tributos =
+        (
+            SELECT SUM(CASE
+                           WHEN ppt.Cod_Aplicacion = 'PORCENTAJE'
+                           THEN((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) * ppt.Por_Tasa / 100
+                           WHEN ppt.Cod_Aplicacion = 'MONTO'
+                           THEN((ccd.Cantidad - ccd.Formalizado) * ppt.Por_Tasa)
+                           ELSE 0
+                       END)
+            FROM dbo.CAJ_COMPROBANTE_D ccd
+                 LEFT JOIN dbo.PRI_PRODUCTO_TASA ppt ON ccd.Id_Producto = ppt.Id_Producto
+            WHERE ccd.id_ComprobantePago = @IdComprobanteComanda
+                  AND ccd.IGV = 0
+        ), 
+              dbo.CAJ_COMPROBANTE_PAGO.Cod_UsuarioAct = @CodUsuario, 
+              dbo.CAJ_COMPROBANTE_PAGO.Fecha_Act = GETDATE()
+        WHERE dbo.CAJ_COMPROBANTE_PAGO.id_ComprobantePago = @IdComprobanteComanda;
+    END;
 GO
-
 IF EXISTS (
   SELECT * 
     FROM sysobjects 
@@ -1789,138 +1894,175 @@ END
 GO
 
 
-
 --CONDICIONES PREVIA:
 --Si la mesa no tiene el flag delivery, se trae solo las mesas con su codigo
 --Si tiene el flag existen dos opciones:
 --Si el campo ambiente es vacio entonces esa mesa delkivery es disponible para cualqueir ambiente
 --Caso contrario se respeta el ambiente al que pertenece
 --EXEC dbo.USP_VIS_MESAS_ObtenerMesasXCodAmbiente 'P2'
-
-IF EXISTS (
-  SELECT * 
-    FROM sysobjects 
-   WHERE name = N'USP_VIS_MESAS_ObtenerMesasXCodAmbiente' 
-	 AND type = 'P'
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_VIS_MESAS_ObtenerMesasXCodAmbiente'
+          AND type = 'P'
 )
-  DROP PROCEDURE USP_VIS_MESAS_ObtenerMesasXCodAmbiente
+    DROP PROCEDURE USP_VIS_MESAS_ObtenerMesasXCodAmbiente;
 GO
-
-CREATE PROCEDURE USP_VIS_MESAS_ObtenerMesasXCodAmbiente
-@Cod_Ambiente varchar(32)
+CREATE PROCEDURE USP_VIS_MESAS_ObtenerMesasXCodAmbiente @Cod_Ambiente VARCHAR(32)
 WITH ENCRYPTION
 AS
-BEGIN
-    
-    SELECT DISTINCT
-       Mesas.Cod_Mesa,
-       COUNT(Ocupadas.id_ComprobantePago) Total_Ordenes,
-       MAX(Mesas.Nom_Mesa) Nom_Mesa,
-       MAX(Ocupadas.id_ComprobantePago) Id_Comanda,
-       CAST(ROUND(SUM(Ocupadas.Total),2) AS numeric(38,2)) Total,
-       MAX(Ocupadas.Cod_UsuarioVendedor) Cod_UsuarioVendedor,
-	  Mesas.Flag_Delivery
-	FROM
-	(
-		SELECT vm.Cod_Mesa,
-			vm.Nom_Mesa,
-			NULL id_ComprobantePago,
-			NULL Total,
-			NULL Cod_UsuarioVendedor,
-			vm.Flag_Delivery
-		FROM dbo.VIS_MESAS vm
-		WHERE 
-		(vm.Cod_Ambiente = @Cod_Ambiente AND (vm.Flag_Delivery = 0 or vm.Flag_Delivery IS NULL)) OR
-		(vm.Flag_Delivery = 1 AND 
-			(
-				(vm.Cod_Ambiente IS NULL OR RTRIM(LTRIM(vm.Cod_Ambiente)) = '') OR (vm.Cod_Ambiente = @Cod_Ambiente)
-			)
-		)
-		AND vm.Estado = 1
-	) Mesas
-	LEFT JOIN
-	(
-		SELECT DISTINCT
-			vm.Cod_Mesa,
-			vm.Nom_Mesa,
-			ccd.id_ComprobantePago,
-		 	SUM(CASE WHEN ccd.IGV= 0 THEN ROUND((ccd.Cantidad - ccd.Formalizado )*ccd.PrecioUnitario,2) ELSE 0 END) Total,
-			COALESCE(ccp.Cod_UsuarioVendedor,ccp.Cod_UsuarioAct, ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
-			vm.Flag_Delivery
-		FROM dbo.VIS_MESAS vm
-			INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccd.Cod_Manguera = vm.Cod_Mesa 
-			INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
-		WHERE((vm.Cod_Ambiente = @Cod_Ambiente
-			AND (vm.Flag_Delivery = 0 OR vm.Flag_Delivery IS NULL))
-			OR (vm.Flag_Delivery = 1
-				AND ((vm.Cod_Ambiente IS NULL
-						OR RTRIM(LTRIM(vm.Cod_Ambiente)) = '')
-					OR (vm.Cod_Ambiente = @Cod_Ambiente))))
-			AND vm.Estado = 1
-			AND vm.Estado_Mesa = 'OCUPADO'
-			AND ccp.Cod_TipoComprobante = 'CO'
-			AND ccd.Cantidad > 0
-			--AND ((ccp.Cod_Caja IS NULL
-			--	AND ccp.Cod_Turno IS NULL)
-			--	OR (ccd.Cantidad - ccd.Formalizado > 0
-			--		AND ccd.IGV = 0))
-			AND (ccd.Cantidad - ccd.Formalizado > 0
-					AND ccd.IGV = 0)
-					GROUP BY vm.Cod_Mesa,vm.Nom_Mesa,ccd.id_ComprobantePago,ccp.Cod_UsuarioAct,ccp.Cod_UsuarioReg,ccp.Cod_UsuarioVendedor,vm.Flag_Delivery
-	) Ocupadas ON Mesas.Cod_Mesa = Ocupadas.Cod_Mesa
-	GROUP BY Mesas.Cod_Mesa,Mesas.Flag_Delivery
-	ORDER BY Mesas.Flag_Delivery DESC,Mesas.Cod_Mesa ASC;
-END
+    BEGIN
+        SELECT DISTINCT 
+               Mesas.Cod_Mesa, 
+               COUNT(Ocupadas.id_ComprobantePago) Total_Ordenes, 
+               MAX(Mesas.Nom_Mesa) Nom_Mesa, 
+               MAX(Ocupadas.id_ComprobantePago) Id_Comanda, 
+               CAST(ROUND(SUM(Ocupadas.Total), 2) AS NUMERIC(38, 2)) Total, 
+               MAX(Ocupadas.Cod_UsuarioVendedor) Cod_UsuarioVendedor, 
+               Mesas.Flag_Delivery
+        FROM
+        (
+            SELECT vm.Cod_Mesa, 
+                   vm.Nom_Mesa, 
+                   NULL id_ComprobantePago, 
+                   NULL Total, 
+                   NULL Cod_UsuarioVendedor, 
+                   vm.Flag_Delivery
+            FROM dbo.VIS_MESAS vm
+            WHERE(vm.Cod_Ambiente = @Cod_Ambiente
+                  AND (vm.Flag_Delivery = 0
+                       OR vm.Flag_Delivery IS NULL))
+                 OR (vm.Flag_Delivery = 1
+                     AND ((vm.Cod_Ambiente IS NULL
+                           OR RTRIM(LTRIM(vm.Cod_Ambiente)) = '')
+                          OR (vm.Cod_Ambiente = @Cod_Ambiente)))
+                 AND vm.Estado = 1
+        ) Mesas
+        LEFT JOIN
+        (
+            SELECT DISTINCT 
+                   vm.Cod_Mesa, 
+                   vm.Nom_Mesa, 
+                   ccd.id_ComprobantePago, 
+                   CAST(SUM(CASE
+                                WHEN ccd.IGV = 0
+                                THEN ROUND(((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) + CASE
+                                                                                                         WHEN ppt.Cod_Aplicacion = 'PORCENTAJE'
+                                                                                                         THEN((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) * ppt.Por_Tasa / 100
+                                                                                                         WHEN ppt.Cod_Aplicacion = 'MONTO'
+                                                                                                         THEN(ccd.Cantidad - ccd.Formalizado) * ppt.Por_Tasa
+                                                                                                         ELSE 0
+                                                                                                     END, 2)
+                                ELSE 0
+                            END) AS NUMERIC(38, 2)) Total, 
+                   COALESCE(ccp.Cod_UsuarioVendedor, ccp.Cod_UsuarioAct, ccp.Cod_UsuarioReg) Cod_UsuarioVendedor, 
+                   vm.Flag_Delivery
+            FROM dbo.VIS_MESAS vm
+                 INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccd.Cod_Manguera = vm.Cod_Mesa
+                 INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+                 LEFT JOIN dbo.PRI_PRODUCTO_TASA ppt ON ppt.Cod_Libro='14' AND ppt.Cod_Tasa='ICBPER' AND ccd.Id_Producto = ppt.Id_Producto
+            WHERE((vm.Cod_Ambiente = @Cod_Ambiente
+                   AND (vm.Flag_Delivery = 0
+                        OR vm.Flag_Delivery IS NULL))
+                  OR (vm.Flag_Delivery = 1
+                      AND ((vm.Cod_Ambiente IS NULL
+                            OR RTRIM(LTRIM(vm.Cod_Ambiente)) = '')
+                           OR (vm.Cod_Ambiente = @Cod_Ambiente))))
+                 AND vm.Estado = 1
+                 AND vm.Estado_Mesa = 'OCUPADO'
+                 AND ccp.Cod_TipoComprobante = 'CO'
+                 AND ccd.Cantidad > 0
+                 AND (ccd.Cantidad - ccd.Formalizado > 0
+                      AND ccd.IGV = 0)
+            GROUP BY vm.Cod_Mesa, 
+                     vm.Nom_Mesa, 
+                     ccd.id_ComprobantePago, 
+                     ccp.Cod_UsuarioAct, 
+                     ccp.Cod_UsuarioReg, 
+                     ccp.Cod_UsuarioVendedor, 
+                     vm.Flag_Delivery
+        ) Ocupadas ON Mesas.Cod_Mesa = Ocupadas.Cod_Mesa
+        GROUP BY Mesas.Cod_Mesa, 
+                 Mesas.Flag_Delivery
+        ORDER BY Mesas.Flag_Delivery DESC, 
+                 Mesas.Cod_Mesa ASC;
+    END;
 GO
-
-
- IF EXISTS (
-  SELECT * 
-    FROM sysobjects 
-   WHERE name = N'USP_VIS_MESAS_ObtenerDetallesMesasXCodAmbienteCodMesa' 
-	 AND type = 'P'
+ 
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_VIS_MESAS_ObtenerDetallesMesasXCodAmbienteCodMesa'
+          AND type = 'P'
 )
-  DROP PROCEDURE USP_VIS_MESAS_ObtenerDetallesMesasXCodAmbienteCodMesa
+    DROP PROCEDURE USP_VIS_MESAS_ObtenerDetallesMesasXCodAmbienteCodMesa;
 GO
-
-CREATE PROCEDURE USP_VIS_MESAS_ObtenerDetallesMesasXCodAmbienteCodMesa
-@Cod_Ambiente varchar(32),
-@Cod_Mesa varchar(32)
+CREATE PROCEDURE USP_VIS_MESAS_ObtenerDetallesMesasXCodAmbienteCodMesa @Cod_Ambiente VARCHAR(32), 
+                                                                       @Cod_Mesa     VARCHAR(32)
 WITH ENCRYPTION
 AS
-BEGIN
-	SELECT DISTINCT
-		vm.Cod_Mesa,
-		1 Total_Ordenes,
-		vm.Nom_Mesa,
-		ccp.id_ComprobantePago Id_Comanda,
-	     CAST( SUM(CASE WHEN ccd.IGV= 0 THEN ROUND((ccd.Cantidad - ccd.Formalizado )*ccd.PrecioUnitario,2) ELSE 0 END) AS numeric(38,2)) Total,
-		COALESCE(ccp.Cod_UsuarioVendedor,ccp.Cod_UsuarioAct, ccp.Cod_UsuarioReg) Cod_UsuarioVendedor,
-		vm.Flag_Delivery
-	FROM dbo.VIS_MESAS vm
-		INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccd.Cod_Manguera = vm.Cod_Mesa
-		INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
-	WHERE((vm.Cod_Ambiente = @Cod_Ambiente
-		AND (vm.Flag_Delivery = 0 or vm.Flag_Delivery IS NULL))
-		OR (vm.Flag_Delivery = 1
-			AND ((vm.Cod_Ambiente IS NULL
-					OR RTRIM(LTRIM(vm.Cod_Ambiente)) = '')
-				OR (vm.Cod_Ambiente = @Cod_Ambiente))))
-		AND vm.Estado = 1
-		AND vm.Estado_Mesa = 'OCUPADO'
-		AND ccp.Cod_TipoComprobante = 'CO'
-		AND ccd.Cantidad > 0
-		AND ((ccp.Cod_Caja IS NULL
-			AND ccp.Cod_Turno IS NULL)
-			OR ( ccd.Cantidad -ccd.Formalizado>0
-				AND ccd.IGV = 0))
-		AND vm.Cod_Mesa = @Cod_Mesa
-		GROUP BY vm.Cod_Mesa,vm.Nom_Mesa,ccp.id_ComprobantePago,ccp.Cod_UsuarioReg,ccp.Cod_UsuarioVendedor,ccp.Cod_UsuarioAct,vm.Flag_Delivery
-        HAVING CAST( SUM(CASE WHEN ccd.IGV= 0 THEN ROUND((ccd.Cantidad - ccd.Formalizado )*ccd.PrecioUnitario,2) ELSE 0 END) AS numeric(38,2))>0
-	ORDER BY vm.Cod_Mesa;
-END
+    BEGIN
+        SELECT DISTINCT 
+               vm.Cod_Mesa, 
+               1 Total_Ordenes, 
+               vm.Nom_Mesa, 
+               ccp.id_ComprobantePago Id_Comanda, 
+               CAST(SUM(CASE
+                            WHEN ccd.IGV = 0
+                            THEN ROUND(((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) + CASE
+                                                                                                     WHEN ppt.Cod_Aplicacion = 'PORCENTAJE'
+                                                                                                     THEN((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) * ppt.Por_Tasa / 100
+                                                                                                     WHEN ppt.Cod_Aplicacion = 'MONTO'
+                                                                                                     THEN(ccd.Cantidad - ccd.Formalizado) * ppt.Por_Tasa
+                                                                                                     ELSE 0
+                                                                                                 END, 2)
+                            ELSE 0
+                        END) AS NUMERIC(38, 2)) Total, 
+               COALESCE(ccp.Cod_UsuarioVendedor, ccp.Cod_UsuarioAct, ccp.Cod_UsuarioReg) Cod_UsuarioVendedor, 
+               vm.Flag_Delivery
+        FROM dbo.VIS_MESAS vm
+             INNER JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccd.Cod_Manguera = vm.Cod_Mesa
+             INNER JOIN dbo.CAJ_COMPROBANTE_PAGO ccp ON ccd.id_ComprobantePago = ccp.id_ComprobantePago
+             LEFT JOIN dbo.PRI_PRODUCTO_TASA ppt ON ppt.Cod_Libro='14' AND ppt.Cod_Tasa='ICBPER' AND ccd.Id_Producto = ppt.Id_Producto
+        WHERE((vm.Cod_Ambiente = @Cod_Ambiente
+               AND (vm.Flag_Delivery = 0
+                    OR vm.Flag_Delivery IS NULL))
+              OR (vm.Flag_Delivery = 1
+                  AND ((vm.Cod_Ambiente IS NULL
+                        OR RTRIM(LTRIM(vm.Cod_Ambiente)) = '')
+                       OR (vm.Cod_Ambiente = @Cod_Ambiente))))
+             AND vm.Estado = 1
+             AND vm.Estado_Mesa = 'OCUPADO'
+             AND ccp.Cod_TipoComprobante = 'CO'
+             AND ccd.Cantidad > 0
+             AND ((ccp.Cod_Caja IS NULL
+                   AND ccp.Cod_Turno IS NULL)
+                  OR (ccd.Cantidad - ccd.Formalizado > 0
+                      AND ccd.IGV = 0))
+             AND vm.Cod_Mesa = @Cod_Mesa
+        GROUP BY vm.Cod_Mesa, 
+                 vm.Nom_Mesa, 
+                 ccp.id_ComprobantePago, 
+                 ccp.Cod_UsuarioReg, 
+                 ccp.Cod_UsuarioVendedor, 
+                 ccp.Cod_UsuarioAct, 
+                 vm.Flag_Delivery
+        HAVING CAST(SUM(CASE
+                            WHEN ccd.IGV = 0
+                            THEN ROUND(((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) + CASE
+                                                                                                     WHEN ppt.Cod_Aplicacion = 'PORCENTAJE'
+                                                                                                     THEN((ccd.Cantidad - ccd.Formalizado) * ccd.PrecioUnitario) * ppt.Por_Tasa / 100
+                                                                                                     WHEN ppt.Cod_Aplicacion = 'MONTO'
+                                                                                                     THEN(ccd.Cantidad - ccd.Formalizado) * ppt.Por_Tasa
+                                                                                                     ELSE 0
+                                                                                                 END, 2)
+                            ELSE 0
+                        END) AS NUMERIC(38, 2)) > 0
+        ORDER BY vm.Cod_Mesa;
+    END;
 GO
-
 
 --Obtiene todas las mesas delivery de un ambiente 
 --Si una mesa delivery no tiene ambiente, se asume que es acceible por cualquier ambientes
@@ -2227,7 +2369,6 @@ AS
 GO
 
 
-
 IF EXISTS
 (
     SELECT *
@@ -2240,185 +2381,184 @@ GO
 CREATE PROCEDURE URP_CAJ_COMPROBANTE_PAGO_TXPK @id_ComprobantePago INT
 WITH ENCRYPTION
 AS
-     BEGIN
-         
-    SELECT 
-           @id_ComprobantePago id_ComprobantePago,
-           CASE
-               WHEN ccp.Cod_TipoComprobante = 'BE'
-               THEN 'BOLETA ELECTRONICA'
-               WHEN ccp.Cod_TipoComprobante = 'FE'
-               THEN 'FACTURA ELECTRONICA'
-               WHEN ccp.Cod_TipoComprobante = 'NCE'
-               THEN 'NOTA DE CREDITO ELECTRONICA ELECTRONICA'
-               WHEN ccp.Cod_TipoComprobante = 'NDE'
-               THEN 'NOTA DE CREDITO ELECTRONICA'
-               WHEN ccp.Cod_TipoComprobante = 'BO'
-               THEN 'BOLETA'
-               WHEN ccp.Cod_TipoComprobante = 'FA'
-               THEN 'FACTURA'
-               WHEN ccp.Cod_TipoComprobante = 'NC'
-               THEN 'NOTA DE CREDITO'
-               WHEN ccp.Cod_TipoComprobante = 'ND'
-               THEN 'NOTA DE DEBITO'
-               WHEN ccp.Cod_TipoComprobante = 'TKB'
-               THEN 'TICKET BOLETA'
-               WHEN ccp.Cod_TipoComprobante = 'TKF'
-               THEN 'TICKET FACTURA'
-               ELSE ''
-           END Nom_TipoComprobante,
-           ccp.Serie,
-           ccp.Numero,
-           CASE
-               WHEN ccp.Cod_TipoDoc = '0'
-                    OR ccp.Cod_TipoDoc = '99'
-               THEN 'SIN'
-               WHEN ccp.Cod_TipoDoc = '6'
-               THEN 'RUC'
-               WHEN ccp.Cod_TipoDoc = '7'
-               THEN 'PASAPORTE'
-               WHEN ccp.Cod_TipoDoc = '4'
-               THEN 'CARNET DE EXTRANJERIA'
-               WHEN ccp.Cod_TipoDoc = 'A'
-               THEN 'CÉDULA DIPLOMÁTICA DE IDENTIDAD'
-               WHEN ccp.Cod_TipoDoc = '1'
-               THEN 'DNI'
-               ELSE 'SIN'
-           END Nom_TipoDoc,
-           ccp.Doc_Cliente,
-           ccp.Nom_Cliente,
-           ccp.Direccion_Cliente,
-           ccp.FechaEmision,
-           ccp.FechaVencimiento,
-           ccp.FechaCancelacion,
-           ccp.Glosa,
-           ccp.TipoCambio,
-           ccp.Flag_Anulado,
-           CASE
-               WHEN ccp.Cod_FormaPago = '008'
-               THEN 'EFECTIVO'
-               WHEN ccp.Cod_FormaPago = '007'
-               THEN 'CHEQUES'
-               WHEN ccp.Cod_FormaPago = '011'
-               THEN 'DEPOSITO EN CUENTA'
-               WHEN ccp.Cod_FormaPago = '005'
-                    OR ccp.Cod_FormaPago = '006'
-               THEN 'TARJETA DE CREDITO/DEBITO'
-               WHEN ccp.Cod_FormaPago = '002'
-               THEN 'GIRO'
-               WHEN ccp.Cod_FormaPago = '998'
-               THEN 'PAGO ADELANTADO'
-               WHEN ccp.Cod_FormaPago = '999'
-               THEN 'CREDITO'
-               ELSE 'OTROS TIPOS DE PAGO'
-           END Nom_FormaPago,
-           ccp.Descuento_Total,
-           CASE
-               WHEN ccp.Cod_Moneda = 'PEN'
-               THEN 'SOLES'
-               WHEN ccp.Cod_Moneda = 'USD'
-               THEN 'DOLARES'
-               WHEN ccp.Cod_Moneda = 'EUR'
-               THEN 'EUROS'
-               ELSE 'OTRAS MONEDAS'
-           END Nom_Moneda,
-           CASE
-               WHEN ccp.Cod_Moneda = 'PEN'
-               THEN 'S/'
-               WHEN ccp.Cod_Moneda = 'USD'
-               THEN '$'
-               WHEN ccp.Cod_Moneda = '€'
-               THEN 'EUROS'
-               ELSE ''
-           END Simbolo,
-           CASE
-               WHEN ccp.Cod_Moneda = 'PEN'
-               THEN 'SOLES'
-               WHEN ccp.Cod_Moneda = 'USD'
-               THEN 'DOLARES'
-               WHEN ccp.Cod_Moneda = 'EUR'
-               THEN 'EUROS'
-               ELSE 'OTRAS MONEDAS'
-           END Definicion,
-           ccp.Impuesto,
-           ccp.Total,
-           CONVERT(varchar(255), CASE ccp.Cod_TipoComprobante
-               WHEN 'NCE'
-               THEN dbo.UFN_CAJ_COMPROBANTE_RELACION_TConcatenado(ccp.id_ComprobantePago, 'CRE')
-               WHEN 'NDE'
-               THEN dbo.UFN_CAJ_COMPROBANTE_RELACION_TConcatenado(ccp.id_ComprobantePago, 'DEB')
-               ELSE ''
-           END ) Obs_Comprobante,
-           ccp.GuiaRemision,
-           ccp.Nro_Ticketera,
-           ccp.Cod_UsuarioVendedor,
-           ccp.Cod_RegimenPercepcion,
-           ccp.Tasa_Percepcion,
-           ccp.Placa_Vehiculo,
-           ccp.Cod_TipoDocReferencia,
-           ccp.Nro_DocReferencia,
-           ccp.Valor_Resumen,
-           ccp.Valor_Firma,
-           ccp.MotivoAnulacion,
-           ccp.Otros_Cargos,
-           ccp.Otros_Tributos,
-           pp.Cod_Producto,
-           aa.Des_Almacen,
-           aa.Des_CortaAlmacen,
-           ccd.Cantidad,
-           vudm.Nom_UnidadMedida,
-           CONVERT(varchar(max), ccd.Descripcion) Descripcion,
-		 ccd.PrecioUnitario,
-           ccd.Descuento,
-           ccd.Sub_Total,
-           CASE
-               WHEN pp.Cod_TipoOperatividad = 'GRT'
-               THEN 'GRATUITAS'
-               WHEN pp.Cod_TipoOperatividad = 'GRA'
-               THEN 'GRAVADAS'
-               WHEN pp.Cod_TipoOperatividad = 'INA'
-               THEN 'INAFECTAS'
-               WHEN pp.Cod_TipoOperatividad = 'EXO'
-               THEN 'EXONERADAS'
-               WHEN pp.Cod_TipoOperatividad = 'DES'
-               THEN 'DESCUENTOS'
-               WHEN pp.Cod_TipoOperatividad = 'PER'
-               THEN 'PERCECPION'
-               WHEN pp.Cod_TipoOperatividad = 'NGR'
-               THEN 'NO GRAVADAS'
-               ELSE 'OTROS'
-           END Nom_TipoOperatividad,
-           ccd.Obs_ComprobanteD,
-           ccd.Cod_Manguera,
-           ccd.Flag_AplicaImpuesto,
-           ccd.Formalizado,
-           ccd.Valor_NoOneroso,
-           ccd.Cod_TipoISC,
-           ccd.Porcentaje_ISC,
-           ccd.ISC,
-           ccd.Cod_TipoIGV,
-           ccd.Porcentaje_IGV,
-           ccd.IGV,
-           NULL Foto,
-           dbo.UFN_ConvertirNumeroLetra(ccp.Total)+' '+CASE
-                                                           WHEN ccp.Cod_Moneda = 'PEN'
-                                                           THEN 'SOLES'
-                                                           WHEN ccp.Cod_Moneda = 'USD'
-                                                           THEN 'DOLARES'
-                                                           WHEN ccp.Cod_Moneda = 'EUR'
-                                                           THEN 'EUROS'
-                                                           ELSE 'OTRAS MONEDAS'
-                                                       END Monto_Letras
-    FROM dbo.CAJ_COMPROBANTE_PAGO ccp
-         LEFT JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
-         INNER JOIN dbo.PRI_PRODUCTOS pp ON ccd.Id_Producto = pp.Id_Producto
-         INNER JOIN dbo.ALM_ALMACEN aa ON ccd.Cod_Almacen = aa.Cod_Almacen
-         INNER JOIN dbo.VIS_UNIDADES_DE_MEDIDA vudm ON ccd.Cod_UnidadMedida = vudm.Cod_UnidadMedida
-         INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON ccp.Id_Cliente = pcp.Id_ClienteProveedor
-    WHERE ccp.id_ComprobantePago = @id_ComprobantePago
-     END;
+    BEGIN
+        SELECT @id_ComprobantePago id_ComprobantePago,
+               CASE
+                   WHEN ccp.Cod_TipoComprobante = 'BE'
+                   THEN 'BOLETA DE VENTA ELECTRONICA'
+                   WHEN ccp.Cod_TipoComprobante = 'FE'
+                   THEN 'FACTURA ELECTRONICA'
+                   WHEN ccp.Cod_TipoComprobante = 'NCE'
+                   THEN 'NOTA DE CREDITO ELECTRONICA'
+                   WHEN ccp.Cod_TipoComprobante = 'NDE'
+                   THEN 'NOTA DE DEBITO ELECTRONICA'
+                   WHEN ccp.Cod_TipoComprobante = 'BO'
+                   THEN 'BOLETA'
+                   WHEN ccp.Cod_TipoComprobante = 'FA'
+                   THEN 'FACTURA'
+                   WHEN ccp.Cod_TipoComprobante = 'NC'
+                   THEN 'NOTA DE CREDITO'
+                   WHEN ccp.Cod_TipoComprobante = 'ND'
+                   THEN 'NOTA DE DEBITO'
+                   WHEN ccp.Cod_TipoComprobante = 'TKB'
+                   THEN 'TICKET BOLETA'
+                   WHEN ccp.Cod_TipoComprobante = 'TKF'
+                   THEN 'TICKET FACTURA'
+                   ELSE ''
+               END Nom_TipoComprobante, 
+               ccp.Serie, 
+               ccp.Numero,
+               CASE
+                   WHEN ccp.Cod_TipoDoc = '0'
+                        OR ccp.Cod_TipoDoc = '99'
+                   THEN 'SIN'
+                   WHEN ccp.Cod_TipoDoc = '6'
+                   THEN 'RUC'
+                   WHEN ccp.Cod_TipoDoc = '7'
+                   THEN 'PASAPORTE'
+                   WHEN ccp.Cod_TipoDoc = '4'
+                   THEN 'CARNET DE EXTRANJERIA'
+                   WHEN ccp.Cod_TipoDoc = 'A'
+                   THEN 'CÉDULA DIPLOMÁTICA DE IDENTIDAD'
+                   WHEN ccp.Cod_TipoDoc = '1'
+                   THEN 'DNI'
+                   ELSE 'SIN'
+               END Nom_TipoDoc, 
+               ccp.Doc_Cliente, 
+               ccp.Nom_Cliente, 
+               ccp.Direccion_Cliente, 
+               ccp.FechaEmision, 
+               ccp.FechaVencimiento, 
+               ccp.FechaCancelacion, 
+               ccp.Glosa, 
+               ccp.TipoCambio, 
+               ccp.Flag_Anulado,
+               CASE
+                   WHEN ccp.Cod_FormaPago = '008'
+                   THEN 'EFECTIVO'
+                   WHEN ccp.Cod_FormaPago = '007'
+                   THEN 'CHEQUES'
+                   WHEN ccp.Cod_FormaPago = '011'
+                   THEN 'DEPOSITO EN CUENTA'
+                   WHEN ccp.Cod_FormaPago = '005'
+                        OR ccp.Cod_FormaPago = '006'
+                   THEN 'TARJETA DE CREDITO/DEBITO'
+                   WHEN ccp.Cod_FormaPago = '002'
+                   THEN 'GIRO'
+                   WHEN ccp.Cod_FormaPago = '998'
+                   THEN 'PAGO ADELANTADO'
+                   WHEN ccp.Cod_FormaPago = '999'
+                   THEN 'CREDITO'
+                   ELSE 'OTROS TIPOS DE PAGO'
+               END Nom_FormaPago, 
+               ccp.Descuento_Total,
+               CASE
+                   WHEN ccp.Cod_Moneda = 'PEN'
+                   THEN 'SOLES'
+                   WHEN ccp.Cod_Moneda = 'USD'
+                   THEN 'DOLARES'
+                   WHEN ccp.Cod_Moneda = 'EUR'
+                   THEN 'EUROS'
+                   ELSE 'OTRAS MONEDAS'
+               END Nom_Moneda,
+               CASE
+                   WHEN ccp.Cod_Moneda = 'PEN'
+                   THEN 'S/'
+                   WHEN ccp.Cod_Moneda = 'USD'
+                   THEN '$'
+                   WHEN ccp.Cod_Moneda = '€'
+                   THEN 'EUROS'
+                   ELSE ''
+               END Simbolo,
+               CASE
+                   WHEN ccp.Cod_Moneda = 'PEN'
+                   THEN 'SOLES'
+                   WHEN ccp.Cod_Moneda = 'USD'
+                   THEN 'DOLARES'
+                   WHEN ccp.Cod_Moneda = 'EUR'
+                   THEN 'EUROS'
+                   ELSE 'OTRAS MONEDAS'
+               END Definicion, 
+               ccp.Impuesto, 
+               ccp.Total, 
+               CONVERT(VARCHAR(255),
+                                  CASE ccp.Cod_TipoComprobante
+                                      WHEN 'NCE'
+                                      THEN dbo.UFN_CAJ_COMPROBANTE_RELACION_TConcatenado(ccp.id_ComprobantePago, 'CRE')
+                                      WHEN 'NDE'
+                                      THEN dbo.UFN_CAJ_COMPROBANTE_RELACION_TConcatenado(ccp.id_ComprobantePago, 'DEB')
+                                      ELSE ''
+                                  END) Obs_Comprobante, 
+               ccp.GuiaRemision, 
+               ccp.Nro_Ticketera, 
+               ccp.Cod_UsuarioVendedor, 
+               ccp.Cod_RegimenPercepcion, 
+               ccp.Tasa_Percepcion, 
+               ccp.Placa_Vehiculo, 
+               ccp.Cod_TipoDocReferencia, 
+               ccp.Nro_DocReferencia, 
+               ccp.Valor_Resumen, 
+               ccp.Valor_Firma, 
+               ccp.MotivoAnulacion, 
+               ccp.Otros_Cargos, 
+               ccp.Otros_Tributos, 
+               pp.Cod_Producto, 
+               aa.Des_Almacen, 
+               aa.Des_CortaAlmacen, 
+               ccd.Cantidad, 
+               vudm.Nom_UnidadMedida, 
+               CONVERT(VARCHAR(MAX), ccd.Descripcion) Descripcion, 
+               ccd.PrecioUnitario, 
+               ccd.Descuento, 
+               ccd.Sub_Total, 
+               dbo.UFN_CAJ_COMPROBANTE_D_TraerTasasXIdDetalleCodTasaCodLibro(@id_ComprobantePago, ccd.id_Detalle, 'ICBPER', '14') ICBPER,
+               CASE
+                   WHEN pp.Cod_TipoOperatividad = 'GRT'
+                   THEN 'GRATUITAS'
+                   WHEN pp.Cod_TipoOperatividad = 'GRA'
+                   THEN 'GRAVADAS'
+                   WHEN pp.Cod_TipoOperatividad = 'INA'
+                   THEN 'INAFECTAS'
+                   WHEN pp.Cod_TipoOperatividad = 'EXO'
+                   THEN 'EXONERADAS'
+                   WHEN pp.Cod_TipoOperatividad = 'DES'
+                   THEN 'DESCUENTOS'
+                   WHEN pp.Cod_TipoOperatividad = 'PER'
+                   THEN 'PERCECPION'
+                   WHEN pp.Cod_TipoOperatividad = 'NGR'
+                   THEN 'NO GRAVADAS'
+                   ELSE 'OTROS'
+               END Nom_TipoOperatividad, 
+               ccd.Obs_ComprobanteD, 
+               ccd.Cod_Manguera, 
+               ccd.Flag_AplicaImpuesto, 
+               ccd.Formalizado, 
+               ccd.Valor_NoOneroso, 
+               ccd.Cod_TipoISC, 
+               ccd.Porcentaje_ISC, 
+               ccd.ISC, 
+               ccd.Cod_TipoIGV, 
+               ccd.Porcentaje_IGV, 
+               ccd.IGV, 
+               NULL Foto, 
+               dbo.UFN_ConvertirNumeroLetra(ccp.Total) + ' ' + CASE
+                                                                   WHEN ccp.Cod_Moneda = 'PEN'
+                                                                   THEN 'SOLES'
+                                                                   WHEN ccp.Cod_Moneda = 'USD'
+                                                                   THEN 'DOLARES'
+                                                                   WHEN ccp.Cod_Moneda = 'EUR'
+                                                                   THEN 'EUROS'
+                                                                   ELSE 'OTRAS MONEDAS'
+                                                               END Monto_Letras
+        FROM dbo.CAJ_COMPROBANTE_PAGO ccp
+             LEFT JOIN dbo.CAJ_COMPROBANTE_D ccd ON ccp.id_ComprobantePago = ccd.id_ComprobantePago
+             INNER JOIN dbo.PRI_PRODUCTOS pp ON ccd.Id_Producto = pp.Id_Producto
+             INNER JOIN dbo.ALM_ALMACEN aa ON ccd.Cod_Almacen = aa.Cod_Almacen
+             INNER JOIN dbo.VIS_UNIDADES_DE_MEDIDA vudm ON ccd.Cod_UnidadMedida = vudm.Cod_UnidadMedida
+             INNER JOIN dbo.PRI_CLIENTE_PROVEEDOR pcp ON ccp.Id_Cliente = pcp.Id_ClienteProveedor
+        WHERE ccp.id_ComprobantePago = @id_ComprobantePago;
+    END;
 GO
-
 
 IF EXISTS (
   SELECT * 

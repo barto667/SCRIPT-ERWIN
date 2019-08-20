@@ -389,3 +389,33 @@ AS
          ),0);
      END;
 GO
+
+------------------------------------------------------------------------------------------------------------
+-- FECHA: 19/08/2019
+-- AUTOR: ERWIN M. RAYME CHAMBI
+-- OBJECTIVO: Obtiene la tasa de un producto en base al id_comprobante, id_detalle y cod_tasa
+-- EXEC USP_CAJ_COMPROBANTE_D_TraerTasaXIdComprobanteIdDetalle 1900,0,'ICBPER'
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_CAJ_COMPROBANTE_D_TraerTasaXIdComprobanteIdDetalle'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_CAJ_COMPROBANTE_D_TraerTasaXIdComprobanteIdDetalle;
+GO
+CREATE PROCEDURE USP_CAJ_COMPROBANTE_D_TraerTasaXIdComprobanteIdDetalle @Id_ComprobantePago INT, 
+                                                                        @Id_Detalle         INT, 
+                                                                        @Cod_Tasa           VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT ppt.*
+        FROM dbo.CAJ_COMPROBANTE_D ccd
+             INNER JOIN dbo.PRI_PRODUCTO_TASA ppt ON ccd.id_ComprobantePago = @Id_ComprobantePago
+                                                     AND ccd.id_Detalle = @Id_Detalle
+                                                     AND ppt.Cod_Tasa = @Cod_Tasa
+                                                     AND ppt.Flag_Activo = 1
+                                                     AND ccd.Id_Producto = ppt.Id_Producto;
+    END;
+GO
