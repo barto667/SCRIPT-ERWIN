@@ -484,7 +484,7 @@ AS
                         CP.Serie, 
                         CP.Cod_Libro, 
                         VUM.Nom_UnidadMedida
-     -- CARGAR FACTURAS Y OTROS
+    -- CARGAR FACTURAS Y OTROS
                UNION
                SELECT CASE CP.Cod_Libro
                           WHEN '14'

@@ -944,3 +944,24 @@ IF NOT EXISTS
         EXEC USP_PAR_FILA_G '093', '006', @Fila, NULL, NULL, NULL, NULL, 1, 1, 'MIGRACION';
 END;
 GO
+--Agregamos el nuevo impuesto de bolsas de plastico
+IF NOT EXISTS
+(
+    SELECT vt.*
+    FROM dbo.VIS_TASAS vt
+    WHERE vt.Cod_Tasa = 'ICBPER'
+)
+    BEGIN
+        DECLARE @Fila INT= (ISNULL(
+        (
+            SELECT MAX(vt.Nro)
+            FROM dbo.VIS_TASAS vt
+        ), 0) + 1);
+        EXEC dbo.USP_PAR_FILA_G @Cod_Tabla = '013', @Cod_Columna = '001', @Cod_Fila = @Fila, @Cadena = N'ICBPER', @Numero = NULL, @Entero = NULL, @FechaHora = NULL, @Boleano = NULL, @Flag_Creacion = 1, @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G @Cod_Tabla = '013', @Cod_Columna = '002', @Cod_Fila = @Fila, @Cadena = N'IMPUESTO AL CONSUMO DE BOLSAS DE PLASTICO', @Numero = NULL, @Entero = NULL, @FechaHora = NULL, @Boleano = NULL, @Flag_Creacion = 1, @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G @Cod_Tabla = '013', @Cod_Columna = '003', @Cod_Fila = @Fila, @Cadena = N'OTROS IMPUESTOS', @Numero = NULL, @Entero = NULL, @FechaHora = NULL, @Boleano = NULL, @Flag_Creacion = 1, @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G @Cod_Tabla = '013', @Cod_Columna = '004', @Cod_Fila = @Fila, @Cadena = NULL, @Numero = 0.1, @Entero = NULL, @FechaHora = NULL, @Boleano = NULL, @Flag_Creacion = 1, @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G @Cod_Tabla = '013', @Cod_Columna = '005', @Cod_Fila = @Fila, @Cadena = NULL, @Numero = NULL, @Entero = NULL, @FechaHora = '2019-01-08', @Boleano = NULL, @Flag_Creacion = 1, @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G @Cod_Tabla = '013', @Cod_Columna = '006', @Cod_Fila = @Fila, @Cadena = NULL, @Numero = NULL, @Entero = NULL, @FechaHora = '2050-01-01', @Boleano = NULL, @Flag_Creacion = 1, @Cod_Usuario = 'MIGRACION';
+        EXEC dbo.USP_PAR_FILA_G @Cod_Tabla = '013', @Cod_Columna = '007', @Cod_Fila = @Fila, @Cadena = NULL, @Numero = NULL, @Entero = NULL, @FechaHora = NULL, @Boleano = 1, @Flag_Creacion = 1, @Cod_Usuario = 'MIGRACION';
+END;
