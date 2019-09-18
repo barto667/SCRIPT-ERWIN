@@ -6105,7 +6105,8 @@ BEGIN
 	NOT UPDATE(Valor_Resumen) AND
 	NOT UPDATE(Valor_Firma) AND
 	NOT UPDATE(Cod_EstadoComprobante) AND
-    NOT UPDATE(Id_Cliente)
+    NOT UPDATE(Id_Cliente) AND
+	NOT UPDATE(Id_GuiaRemision)
 	))
 	BEGIN
 	    DECLARE cursorbd CURSOR LOCAL FOR
@@ -6148,7 +6149,7 @@ BEGIN
 			  CASE WHEN CP.Cod_Moneda IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Moneda,'''','')+''',' END +
 			  CASE WHEN CP.Impuesto IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Impuesto)+','END+
 			  CASE WHEN CP.Total IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Total)+','END+
-			  CASE WHEN CP.Obs_Comprobante IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CONVERT(VARCHAR(MAX),CP.Obs_Comprobante),'''','')+''','END+
+			  CASE WHEN CP.Obs_Comprobante IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CONVERT(NVARCHAR(MAX),CP.Obs_Comprobante),'''','')+''','END+
 			  CASE WHEN CP.Id_GuiaRemision IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Id_GuiaRemision)+','END+
 			  CASE WHEN CP.GuiaRemision IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.GuiaRemision,'''','')+''','END+
 			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
@@ -6395,7 +6396,7 @@ BEGIN
 			 @Cod_Moneda,'|' ,
 			 @Impuesto,'|' ,
 			 @Total,'|' ,
-			 CONVERT(varchar(max),@Obs_Comprobante),'|' ,
+			 CONVERT(nvarchar(max),@Obs_Comprobante),'|' ,
 			 @Id_GuiaRemision,'|' ,
 			 @GuiaRemision,'|' ,
 			 @id_ComprobanteRef,'|' ,
@@ -6492,9 +6493,14 @@ BEGIN
 		CLOSE cursorbd;
     	DEALLOCATE cursorbd
     END
-
     --Actualizacion y eliminacion
-    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
+    IF  @Accion = 'ELIMINAR' OR
+		(@Accion =  'ACTUALIZAR' AND 
+		NOT UPDATE(Valor_Resumen) AND
+		NOT UPDATE(Valor_Firma) AND
+		NOT UPDATE(Cod_EstadoComprobante) AND
+		NOT UPDATE(Id_Cliente) AND
+		NOT UPDATE(Id_GuiaRemision))
 	 BEGIN
 	    DECLARE cursorbd CURSOR LOCAL FOR
 		    SELECT
@@ -6627,7 +6633,7 @@ BEGIN
 			 @Cod_Moneda,'|' ,
 			 @Impuesto,'|' ,
 			 @Total,'|' ,
-			 CONVERT(varchar(max),@Obs_Comprobante),'|' ,
+			 CONVERT(nvarchar(max),@Obs_Comprobante),'|' ,
 			 @Id_GuiaRemision,'|' ,
 			 @GuiaRemision,'|' ,
 			 @id_ComprobanteRef,'|' ,

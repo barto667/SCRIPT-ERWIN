@@ -10856,7 +10856,33 @@ AS
             WHERE(Id_Producto = @Id_Producto)
         )
             BEGIN
-                INSERT INTO PRI_PRODUCTOS
+                INSERT INTO dbo.PRI_PRODUCTOS
+                (
+                    --Id_Producto - column value is auto-generated
+                    Cod_Producto,
+                    Cod_Categoria,
+                    Cod_Marca,
+                    Cod_TipoProducto,
+                    Nom_Producto,
+                    Des_CortaProducto,
+                    Des_LargaProducto,
+                    Caracteristicas,
+                    Porcentaje_Utilidad,
+                    Cuenta_Contable,
+                    Contra_Cuenta,
+                    Cod_Garantia,
+                    Cod_TipoExistencia,
+                    Cod_TipoOperatividad,
+                    Flag_Activo,
+                    Flag_Stock,
+                    Cod_Fabricante,
+                    Obs_Producto,
+                    Cod_ProductoSunat,
+                    Cod_UsuarioReg,
+                    Fecha_Reg,
+                    Cod_UsuarioAct,
+                    Fecha_Act
+                )
                 VALUES
                 (@Cod_Producto, 
                  @Cod_Categoria, 
@@ -11356,7 +11382,45 @@ AS
             WHERE(Id_ClienteProveedor = @Id_ClienteProveedor)
         )
             BEGIN
-                INSERT INTO PRI_CLIENTE_PROVEEDOR
+                INSERT INTO dbo.PRI_CLIENTE_PROVEEDOR
+                (
+                    --Id_ClienteProveedor - column value is auto-generated
+                    Cod_TipoDocumento,
+                    Nro_Documento,
+                    Cliente,
+                    Ap_Paterno,
+                    Ap_Materno,
+                    Nombres,
+                    Direccion,
+                    Cod_EstadoCliente,
+                    Cod_CondicionCliente,
+                    Cod_TipoCliente,
+                    RUC_Natural,
+                    Foto,
+                    Firma,
+                    Cod_TipoComprobante,
+                    Cod_Nacionalidad,
+                    Fecha_Nacimiento,
+                    Cod_Sexo,
+                    Email1,
+                    Email2,
+                    Telefono1,
+                    Telefono2,
+                    Fax,
+                    PaginaWeb,
+                    Cod_Ubigeo,
+                    Cod_FormaPago,
+                    Limite_Credito,
+                    Obs_Cliente,
+                    Num_DiaCredito,
+                    Ubicacion_EjeX,
+                    Ubicacion_EjeY,
+                    Ruta,
+                    Cod_UsuarioReg,
+                    Fecha_Reg,
+                    Cod_UsuarioAct,
+                    Fecha_Act
+                )
                 VALUES
                 (@Cod_TipoDocumento, 
                  @Nro_Documento, 
@@ -15317,4 +15381,1710 @@ AS
             FROM CAJ_GUIA_REMISION_REMITENTE_RELACIONADOS
             WHERE Id_GuiaRemisionRemitente = 0;
     END;
+GO
+--CAJ_COMPROBANTE_PAGO
+IF EXISTS (SELECT name
+	   FROM   sysobjects 
+	   WHERE  name = N'UTR_CAJ_COMPROBANTE_PAGO_IUD'
+	   AND 	  type = 'TR')
+    DROP TRIGGER UTR_CAJ_COMPROBANTE_PAGO_IUD
+GO
+
+CREATE TRIGGER UTR_CAJ_COMPROBANTE_PAGO_IUD
+ON dbo.CAJ_COMPROBANTE_PAGO
+WITH ENCRYPTION
+AFTER INSERT,UPDATE,DELETE
+AS
+BEGIN
+	--Variables de tabla primarias
+	DECLARE @id_ComprobantePago int
+	DECLARE @Fecha_Reg datetime
+	DECLARE @Fecha_Act datetime
+	DECLARE @NombreTabla varchar(max)='CAJ_COMPROBANTE_PAGO'
+	--Variables de tabla secundarias
+	DECLARE @Cod_Libro varchar(2)
+	DECLARE @Cod_Periodo varchar(8)
+	DECLARE @Cod_Caja varchar(32)
+	DECLARE @Cod_Turno varchar(32)
+	DECLARE @Cod_TipoOperacion varchar(5)
+	DECLARE @Cod_TipoComprobante varchar(5)
+	DECLARE @Serie varchar(5)
+	DECLARE @Numero varchar(30)
+	DECLARE @Id_Cliente int
+	DECLARE @Cod_TipoDoc varchar(2)
+	DECLARE @Doc_Cliente varchar(20)
+	DECLARE @Nom_Cliente varchar(512)
+	DECLARE @Direccion_Cliente varchar(512)
+	DECLARE @FechaEmision datetime
+	DECLARE @FechaVencimiento datetime
+	DECLARE @FechaCancelacion datetime
+	DECLARE @Glosa varchar(512)
+	DECLARE @TipoCambio numeric(10,4)
+	DECLARE @Flag_Anulado bit
+	DECLARE @Flag_Despachado bit
+	DECLARE @Cod_FormaPago varchar(5)
+	DECLARE @Descuento_Total numeric(38,2)
+	DECLARE @Cod_Moneda varchar(3)
+	DECLARE @Impuesto numeric(38,6)
+	DECLARE @Total numeric(38,2)
+	DECLARE @Obs_Comprobante xml
+	DECLARE @Id_GuiaRemision int
+	DECLARE @GuiaRemision varchar(50)
+	DECLARE @id_ComprobanteRef int
+	DECLARE @Cod_Plantilla varchar(32)
+	DECLARE @Nro_Ticketera varchar(64)
+	DECLARE @Cod_UsuarioVendedor varchar(32)
+	DECLARE @Cod_RegimenPercepcion varchar(8)
+	DECLARE @Tasa_Percepcion numeric(38,2)
+	DECLARE @Placa_Vehiculo varchar(64)
+	DECLARE @Cod_TipoDocReferencia varchar(8)
+	DECLARE @Nro_DocReferencia varchar(64)
+	DECLARE @Valor_Resumen varchar(1024)
+	DECLARE @Valor_Firma varchar(2048)
+	DECLARE @Cod_EstadoComprobante varchar(8)
+	DECLARE @MotivoAnulacion varchar(512)
+	DECLARE @Otros_Cargos numeric(38,2)
+	DECLARE @Otros_Tributos numeric(38,2)
+	DECLARE @Cod_UsuarioReg varchar(32)
+	DECLARE @Cod_UsuarioAct varchar(32)
+	--Variables Generales
+	DECLARE @Script varchar(max)
+	DECLARE @NombreBD VARCHAR(MAX)=(SELECT DB_NAME())
+	DECLARE @FechaReg datetime
+	DECLARE @Accion varchar(MAX)
+	DECLARE @Exportacion bit =(SELECT DISTINCT vce.Estado FROM dbo.VIS_CONFIGURACION_EXPORTACION vce)
+	--Nombre del equipo|IP/Direccion Origen|Fecha/Hora Conexion yyyy-mm-dd hh:mi:ss.mmm|Nombre de usuario actual|Nombre de usuario de inicio de sesion
+	DECLARE @InformacionConexion varchar(max)= (SELECT  TOP 1 CONCAT(ISNULL(HOST_NAME(),''),'|',ISNULL(dec.client_net_address,''),'|',ISNULL(CONVERT(varchar,dec.connect_time,121),''),'|',ISNULL(CURRENT_USER,''),'|',ISNULL(SYSTEM_USER,'')) 
+	FROM sys.dm_exec_connections dec WHERE dec.session_id=@@SPID)
+   --Acciones
+	IF EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
+	BEGIN
+		SET @Accion='ACTUALIZAR'
+	END
+
+	IF EXISTS (SELECT * FROM INSERTED) AND NOT EXISTS (SELECT * FROM DELETED)
+	BEGIN
+		SET @Accion='INSERTAR'
+	END
+
+	IF NOT EXISTS (SELECT * FROM INSERTED) AND EXISTS (SELECT * FROM DELETED)
+	BEGIN
+		SET @Accion='ELIMINAR'
+	END
+
+	--Cursor solo para los eventos de insercion y actualizacion cuando la exportacion esta habilitada
+	IF ((@Exportacion=1 AND @Accion='INSERTAR') 
+	OR (@Exportacion=1 AND @Accion='ACTUALIZAR' AND 
+	NOT UPDATE(Valor_Resumen) AND
+	NOT UPDATE(Valor_Firma) AND
+	NOT UPDATE(Cod_EstadoComprobante) AND
+    NOT UPDATE(Id_Cliente)
+	))
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    i.id_ComprobantePago,
+		    i.Fecha_Reg,
+		    i.Fecha_Act
+		    FROM INSERTED i
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			SELECT @Script= 'USP_CAJ_COMPROBANTE_PAGO_I '+ 
+			  CASE WHEN CP.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Libro,'''','')+''',' END +
+			  CASE WHEN CP.Cod_Periodo IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Periodo,'''','')+''',' END +
+			  CASE WHEN CP.Cod_Caja IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Caja,'''','')+''',' END +
+			  CASE WHEN CP.Cod_Turno IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Turno,'''','')+''',' END +
+			  CASE WHEN CP.Cod_TipoOperacion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoOperacion,'''','')+''',' END +
+			  CASE WHEN CP.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoComprobante,'''','')+''',' END +
+			  CASE WHEN CP.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Serie,'''','')+''',' END +
+			  CASE WHEN CP.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Numero,'''','')+''',' END +	
+			  CASE WHEN CP.Cod_TipoDoc IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoDoc,'''','')+''',' END +
+			  CASE WHEN CP.Doc_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Doc_Cliente,'''','')+''',' END +
+			  CASE WHEN CP.Nom_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nom_Cliente,'''','')+''',' END +
+			  CASE WHEN CP.Direccion_Cliente IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Direccion_Cliente,'''','')+''',' END +
+			  CASE WHEN CP.FechaEmision IS NULL THEN 'NULL,' ELSE ''''+ CONVERT(VARCHAR(MAX),CP.FechaEmision,121)+''','END+ 
+			  CASE WHEN CP.FechaVencimiento IS NULL THEN 'NULL,' ELSE ''''+ CONVERT(VARCHAR(MAX),CP.FechaVencimiento,121)+''','END+ 
+			  CASE WHEN CP.FechaCancelacion IS NULL THEN 'NULL,' ELSE ''''+ CONVERT(VARCHAR(MAX),CP.FechaCancelacion,121)+''','END+ 
+			  CASE WHEN CP.Glosa IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Glosa,'''','')+''',' END +
+			  CASE WHEN CP.TipoCambio IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.TipoCambio)+','END+
+			  CONVERT(VARCHAR(MAX),CP.Flag_Anulado)+','+ 
+			  CONVERT(VARCHAR(MAX),CP.Flag_Despachado)+','+ 
+			  CASE WHEN CP.Cod_FormaPago IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_FormaPago,'''','')+''',' END +
+			  CASE WHEN CP.Descuento_Total IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Descuento_Total)+','END+
+			  CASE WHEN CP.Cod_Moneda IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Moneda,'''','')+''',' END +
+			  CASE WHEN CP.Impuesto IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Impuesto)+','END+
+			  CASE WHEN CP.Total IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Total)+','END+
+			  CASE WHEN CP.Obs_Comprobante IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CONVERT(NVARCHAR(MAX),CP.Obs_Comprobante),'''','')+''','END+
+			  CASE WHEN CP.Id_GuiaRemision IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Id_GuiaRemision)+','END+
+			  CASE WHEN CP.GuiaRemision IS NULL THEN 'NULL,' ELSE ''''+ REPLACE(CP.GuiaRemision,'''','')+''','END+
+			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
+			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE ISNULL((SELECT TOP 1 ccp.Cod_Libro FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef),'') END )),'''','')+''',' END+
+			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
+			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE ISNULL((SELECT TOP 1 ccp.Cod_TipoComprobante FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef),'') END )),'''','')+''',' END+
+			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
+			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE ISNULL((SELECT TOP 1 ccp.Serie FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef),'') END )),'''','')+''',' END+
+			  CASE WHEN CP.id_ComprobanteRef IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CONVERT(VARCHAR(MAX),
+			  (CASE WHEN CP.id_ComprobanteRef=0  THEN '' ELSE ISNULL((SELECT TOP 1 ccp.Numero FROM dbo.CAJ_COMPROBANTE_PAGO ccp WHERE ccp.id_ComprobantePago=CP.id_ComprobanteRef),'') END )),'''','')+''',' END+
+			  CASE WHEN CP.Cod_Plantilla IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Plantilla,'''','')+''',' END +
+			  CASE WHEN CP.Nro_Ticketera IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nro_Ticketera,'''','')+''',' END +
+			  CASE WHEN CP.Cod_UsuarioVendedor IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_UsuarioVendedor,'''','')+''',' END +
+			  CASE WHEN CP.Cod_RegimenPercepcion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_RegimenPercepcion,'''','')+''',' END +
+			  CASE WHEN CP.Tasa_Percepcion IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Tasa_Percepcion)+','END+
+			  CASE WHEN CP.Placa_Vehiculo IS NULL THEN 'NULL,' ELSE ''''+REPLACE( CP.Placa_Vehiculo,'''','')+''',' END +
+			  CASE WHEN CP.Cod_TipoDocReferencia IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoDocReferencia,'''','')+''',' END +
+			  CASE WHEN CP.Nro_DocReferencia IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Nro_DocReferencia,'''','')+''',' END +
+			  CASE WHEN CP.Valor_Resumen IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Valor_Resumen,'''','')+''',' END +
+			  CASE WHEN CP.Valor_Firma IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Valor_Firma,'''','')+''',' END +
+			  CASE WHEN CP.Cod_EstadoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_EstadoComprobante,'''','')+''',' END +
+			  CASE WHEN CP.MotivoAnulacion IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.MotivoAnulacion,'''','')+''',' END +
+			  CASE WHEN CP.Otros_Cargos IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Otros_Cargos)+','END+
+			  CASE WHEN CP.Otros_Tributos IS NULL THEN 'NULL,' ELSE  CONVERT(VARCHAR(MAX),CP.Otros_Tributos)+','END+
+			  ''''+REPLACE(COALESCE(CP.Cod_UsuarioAct,CP.Cod_UsuarioReg),'''','')+ ''';' 	 
+			  FROM            INSERTED   CP 
+			  WHERE CP.id_ComprobantePago=@id_ComprobantePago
+
+
+		   	SET @FechaReg= GETDATE()
+			INSERT dbo.TMP_REGISTRO_LOG
+			(
+			   --Id,
+			   Nombre_Tabla,
+			   Id_Fila,
+			   Accion,
+			   Script,
+			   Fecha_Reg
+		     )
+		    VALUES
+			(
+			   --NULL, -- Id - uniqueidentifier
+			   @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@id_ComprobantePago), -- Id_Fila - varchar
+			   @Accion, -- Accion - varchar
+			   @Script, -- Script - varchar
+			   @FechaReg -- Fecha_Reg - datetime
+		     )
+		  FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @Fecha_Reg,
+		    @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END 
+
+    IF @Exportacion=1 AND @Accion IN ('ELIMINAR')
+	BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+		    d.id_ComprobantePago,
+		    d.Fecha_Reg,
+		    d.Fecha_Act
+		    FROM DELETED d 
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO
+		    @id_ComprobantePago,
+		    @Fecha_Reg,
+		    @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+			--Si esta habilitada la exportacion para almacenar en la tabla de
+			--exportaciones
+			 SELECT @Script= 'USP_CAJ_COMPROBANTE_PAGO_D '+ 
+			 CASE WHEN CP.Cod_Libro IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_Libro,'''','')+''',' END +
+			 CASE WHEN CP.Cod_TipoComprobante IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Cod_TipoComprobante,'''','')+''',' END +
+			 CASE WHEN CP.Serie IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Serie,'''','')+''',' END +
+			 CASE WHEN CP.Numero IS NULL THEN 'NULL,' ELSE ''''+REPLACE(CP.Numero,'''','')+''',' END +	
+			 ''''+'TRIGGER'+''',' +
+			 ''''+'ELIMINACION SOLICITADA DESDE SERVIDOR REMOTO'+ ''';' 	 
+			 FROM            DELETED  CP 
+			 WHERE CP.id_ComprobantePago=@id_ComprobantePago
+		   	    SET @FechaReg= GETDATE()
+			    INSERT dbo.TMP_REGISTRO_LOG
+			    (
+				  --Id,
+				  Nombre_Tabla,
+				  Id_Fila,
+				  Accion,
+				  Script,
+				  Fecha_Reg
+			    )
+			   VALUES
+			    (
+				  --NULL, -- Id - uniqueidentifier
+				  @NombreTabla, -- Nombre_Tabla - varchar
+				  CONCAT('',@id_ComprobantePago), -- Id_Fila - varchar
+				  @Accion, -- Accion - varchar
+				  @Script, -- Script - varchar
+				  @FechaReg -- Fecha_Reg - datetime
+			    )
+			 FETCH NEXT FROM cursorbd INTO
+			   @id_ComprobantePago,
+			   @Fecha_Reg,
+			   @Fecha_Act
+		    END
+		    CLOSE cursorbd;
+    		DEALLOCATE cursorbd
+    END
+
+    --Acciones de auditoria, especiales por tipo
+    --Insercion
+    IF @Accion='INSERTAR'
+	 BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+			 i.id_ComprobantePago,
+			 i.Cod_Libro,
+			 i.Cod_Periodo,
+			 i.Cod_Caja,
+			 i.Cod_Turno,
+			 i.Cod_TipoOperacion,
+			 i.Cod_TipoComprobante,
+			 i.Serie,
+			 i.Numero,
+			 i.Id_Cliente,
+			 i.Cod_TipoDoc,
+			 i.Doc_Cliente,
+			 i.Nom_Cliente,
+			 i.Direccion_Cliente,
+			 i.FechaEmision,
+			 i.FechaVencimiento,
+			 i.FechaCancelacion,
+			 i.Glosa,
+			 i.TipoCambio,
+			 i.Flag_Anulado,
+			 i.Flag_Despachado,
+			 i.Cod_FormaPago,
+			 i.Descuento_Total,
+			 i.Cod_Moneda,
+			 i.Impuesto,
+			 i.Total,
+			 i.Obs_Comprobante,
+			 i.Id_GuiaRemision,
+			 i.GuiaRemision,
+			 i.id_ComprobanteRef,
+			 i.Cod_Plantilla,
+			 i.Nro_Ticketera,
+			 i.Cod_UsuarioVendedor,
+			 i.Cod_RegimenPercepcion,
+			 i.Tasa_Percepcion,
+			 i.Placa_Vehiculo,
+			 i.Cod_TipoDocReferencia,
+			 i.Nro_DocReferencia,
+			 i.Valor_Resumen,
+			 i.Valor_Firma,
+			 i.Cod_EstadoComprobante,
+			 i.MotivoAnulacion,
+			 i.Otros_Cargos,
+			 i.Otros_Tributos,
+			 i.Cod_UsuarioReg,
+			 i.Fecha_Reg,
+			 i.Cod_UsuarioAct,
+			 i.Fecha_Act
+		  FROM INSERTED i
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO 
+			 @id_ComprobantePago,
+			 @Cod_Libro,
+			 @Cod_Periodo,
+			 @Cod_Caja,
+			 @Cod_Turno,
+			 @Cod_TipoOperacion,
+			 @Cod_TipoComprobante,
+			 @Serie,
+			 @Numero,
+			 @Id_Cliente,
+			 @Cod_TipoDoc,
+			 @Doc_Cliente,
+			 @Nom_Cliente,
+			 @Direccion_Cliente,
+			 @FechaEmision,
+			 @FechaVencimiento,
+			 @FechaCancelacion,
+			 @Glosa,
+			 @TipoCambio,
+			 @Flag_Anulado,
+			 @Flag_Despachado,
+			 @Cod_FormaPago,
+			 @Descuento_Total,
+			 @Cod_Moneda,
+			 @Impuesto,
+			 @Total,
+			 @Obs_Comprobante,
+			 @Id_GuiaRemision,
+			 @GuiaRemision,
+			 @id_ComprobanteRef,
+			 @Cod_Plantilla,
+			 @Nro_Ticketera,
+			 @Cod_UsuarioVendedor,
+			 @Cod_RegimenPercepcion,
+			 @Tasa_Percepcion,
+			 @Placa_Vehiculo,
+			 @Cod_TipoDocReferencia,
+			 @Nro_DocReferencia,
+			 @Valor_Resumen,
+			 @Valor_Firma,
+			 @Cod_EstadoComprobante,
+			 @MotivoAnulacion,
+			 @Otros_Cargos,
+			 @Otros_Tributos,
+			 @Cod_UsuarioReg,
+			 @Fecha_Reg,
+			 @Cod_UsuarioAct,
+			 @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+		  --Acciones
+		  SET @Script = CONCAT(
+			 @id_ComprobantePago,'|' ,
+			 @Cod_Libro,'|' ,
+			 @Cod_Periodo,'|' ,
+			 @Cod_Caja,'|' ,
+			 @Cod_Turno,'|' ,
+			 @Cod_TipoOperacion,'|' ,
+			 @Cod_TipoComprobante,'|' ,
+			 @Serie,'|' ,
+			 @Numero,'|' ,
+			 @Id_Cliente,'|' ,
+			 @Cod_TipoDoc,'|' ,
+			 @Doc_Cliente,'|' ,
+			 @Nom_Cliente,'|' ,
+			 @Direccion_Cliente,'|' ,
+			 CONVERT(varchar,@FechaEmision,121), '|' ,
+			 CONVERT(varchar,@FechaVencimiento,121), '|' ,
+			 CONVERT(varchar,@FechaCancelacion,121), '|' ,
+			 @Glosa,'|' ,
+			 @TipoCambio,'|' ,
+			 @Flag_Anulado,'|' ,
+			 @Flag_Despachado,'|' ,
+			 @Cod_FormaPago,'|' ,
+			 @Descuento_Total,'|' ,
+			 @Cod_Moneda,'|' ,
+			 @Impuesto,'|' ,
+			 @Total,'|' ,
+			 CONVERT(nvarchar(max),@Obs_Comprobante),'|' ,
+			 @Id_GuiaRemision,'|' ,
+			 @GuiaRemision,'|' ,
+			 @id_ComprobanteRef,'|' ,
+			 @Cod_Plantilla,'|' ,
+			 @Nro_Ticketera,'|' ,
+			 @Cod_UsuarioVendedor,'|' ,
+			 @Cod_RegimenPercepcion,'|' ,
+			 @Tasa_Percepcion,'|' ,
+			 @Placa_Vehiculo,'|' ,
+			 @Cod_TipoDocReferencia,'|' ,
+			 @Nro_DocReferencia,'|' ,
+			 @Valor_Resumen,'|' ,
+			 @Valor_Firma,'|' ,
+			 @Cod_EstadoComprobante,'|' ,
+			 @MotivoAnulacion,'|' ,
+			 @Otros_Cargos,'|' ,
+			 @Otros_Tributos,'|' ,
+			 @Cod_UsuarioReg,'|' ,
+			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
+			 @Cod_UsuarioAct,'|' ,
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
+		  )
+
+		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
+		  (
+		      Nombre_BD,
+		      Nombre_Tabla,
+		      Id_Fila,
+		      Accion,
+		      Valor,
+		      Fecha_Reg
+		  )
+		  VALUES
+		  (
+		      @NombreBD, -- Nombre_BD - varchar
+		      @NombreTabla, -- Nombre_Tabla - varchar
+			  CONCAT('',@id_ComprobantePago), -- Id_Fila - varchar
+		      @Accion, -- Accion - varchar
+		      @Script, -- Valor - varchar
+		      GETDATE() -- Fecha_Reg - datetime
+		  )
+
+		  FETCH NEXT FROM cursorbd INTO
+			 @id_ComprobantePago,
+			 @Cod_Libro,
+			 @Cod_Periodo,
+			 @Cod_Caja,
+			 @Cod_Turno,
+			 @Cod_TipoOperacion,
+			 @Cod_TipoComprobante,
+			 @Serie,
+			 @Numero,
+			 @Id_Cliente,
+			 @Cod_TipoDoc,
+			 @Doc_Cliente,
+			 @Nom_Cliente,
+			 @Direccion_Cliente,
+			 @FechaEmision,
+			 @FechaVencimiento,
+			 @FechaCancelacion,
+			 @Glosa,
+			 @TipoCambio,
+			 @Flag_Anulado,
+			 @Flag_Despachado,
+			 @Cod_FormaPago,
+			 @Descuento_Total,
+			 @Cod_Moneda,
+			 @Impuesto,
+			 @Total,
+			 @Obs_Comprobante,
+			 @Id_GuiaRemision,
+			 @GuiaRemision,
+			 @id_ComprobanteRef,
+			 @Cod_Plantilla,
+			 @Nro_Ticketera,
+			 @Cod_UsuarioVendedor,
+			 @Cod_RegimenPercepcion,
+			 @Tasa_Percepcion,
+			 @Placa_Vehiculo,
+			 @Cod_TipoDocReferencia,
+			 @Nro_DocReferencia,
+			 @Valor_Resumen,
+			 @Valor_Firma,
+			 @Cod_EstadoComprobante,
+			 @MotivoAnulacion,
+			 @Otros_Cargos,
+			 @Otros_Tributos,
+			 @Cod_UsuarioReg,
+			 @Fecha_Reg,
+			 @Cod_UsuarioAct,
+			 @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+    --Actualizacion y eliminacion
+    IF @Accion IN ('ACTUALIZAR','ELIMINAR')
+	 BEGIN
+	    DECLARE cursorbd CURSOR LOCAL FOR
+		    SELECT
+			 d.id_ComprobantePago,
+			 d.Cod_Libro,
+			 d.Cod_Periodo,
+			 d.Cod_Caja,
+			 d.Cod_Turno,
+			 d.Cod_TipoOperacion,
+			 d.Cod_TipoComprobante,
+			 d.Serie,
+			 d.Numero,
+			 d.Id_Cliente,
+			 d.Cod_TipoDoc,
+			 d.Doc_Cliente,
+			 d.Nom_Cliente,
+			 d.Direccion_Cliente,
+			 d.FechaEmision,
+			 d.FechaVencimiento,
+			 d.FechaCancelacion,
+			 d.Glosa,
+			 d.TipoCambio,
+			 d.Flag_Anulado,
+			 d.Flag_Despachado,
+			 d.Cod_FormaPago,
+			 d.Descuento_Total,
+			 d.Cod_Moneda,
+			 d.Impuesto,
+			 d.Total,
+			 d.Obs_Comprobante,
+			 d.Id_GuiaRemision,
+			 d.GuiaRemision,
+			 d.id_ComprobanteRef,
+			 d.Cod_Plantilla,
+			 d.Nro_Ticketera,
+			 d.Cod_UsuarioVendedor,
+			 d.Cod_RegimenPercepcion,
+			 d.Tasa_Percepcion,
+			 d.Placa_Vehiculo,
+			 d.Cod_TipoDocReferencia,
+			 d.Nro_DocReferencia,
+			 d.Valor_Resumen,
+			 d.Valor_Firma,
+			 d.Cod_EstadoComprobante,
+			 d.MotivoAnulacion,
+			 d.Otros_Cargos,
+			 d.Otros_Tributos,
+			 d.Cod_UsuarioReg,
+			 d.Fecha_Reg,
+			 d.Cod_UsuarioAct,
+			 d.Fecha_Act
+		  FROM DELETED d
+	    OPEN cursorbd 
+	    FETCH NEXT FROM cursorbd INTO 
+			 @id_ComprobantePago,
+			 @Cod_Libro,
+			 @Cod_Periodo,
+			 @Cod_Caja,
+			 @Cod_Turno,
+			 @Cod_TipoOperacion,
+			 @Cod_TipoComprobante,
+			 @Serie,
+			 @Numero,
+			 @Id_Cliente,
+			 @Cod_TipoDoc,
+			 @Doc_Cliente,
+			 @Nom_Cliente,
+			 @Direccion_Cliente,
+			 @FechaEmision,
+			 @FechaVencimiento,
+			 @FechaCancelacion,
+			 @Glosa,
+			 @TipoCambio,
+			 @Flag_Anulado,
+			 @Flag_Despachado,
+			 @Cod_FormaPago,
+			 @Descuento_Total,
+			 @Cod_Moneda,
+			 @Impuesto,
+			 @Total,
+			 @Obs_Comprobante,
+			 @Id_GuiaRemision,
+			 @GuiaRemision,
+			 @id_ComprobanteRef,
+			 @Cod_Plantilla,
+			 @Nro_Ticketera,
+			 @Cod_UsuarioVendedor,
+			 @Cod_RegimenPercepcion,
+			 @Tasa_Percepcion,
+			 @Placa_Vehiculo,
+			 @Cod_TipoDocReferencia,
+			 @Nro_DocReferencia,
+			 @Valor_Resumen,
+			 @Valor_Firma,
+			 @Cod_EstadoComprobante,
+			 @MotivoAnulacion,
+			 @Otros_Cargos,
+			 @Otros_Tributos,
+			 @Cod_UsuarioReg,
+			 @Fecha_Reg,
+			 @Cod_UsuarioAct,
+			 @Fecha_Act
+	    WHILE @@FETCH_STATUS = 0
+	    BEGIN
+		  --Acciones
+		  SET @Script = CONCAT(
+			 @id_ComprobantePago,'|' ,
+			 @Cod_Libro,'|' ,
+			 @Cod_Periodo,'|' ,
+			 @Cod_Caja,'|' ,
+			 @Cod_Turno,'|' ,
+			 @Cod_TipoOperacion,'|' ,
+			 @Cod_TipoComprobante,'|' ,
+			 @Serie,'|' ,
+			 @Numero,'|' ,
+			 @Id_Cliente,'|' ,
+			 @Cod_TipoDoc,'|' ,
+			 @Doc_Cliente,'|' ,
+			 @Nom_Cliente,'|' ,
+			 @Direccion_Cliente,'|' ,
+			 CONVERT(varchar,@FechaEmision,121), '|' ,
+			 CONVERT(varchar,@FechaVencimiento,121), '|' ,
+			 CONVERT(varchar,@FechaCancelacion,121), '|' ,
+			 @Glosa,'|' ,
+			 @TipoCambio,'|' ,
+			 @Flag_Anulado,'|' ,
+			 @Flag_Despachado,'|' ,
+			 @Cod_FormaPago,'|' ,
+			 @Descuento_Total,'|' ,
+			 @Cod_Moneda,'|' ,
+			 @Impuesto,'|' ,
+			 @Total,'|' ,
+			 CONVERT(nvarchar(max),@Obs_Comprobante),'|' ,
+			 @Id_GuiaRemision,'|' ,
+			 @GuiaRemision,'|' ,
+			 @id_ComprobanteRef,'|' ,
+			 @Cod_Plantilla,'|' ,
+			 @Nro_Ticketera,'|' ,
+			 @Cod_UsuarioVendedor,'|' ,
+			 @Cod_RegimenPercepcion,'|' ,
+			 @Tasa_Percepcion,'|' ,
+			 @Placa_Vehiculo,'|' ,
+			 @Cod_TipoDocReferencia,'|' ,
+			 @Nro_DocReferencia,'|' ,
+			 @Valor_Resumen,'|' ,
+			 @Valor_Firma,'|' ,
+			 @Cod_EstadoComprobante,'|' ,
+			 @MotivoAnulacion,'|' ,
+			 @Otros_Cargos,'|' ,
+			 @Otros_Tributos,'|' ,
+			 @Cod_UsuarioReg,'|' ,
+			 CONVERT(varchar,@Fecha_Reg,121), '|' ,
+			 @Cod_UsuarioAct,'|' ,
+			 CONVERT(varchar,@Fecha_Act,121), '|',
+			 @InformacionConexion
+		  )
+
+		  INSERT PALERP_Auditoria.dbo.PRI_AUDITORIA
+		  (
+		      Nombre_BD,
+		      Nombre_Tabla,
+		      Id_Fila,
+		      Accion,
+		      Valor,
+		      Fecha_Reg
+		  )
+		  VALUES
+		  (
+		      @NombreBD, -- Nombre_BD - varchar
+		      @NombreTabla, -- Nombre_Tabla - varchar
+			   CONCAT('',@id_ComprobantePago), -- Id_Fila - varchar
+		      @Accion, -- Accion - varchar
+		      @Script, -- Valor - varchar
+		      GETDATE() -- Fecha_Reg - datetime
+		  )
+
+		  FETCH NEXT FROM cursorbd INTO
+			 @id_ComprobantePago,
+			 @Cod_Libro,
+			 @Cod_Periodo,
+			 @Cod_Caja,
+			 @Cod_Turno,
+			 @Cod_TipoOperacion,
+			 @Cod_TipoComprobante,
+			 @Serie,
+			 @Numero,
+			 @Id_Cliente,
+			 @Cod_TipoDoc,
+			 @Doc_Cliente,
+			 @Nom_Cliente,
+			 @Direccion_Cliente,
+			 @FechaEmision,
+			 @FechaVencimiento,
+			 @FechaCancelacion,
+			 @Glosa,
+			 @TipoCambio,
+			 @Flag_Anulado,
+			 @Flag_Despachado,
+			 @Cod_FormaPago,
+			 @Descuento_Total,
+			 @Cod_Moneda,
+			 @Impuesto,
+			 @Total,
+			 @Obs_Comprobante,
+			 @Id_GuiaRemision,
+			 @GuiaRemision,
+			 @id_ComprobanteRef,
+			 @Cod_Plantilla,
+			 @Nro_Ticketera,
+			 @Cod_UsuarioVendedor,
+			 @Cod_RegimenPercepcion,
+			 @Tasa_Percepcion,
+			 @Placa_Vehiculo,
+			 @Cod_TipoDocReferencia,
+			 @Nro_DocReferencia,
+			 @Valor_Resumen,
+			 @Valor_Firma,
+			 @Cod_EstadoComprobante,
+			 @MotivoAnulacion,
+			 @Otros_Cargos,
+			 @Otros_Tributos,
+			 @Cod_UsuarioReg,
+			 @Fecha_Reg,
+			 @Cod_UsuarioAct,
+			 @Fecha_Act
+		END
+		CLOSE cursorbd;
+    	DEALLOCATE cursorbd
+    END
+
+END
+GO
+--------------------------------------------------------------------------------------------------------------
+-- AUTOR: ESTEFANI HUAMAN;ESTEFANI HUAMAN
+-- FECHA: 16/05/2019;26/09/2019
+-- OBJETIVO: Procedimiento que permite listar los segmentos de los productos SUNAT
+-- EXEC USP_PRI_SUNAT_SEGMENTO_T
+--------------------------------------------------------------------------------------------------------------
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_SUNAT_SEGMENTO_T' AND type = 'P')
+DROP PROCEDURE USP_PRI_SUNAT_SEGMENTO_T
+go
+CREATE PROCEDURE USP_PRI_SUNAT_SEGMENTO_T
+WITH ENCRYPTION
+AS
+    BEGIN
+        (SELECT -1 Cod_Segmento,'SELECCIONAR' Des_Segmento)
+		UNION
+        (SELECT Cod_Segmento,Des_Segmento
+        FROM dbo.PRI_SUNAT_SEGMENTO pss)
+    END;
+GO
+--------------------------------------------------------------------------------------------------------------
+-- AUTOR: ESTEFANI HUAMAN;ESTEFANI HUAMAN
+-- FECHA: 16/05/2019;26/09/2019
+-- OBJETIVO: Procedimiento que permite listar familia de los productos SUNAT
+-- EXEC USP_PRI_SUNAT_FAMILIA_T '10'
+--------------------------------------------------------------------------------------------------------------
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_SUNAT_FAMILIA_T' AND type = 'P')
+DROP PROCEDURE USP_PRI_SUNAT_FAMILIA_T
+go
+CREATE PROCEDURE USP_PRI_SUNAT_FAMILIA_T
+@Cod_Segmento VARCHAR(5)
+WITH ENCRYPTION
+AS
+    BEGIN 
+		SELECT -1 Cod_Familia,'SELECCIONAR' Des_Familia
+		UNION
+        SELECT Cod_Familia,Des_Familia
+        FROM dbo.PRI_SUNAT_FAMILIA pss
+		WHERE Cod_Segmento=@Cod_Segmento
+    END
+GO
+--------------------------------------------------------------------------------------------------------------
+-- AUTOR: ESTEFANI HUAMAN;ESTEFANI HUAMAN
+-- FECHA: 16/05/2019;26/09/2019
+-- OBJETIVO: Procedimiento que permite listar las clases de los productos SUNAT
+-- EXEC USP_PRI_SUNAT_CLASE_T '1010'
+--------------------------------------------------------------------------------------------------------------
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_SUNAT_CLASE_T' AND type = 'P')
+DROP PROCEDURE USP_PRI_SUNAT_CLASE_T
+go
+CREATE PROCEDURE USP_PRI_SUNAT_CLASE_T
+@Cod_Familia VARCHAR(10) 
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT -1  Cod_Clase,'SELECCIONAR' Des_Clase 
+		UNION
+		SELECT Cod_Clase,Des_Clase
+        FROM dbo.PRI_SUNAT_CLASE pss
+		WHERE Cod_Familia=@Cod_Familia
+    END
+GO
+--------------------------------------------------------------------------------------------------------------
+-- AUTOR: ESTEFANI HUAMAN;ESTEFANI HUAMAN
+-- FECHA: 16/05/2019;26/09/2019
+-- OBJETIVO: Procedimiento que permite listar los productos con sus repectivos codigos de SUNAT
+-- EXEC USP_PRI_SUNAT_COD_PRODUCTO_T null,null,null,'placa'
+--------------------------------------------------------------------------------------------------------------
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_SUNAT_COD_PRODUCTO_T' AND type = 'P')
+DROP PROCEDURE USP_PRI_SUNAT_COD_PRODUCTO_T
+go
+CREATE PROCEDURE USP_PRI_SUNAT_COD_PRODUCTO_T
+@Cod_Segmento VARCHAR(10) = NULL,
+@Cod_Familia VARCHAR(10)= NULL ,
+@Cod_Clase VARCHAR(10) = NULL,
+@Des_Producto varchar(512)
+WITH ENCRYPTION
+AS
+BEGIN  
+		select Cod_Producto,Des_Producto  from PRI_SUNAT_PRODUCTOS
+		where (Cod_Familia = @Cod_Familia OR @Cod_Familia IS NULL)
+		AND (Cod_Segmento = @Cod_Segmento OR @Cod_Segmento IS NULL)
+		AND (Cod_Clase = @Cod_Clase OR @Cod_Clase IS NULL)
+		AND Des_Producto LIKE '%'+@Des_Producto+'%'
+END
+GO 
+--------------------------------------------------------------------------------------------------------------
+-- AUTOR: ESTEFANI HUAMAN
+-- FECHA: 26/09/2019
+-- OBJETIVO: Procedimiento que permite listar los productos con sus repectivos codigos de SUNAT
+-- EXEC USP_PRI_PRODUCTOS_CODIGO_SUNAT  '50313457' 
+--------------------------------------------------------------------------------------------------------------
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_PRODUCTOS_CODIGO_SUNAT' AND type = 'P')
+DROP PROCEDURE USP_PRI_PRODUCTOS_CODIGO_SUNAT
+go
+CREATE PROCEDURE USP_PRI_PRODUCTOS_CODIGO_SUNAT
+@Cod_Producto varchar(64)
+AS
+BEGIN
+	SELECT Cod_Producto+' - '+Des_Producto
+    FROM dbo.PRI_SUNAT_PRODUCTOS pss
+	WHERE Cod_Producto=@Cod_Producto
+END
+GO
+--------------------------------------------------------------------------------------------------------------
+-- AUTOR: ERWIN M. RAYME CHAMBI
+-- CREACION: 07/08/2019
+-- OBJETIVOS: Verifica la cantidad de elementos de las tablas PRI_SUNAT_SEGMENTO,PRI_SUNAT_FAMILIA,PRI_SUNAT_CLASE,
+-- PRI_SUNAT_PRODUCTOS, si la cantidad de elemntos de cualquiera de ellos no coincide, elimina todos los elementos 
+-- de las tablas y los vuelve a insertar ejecutando el archivo especificado en la ruta(*)
+-- (*)La ruta no debe contener espacios
+--------------------------------------------------------------------------------------------------------------
+--EXEC dbo.USP_VerificarTablasProductoSUNAT
+--	@NroSegmentos = 1000,
+--	@NroFamilias = 1000,
+--	@NroClases = 1000,
+--	@NroProductos = 1000,
+--	@RutaArchivoScript = 'G:\Productos_Sunat-Productos.sql'
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N'USP_VerificarTablasProductoSUNAT'
+          AND type = 'P'
+)
+    DROP PROCEDURE USP_VerificarTablasProductoSUNAT;
+GO
+CREATE PROCEDURE USP_VerificarTablasProductoSUNAT @NroSegmentos INT, 
+                                                  @NroFamilias  INT, 
+                                                  @NroClases    INT, 
+                                                  @NroProductos INT, 
+                                                  @RutaArchivoScript   VARCHAR(MAX)
+WITH ENCRYPTION
+AS
+    BEGIN
+        --Ejecutamos los scripts previamente
+        EXEC ('
+IF NOT EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = N''PRI_SUNAT_SEGMENTO''
+          AND type = ''U''
+)
+    BEGIN
+        CREATE TABLE PRI_SUNAT_SEGMENTO
+        (Cod_Segmento   VARCHAR(5)
+         PRIMARY KEY, 
+         Des_Segmento   VARCHAR(MAX) NOT NULL, 
+         Estado         BIT NOT NULL, 
+         Cod_UsuarioReg VARCHAR(32) NOT NULL, 
+         Fecha_Reg      DATETIME NOT NULL, 
+         Cod_UsuarioAct VARCHAR(32), 
+         Fecha_Act      DATETIME
+        );
+END;
+');
+        EXEC ('
+IF NOT EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = N''PRI_SUNAT_FAMILIA''
+          AND type = ''U''
+)
+    BEGIN
+        CREATE TABLE PRI_SUNAT_FAMILIA
+        (Cod_Familia    VARCHAR(10)
+         PRIMARY KEY, 
+         Cod_Segmento   VARCHAR(5) FOREIGN KEY REFERENCES dbo.PRI_SUNAT_SEGMENTO(Cod_Segmento) NOT NULL, 
+         Des_Familia    VARCHAR(MAX) NOT NULL, 
+         Estado         BIT NOT NULL, 
+         Cod_UsuarioReg VARCHAR(32) NOT NULL, 
+         Fecha_Reg      DATETIME NOT NULL, 
+         Cod_UsuarioAct VARCHAR(32), 
+         Fecha_Act      DATETIME
+        );
+END;
+');
+        EXEC ('
+IF NOT EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = N''PRI_SUNAT_CLASE''
+          AND type = ''U''
+)
+    BEGIN
+        CREATE TABLE PRI_SUNAT_CLASE
+        (Cod_Clase      VARCHAR(20)
+         PRIMARY KEY, 
+         Cod_Familia    VARCHAR(10) FOREIGN KEY REFERENCES dbo.PRI_SUNAT_FAMILIA(Cod_Familia) NOT NULL, 
+         Des_Clase      VARCHAR(MAX) NOT NULL, 
+         Estado         BIT NOT NULL, 
+         Cod_UsuarioReg VARCHAR(32) NOT NULL, 
+         Fecha_Reg      DATETIME NOT NULL, 
+         Cod_UsuarioAct VARCHAR(32), 
+         Fecha_Act      DATETIME
+        );
+END;
+');
+        EXEC ('
+IF NOT EXISTS
+(
+    SELECT name
+    FROM sysobjects
+    WHERE name = N''PRI_SUNAT_PRODUCTOS''
+          AND type = ''U''
+)
+    BEGIN
+        CREATE TABLE PRI_SUNAT_PRODUCTOS
+        (Cod_Producto   VARCHAR(32)
+         PRIMARY KEY, 
+         Cod_Segmento   VARCHAR(5) FOREIGN KEY REFERENCES dbo.PRI_SUNAT_SEGMENTO(Cod_Segmento) NOT NULL, 
+         Cod_Familia    VARCHAR(10) FOREIGN KEY REFERENCES dbo.PRI_SUNAT_FAMILIA(Cod_Familia) NOT NULL, 
+         Cod_Clase      VARCHAR(20) FOREIGN KEY REFERENCES dbo.PRI_SUNAT_CLASE(Cod_Clase) NOT NULL, 
+         Des_Producto   VARCHAR(MAX) NOT NULL, 
+         Estado         BIT NOT NULL, 
+         Cod_UsuarioReg VARCHAR(32) NOT NULL, 
+         Fecha_Reg      DATETIME NOT NULL, 
+         Cod_UsuarioAct VARCHAR(32), 
+         Fecha_Act      DATETIME
+        );
+END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_SEGMENTO_G''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_SEGMENTO_G;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_SEGMENTO_G @Cod_Segmento VARCHAR(5), 
+                                          @Des_Segmento VARCHAR(MAX), 
+                                          @Estado       BIT, 
+                                          @Cod_Usuario  VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        IF NOT EXISTS
+        (
+            SELECT pss.*
+            FROM dbo.PRI_SUNAT_SEGMENTO pss
+            WHERE pss.Cod_Segmento = @Cod_Segmento
+        )
+            BEGIN
+                INSERT INTO dbo.PRI_SUNAT_SEGMENTO
+                VALUES
+                (@Cod_Segmento, -- Cod_Segmento - VARCHAR
+                 @Des_Segmento, -- Des_Segmento - VARCHAR
+                 @Estado, -- Estado - BIT
+                 @Cod_Usuario, -- Cod_UsuarioReg - VARCHAR
+                 GETDATE(), -- Fecha_Reg - DATETIME
+                 NULL, -- Cod_UsuarioAct - VARCHAR
+                 NULL -- Fecha_Act - DATETIME
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.PRI_SUNAT_SEGMENTO
+                  SET 
+                      dbo.PRI_SUNAT_SEGMENTO.Des_Segmento = @Des_Segmento, -- VARCHAR
+                      dbo.PRI_SUNAT_SEGMENTO.Estado = @Estado, -- BIT
+                      dbo.PRI_SUNAT_SEGMENTO.Cod_UsuarioAct = @Cod_Usuario, -- VARCHAR
+                      dbo.PRI_SUNAT_SEGMENTO.Fecha_Act = GETDATE() -- DATETIME
+                WHERE dbo.PRI_SUNAT_SEGMENTO.Cod_Segmento = @Cod_Segmento;
+        END;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_SEGMENTO_E''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_SEGMENTO_E;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_SEGMENTO_E @Cod_Segmento VARCHAR(5)
+WITH ENCRYPTION
+AS
+    BEGIN
+        DELETE dbo.PRI_SUNAT_SEGMENTO
+        WHERE dbo.PRI_SUNAT_SEGMENTO.Cod_Segmento = @Cod_Segmento;
+	END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_SEGMENTO_TT''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_SEGMENTO_TT;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_SEGMENTO_TT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT pss.*
+        FROM dbo.PRI_SUNAT_SEGMENTO pss;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_SEGMENTO_TXPK''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_SEGMENTO_TXPK;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_SEGMENTO_TXPK @Cod_Segmento VARCHAR(5)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT pss.*
+        FROM dbo.PRI_SUNAT_SEGMENTO pss
+        WHERE pss.Cod_Segmento = @Cod_Segmento;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_SEGMENTO_Auditoria''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_SEGMENTO_Auditoria;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_SEGMENTO_Auditoria @Cod_Segmento VARCHAR(5)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT pss.Cod_UsuarioReg, 
+               pss.Fecha_Reg, 
+               pss.Cod_UsuarioAct, 
+               pss.Fecha_Act
+        FROM dbo.PRI_SUNAT_SEGMENTO pss
+        WHERE pss.Cod_Segmento = @Cod_Segmento;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_SEGMENTO_TNF''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_SEGMENTO_TNF;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_SEGMENTO_TNF @ScripWhere VARCHAR(MAX) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        EXECUTE (''SELECT COUNT(*) AS Nro_Filas FROM PRI_SUNAT_SEGMENTO ''+@ScripWhere);
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_SEGMENTO_TP''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_SEGMENTO_TP;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_SEGMENTO_TP @TamañoPagina VARCHAR(16), 
+                                           @NumeroPagina VARCHAR(16), 
+                                           @ScripOrden   VARCHAR(MAX) = NULL, 
+                                           @ScripWhere   VARCHAR(MAX) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        DECLARE @ScripSQL VARCHAR(MAX);
+        SET @ScripSQL = ''SELECT NumeroFila,Cod_Segmento,Des_Segmento,Estado,Cod_UsuarioReg,Fecha_Reg,Cod_UsuarioAct,Fecha_Act 
+			FROM (SELECT TOP 100 PERCENT Cod_Segmento,Des_Segmento,Estado,Cod_UsuarioReg,Fecha_Reg,Cod_UsuarioAct,Fecha_Act,
+			ROW_NUMBER() OVER ('' + @ScripOrden + '') AS NumeroFila
+			FROM PRI_SUNAT_SEGMENTO '' + @ScripWhere + '') aPRI_SUNAT_SEGMENTO
+			WHERE NumeroFila BETWEEN ('' + @TamañoPagina + '' * '' + @NumeroPagina + '')+1 AND '' + @TamañoPagina + '' * ('' + @NumeroPagina + '' + 1)'';
+        EXECUTE (@ScripSQL);
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_FAMILIA_G''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_FAMILIA_G;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_FAMILIA_G @Cod_Familia  VARCHAR(10), 
+                                         @Cod_Segmento VARCHAR(5), 
+                                         @Des_Familia  VARCHAR(MAX), 
+                                         @Estado       BIT, 
+                                         @Cod_Usuario  VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        IF NOT EXISTS
+        (
+            SELECT psf.*
+            FROM dbo.PRI_SUNAT_FAMILIA psf
+            WHERE  psf.Cod_Familia = @Cod_Familia
+        )
+            BEGIN
+                INSERT INTO dbo.PRI_SUNAT_FAMILIA
+                VALUES
+                (@Cod_Familia, -- Cod_Familia - VARCHAR
+                 @Cod_Segmento, -- Cod_Segmento - VARCHAR
+                 @Des_Familia, -- Des_Familia - VARCHAR
+                 @Estado, -- Estado - BIT
+                 @Cod_Usuario, -- Cod_UsuarioReg - VARCHAR
+                 GETDATE(), -- Fecha_Reg - DATETIME
+                 NULL, -- Cod_UsuarioAct - VARCHAR
+                 NULL -- Fecha_Act - DATETIME
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.PRI_SUNAT_FAMILIA
+                  SET 
+                      dbo.PRI_SUNAT_FAMILIA.Cod_Segmento = @Cod_Segmento, -- VARCHAR
+                      dbo.PRI_SUNAT_FAMILIA.Des_Familia = @Des_Familia, -- VARCHAR
+                      dbo.PRI_SUNAT_FAMILIA.Estado = @Estado, -- BIT
+                      dbo.PRI_SUNAT_FAMILIA.Cod_UsuarioAct = @Cod_Usuario, -- VARCHAR
+                      dbo.PRI_SUNAT_FAMILIA.Fecha_Act = GETDATE() -- DATETIME
+                WHERE dbo.PRI_SUNAT_FAMILIA.Cod_Familia = @Cod_Familia;
+        END;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_FAMILIA_E''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_FAMILIA_E;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_FAMILIA_E @Cod_Familia VARCHAR(10)
+WITH ENCRYPTION
+AS
+    BEGIN
+        DELETE dbo.PRI_SUNAT_FAMILIA
+        WHERE dbo.PRI_SUNAT_FAMILIA.Cod_Familia = @Cod_Familia;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_FAMILIA_TT''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_FAMILIA_TT;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_FAMILIA_TT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT psf.*
+        FROM dbo.PRI_SUNAT_FAMILIA psf;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_FAMILIA_TXPK''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_FAMILIA_TXPK;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_FAMILIA_TXPK @Cod_Familia VARCHAR(10)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT psf.*
+        FROM dbo.PRI_SUNAT_FAMILIA psf
+        WHERE psf.Cod_Familia = @Cod_Familia;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_SEGMENTO_Auditoria''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_SEGMENTO_Auditoria;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_SEGMENTO_Auditoria @Cod_Familia VARCHAR(10)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT psf.Cod_UsuarioReg, 
+               psf.Fecha_Reg, 
+               psf.Cod_UsuarioAct, 
+               psf.Fecha_Act
+        FROM dbo.PRI_SUNAT_FAMILIA psf
+        WHERE psf.Cod_Familia = @Cod_Familia;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_FAMILIA_TNF''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_FAMILIA_TNF;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_FAMILIA_TNF @ScripWhere VARCHAR(MAX) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        EXECUTE (''SELECT COUNT(*) AS Nro_Filas FROM PRI_SUNAT_FAMILIA ''+@ScripWhere);
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_FAMILIA_TP''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_FAMILIA_TP;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_FAMILIA_TP @TamañoPagina VARCHAR(16), 
+                                          @NumeroPagina VARCHAR(16), 
+                                          @ScripOrden   VARCHAR(MAX) = NULL, 
+                                          @ScripWhere   VARCHAR(MAX) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        DECLARE @ScripSQL VARCHAR(MAX);
+        SET @ScripSQL = ''SELECT NumeroFila,Cod_Familia,Cod_Segmento,Des_Familia,Estado,Cod_UsuarioReg,Fecha_Reg,Cod_UsuarioAct,Fecha_Act
+			FROM (SELECT TOP 100 PERCENT Cod_Familia,Cod_Segmento,Des_Familia,Estado,Cod_UsuarioReg,Fecha_Reg,Cod_UsuarioAct,Fecha_Act,
+			ROW_NUMBER() OVER ('' + @ScripOrden + '') AS NumeroFila
+			FROM PRI_SUNAT_FAMILIA '' + @ScripWhere + '') aPRI_SUNAT_FAMILIA
+			WHERE NumeroFila BETWEEN ('' + @TamañoPagina + '' * '' + @NumeroPagina + '')+1 AND '' + @TamañoPagina + '' * ('' + @NumeroPagina + '' + 1)'';
+        EXECUTE (@ScripSQL);
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_CLASE_G''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_CLASE_G;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_CLASE_G @Cod_Clase   VARCHAR(20), 
+                                           @Cod_Familia VARCHAR(10), 
+                                           @Des_Clase   VARCHAR(MAX), 
+                                           @Estado      BIT, 
+                                           @Cod_Usuario VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        IF NOT EXISTS
+        (
+            SELECT psc.*
+            FROM dbo.PRI_SUNAT_CLASE psc
+            WHERE psc.Cod_Clase = @Cod_Clase
+        )
+            BEGIN
+                INSERT INTO dbo.PRI_SUNAT_CLASE
+                VALUES
+                (@Cod_Clase, -- Cod_Clase - VARCHAR
+                 @Cod_Familia, -- Cod_Familia - VARCHAR
+                 @Des_Clase, -- Des_Clase - VARCHAR
+                 @Estado, -- Estado - BIT
+                 @Cod_Usuario, -- Cod_UsuarioReg - VARCHAR
+                 GETDATE(), -- Fecha_Reg - DATETIME
+                 NULL, -- Cod_UsuarioAct - VARCHAR
+                 NULL -- Fecha_Act - DATETIME
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.PRI_SUNAT_CLASE
+                  SET 
+                      dbo.PRI_SUNAT_CLASE.Cod_Familia = @Cod_Familia, -- VARCHAR
+                      dbo.PRI_SUNAT_CLASE.Des_Clase = @Des_Clase, -- VARCHAR
+                      dbo.PRI_SUNAT_CLASE.Estado = @Estado, -- BIT
+                      dbo.PRI_SUNAT_CLASE.Cod_UsuarioAct = @Cod_Usuario, -- VARCHAR
+                      dbo.PRI_SUNAT_CLASE.Fecha_Act = GETDATE() -- DATETIME
+                WHERE dbo.PRI_SUNAT_CLASE.Cod_Clase = @Cod_Clase;
+        END;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_CLASE_E''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_CLASE_E;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_CLASE_E @Cod_Clase VARCHAR(20)
+WITH ENCRYPTION
+AS
+    BEGIN
+        DELETE dbo.PRI_SUNAT_CLASE
+        WHERE dbo.PRI_SUNAT_CLASE.Cod_Clase = @Cod_Clase;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_CLASE_TT''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_CLASE_TT;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_CLASE_TT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT psc.*
+        FROM dbo.PRI_SUNAT_CLASE psc;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_CLASE_TXPK''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_CLASE_TXPK;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_CLASE_TXPK @Cod_Clase VARCHAR(20)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT psc.*
+        FROM dbo.PRI_SUNAT_CLASE psc
+        WHERE psc.Cod_Clase = @Cod_Clase;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_CLASE_Auditoria''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_CLASE_Auditoria;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_CLASE_Auditoria @Cod_Clase VARCHAR(20)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT psc.Cod_UsuarioReg, 
+               psc.Fecha_Reg, 
+               psc.Cod_UsuarioAct, 
+               psc.Fecha_Act
+        FROM dbo.PRI_SUNAT_CLASE psc
+        WHERE psc.Cod_Clase = @Cod_Clase;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_CLASE_TNF''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_CLASE_TNF;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_CLASE_TNF @ScripWhere VARCHAR(MAX) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        EXECUTE (''SELECT COUNT(*) AS Nro_Filas FROM PRI_SUNAT_CLASE ''+@ScripWhere);
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_CLASE_TP''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_CLASE_TP;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_CLASE_TP @TamañoPagina VARCHAR(16), 
+                                        @NumeroPagina VARCHAR(16), 
+                                        @ScripOrden   VARCHAR(MAX) = NULL, 
+                                        @ScripWhere   VARCHAR(MAX) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        DECLARE @ScripSQL VARCHAR(MAX);
+        SET @ScripSQL = ''SELECT NumeroFila,Cod_Clase,Cod_Familia,Des_Clase,Estado,Cod_UsuarioReg,Fecha_Reg,Cod_UsuarioAct,Fecha_Act
+			FROM (SELECT TOP 100 PERCENT Cod_Clase,Cod_Familia,Des_Clase,Estado,Cod_UsuarioReg,Fecha_Reg,Cod_UsuarioAct,Fecha_Act,
+			ROW_NUMBER() OVER ('' + @ScripOrden + '') AS NumeroFila
+			FROM PRI_SUNAT_CLASE '' + @ScripWhere + '') aPRI_SUNAT_CLASE
+			WHERE NumeroFila BETWEEN ('' + @TamañoPagina + '' * '' + @NumeroPagina + '')+1 AND '' + @TamañoPagina + '' * ('' + @NumeroPagina + '' + 1)'';
+        EXECUTE (@ScripSQL);
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_PRODUCTOS_G''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_PRODUCTOS_G;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_PRODUCTOS_G @Cod_Producto VARCHAR(32), 
+                                               @Cod_Segmento VARCHAR(5), 
+                                               @Cod_Familia  VARCHAR(10), 
+                                               @Cod_Clase    VARCHAR(20), 
+                                               @Des_Producto VARCHAR(MAX), 
+                                               @Estado       BIT, 
+                                               @Cod_Usuario  VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        IF NOT EXISTS
+        (
+            SELECT psp.*
+            FROM dbo.PRI_SUNAT_PRODUCTOS psp
+            WHERE psp.Cod_Producto = @Cod_Producto
+        )
+            BEGIN
+                INSERT INTO dbo.PRI_SUNAT_PRODUCTOS
+                VALUES
+                (@Cod_Producto, -- Cod_Producto - VARCHAR
+                 @Cod_Segmento, -- Cod_Segmento - VARCHAR
+                 @Cod_Familia, -- Cod_Familia - VARCHAR
+                 @Cod_Clase, -- Cod_Clase - VARCHAR
+                 @Des_Producto, -- Des_Producto - VARCHAR
+                 @Estado, -- Estado - BIT
+                 @Cod_Usuario, -- Cod_UsuarioReg - VARCHAR
+                 GETDATE(), -- Fecha_Reg - DATETIME
+                 NULL, -- Cod_UsuarioAct - VARCHAR
+                 NULL -- Fecha_Act - DATETIME
+                );
+        END;
+            ELSE
+            BEGIN
+                UPDATE dbo.PRI_SUNAT_PRODUCTOS
+                  SET 
+                      dbo.PRI_SUNAT_PRODUCTOS.Cod_Segmento = @Cod_Segmento, -- VARCHAR
+                      dbo.PRI_SUNAT_PRODUCTOS.Cod_Familia = @Cod_Familia, -- VARCHAR
+                      dbo.PRI_SUNAT_PRODUCTOS.Cod_Clase = @Cod_Clase, -- VARCHAR
+                      dbo.PRI_SUNAT_PRODUCTOS.Des_Producto = @Des_Producto, -- VARCHAR
+                      dbo.PRI_SUNAT_PRODUCTOS.Estado = @Estado, -- BIT
+                      dbo.PRI_SUNAT_PRODUCTOS.Cod_UsuarioAct = @Cod_Usuario, -- VARCHAR
+                      dbo.PRI_SUNAT_PRODUCTOS.Fecha_Act = GETDATE() -- DATETIME
+                WHERE dbo.PRI_SUNAT_PRODUCTOS.Cod_Producto = @Cod_Producto;
+        END;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_PRODUCTOS_E''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_PRODUCTOS_E;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_PRODUCTOS_E @Cod_Producto VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        DELETE dbo.PRI_SUNAT_PRODUCTOS
+        WHERE dbo.PRI_SUNAT_PRODUCTOS.Cod_Producto = @Cod_Producto;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_PRODUCTOS_TT''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_PRODUCTOS_TT;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_PRODUCTOS_TT
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT psp.*
+        FROM dbo.PRI_SUNAT_PRODUCTOS psp;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_PRODUCTOS_TXPK''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_PRODUCTOS_TXPK;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_PRODUCTOS_TXPK @Cod_Producto VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT psp.*
+        FROM dbo.PRI_SUNAT_PRODUCTOS psp
+        WHERE psp.Cod_Producto = @Cod_Producto;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_PRODUCTOS_Auditoria''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_PRODUCTOS_Auditoria;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_PRODUCTOS_Auditoria @Cod_Producto VARCHAR(32)
+WITH ENCRYPTION
+AS
+    BEGIN
+        SELECT psp.Cod_UsuarioReg, 
+               psp.Fecha_Reg, 
+               psp.Cod_UsuarioAct, 
+               psp.Fecha_Act
+        FROM dbo.PRI_SUNAT_PRODUCTOS psp
+        WHERE psp.Cod_Producto = @Cod_Producto;
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_PRODUCTOS_TNF''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_PRODUCTOS_TNF;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_PRODUCTOS_TNF @ScripWhere VARCHAR(MAX) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        EXECUTE (''SELECT COUNT(*) AS Nro_Filas FROM PRI_SUNAT_PRODUCTOS ''+@ScripWhere);
+    END;
+');
+        EXEC ('
+IF EXISTS
+(
+    SELECT *
+    FROM sysobjects
+    WHERE name = N''USP_PRI_SUNAT_PRODUCTOS_TP''
+          AND type = ''P''
+)
+    DROP PROCEDURE USP_PRI_SUNAT_PRODUCTOS_TP;
+');
+        EXEC ('
+CREATE PROCEDURE USP_PRI_SUNAT_PRODUCTOS_TP @TamañoPagina VARCHAR(16), 
+                                            @NumeroPagina VARCHAR(16), 
+                                            @ScripOrden   VARCHAR(MAX) = NULL, 
+                                            @ScripWhere   VARCHAR(MAX) = NULL
+WITH ENCRYPTION
+AS
+    BEGIN
+        DECLARE @ScripSQL VARCHAR(MAX);
+        SET @ScripSQL = ''SELECT NumeroFila,Cod_Producto,Cod_Segmento,Cod_Familia,Cod_Clase,Des_Producto,Estado,Cod_UsuarioReg,Fecha_Reg,Cod_UsuarioAct,Fecha_Act
+			FROM (SELECT TOP 100 PERCENT Cod_Producto,Cod_Segmento,Cod_Familia,Cod_Clase,Des_Producto,Estado,Cod_UsuarioReg,Fecha_Reg,Cod_UsuarioAct,Fecha_Act,
+			ROW_NUMBER() OVER ('' + @ScripOrden + '') AS NumeroFila
+			FROM PRI_SUNAT_PRODUCTOS '' + @ScripWhere + '') aPRI_SUNAT_PRODUCTOS
+			WHERE NumeroFila BETWEEN ('' + @TamañoPagina + '' * '' + @NumeroPagina + '')+1 AND '' + @TamañoPagina + '' * ('' + @NumeroPagina + '' + 1)'';
+        EXECUTE (@ScripSQL);
+    END;
+');
+        IF @NroSegmentos <>
+        (
+            SELECT COUNT(*)
+            FROM dbo.PRI_SUNAT_SEGMENTO pss
+        )
+           OR @NroFamilias <>
+        (
+            SELECT COUNT(*)
+            FROM dbo.PRI_SUNAT_FAMILIA psf
+        )
+           OR @NroClases <>
+        (
+            SELECT COUNT(*)
+            FROM dbo.PRI_SUNAT_CLASE psc
+        )
+           OR @NroProductos <>
+        (
+            SELECT COUNT(*)
+            FROM dbo.PRI_SUNAT_PRODUCTOS psp
+        )
+            BEGIN
+                --Borramos el contenido previamente almacenado
+                DELETE dbo.PRI_SUNAT_PRODUCTOS;
+                DELETE dbo.PRI_SUNAT_CLASE;
+                DELETE dbo.PRI_SUNAT_FAMILIA;
+                DELETE dbo.PRI_SUNAT_SEGMENTO;
+                --Ejecutamos el script de productos de acuerdo a la ruta 
+                DECLARE @NombreBD VARCHAR(MAX)=
+                (
+                    SELECT DB_NAME()
+                );
+                EXEC ('master..xp_cmdshell  ''Sqlcmd -S .\PALEHOST -d '+@NombreBD+' -i  '+@RutaArchivoScript+'''');
+        END;
+    END;
+GO
+
+--------------------------------------------------------------------------------------------------------------
+-- AUTOR: ESTEFANI HUAMAN;
+-- FECHA: 10/06/2019;
+-- OBJETIVO: Procedimiento que permite listar tipos de productos 
+-- EXEC USP_PRI_TRAER_PRODUCTOSXTipo
+--------------------------------------------------------------------------------------------------------------
+IF EXISTS (SELECT name FROM sysobjects WHERE name = 'USP_PRI_TRAER_PRODUCTOSXTipo' AND type = 'P')
+DROP PROCEDURE USP_PRI_TRAER_PRODUCTOSXTipo
+go 
+CREATE  PROCEDURE USP_PRI_TRAER_PRODUCTOSXTipo 
+AS
+BEGIN
+	SELECT DISTINCT [Cod_TipoProducto]
+	FROM PRI_PRODUCTOS 
+	--where [Cod_TipoProducto]='PRO'
+END
 GO
